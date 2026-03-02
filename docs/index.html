@@ -23,13 +23,13 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; padding-bottom: 60px; }
 
-  /* Layout */
   header {
     border-bottom: 1px solid var(--border);
     padding: 18px 36px; display: flex; align-items: center; justify-content: space-between;
     position: sticky; top: 0; background: rgba(13,13,20,0.96); backdrop-filter: blur(12px); z-index: 100;
   }
   .logo { font-family: var(--font-mono); font-size: 14px; font-weight: 600; color: var(--accent-view); letter-spacing: 0.08em; }
+  .logo em { color: var(--muted); font-style: normal; }
   #last-updated { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
 
   .kpi-strip { display: grid; grid-template-columns: repeat(4,1fr); border-bottom: 1px solid var(--border); }
@@ -42,7 +42,7 @@
   .kpi-value.a { color: var(--accent-article); }
   .kpi-value.f { color: var(--accent-follower); }
   .kpi-diff { margin-top: 8px; font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
-  .kpi-diff.up { color: var(--accent-view); }
+  .kpi-diff.up   { color: var(--accent-view); }
   .kpi-diff.down { color: var(--accent-like); }
 
   .grid { display: grid; grid-template-columns: 1fr 1fr; }
@@ -55,53 +55,49 @@
     letter-spacing: 0.18em; text-transform: uppercase;
     margin-bottom: 20px; display: flex; align-items: center; gap: 8px;
   }
-  .panel-title::before { content:''; width:6px; height:6px; border-radius:50%; background: var(--accent-view); }
+  .panel-title::before { content:''; width:6px; height:6px; border-radius:50%; background: var(--accent-view); flex-shrink:0; }
 
-  /* Charts & Lists */
   .chart-wrap { position: relative; height: 300px; }
   .chart-wrap.tall { height: 380px; }
-  .ranking-list { display: flex; flex-direction: column; gap: 6px; max-height: 400px; overflow-y: auto; }
+
+  .ranking-list { display: flex; flex-direction: column; gap: 6px; max-height: 360px; overflow-y: auto; padding-right: 4px; }
   .rank-item {
     display: grid; grid-template-columns: 26px 1fr 90px;
     align-items: center; gap: 10px; padding: 9px 12px;
     background: var(--surface); border: 1px solid var(--border); border-radius: 3px;
   }
-  .rank-title { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rank-title { font-size: 11px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .view-val { color: var(--accent-view); font-family: var(--font-mono); }
 
-  /* Table Custom (Images styles) */
+  /* --- 追加：解析テーブル用スタイル --- */
   .table-container { overflow-x: auto; border: 1px solid var(--border); }
   .trend-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 11px; }
   .trend-table th, .trend-table td { padding: 12px; border-bottom: 1px solid var(--border); border-right: 1px solid rgba(255,255,255,0.05); }
   .trend-table th { background: var(--bg); color: var(--muted); position: sticky; top: 0; z-index: 10; text-align: left; }
   
-  /* Sticky Columns */
+  /* 資産記事（画像再現用） */
+  .bar-cell { width: 100px; position: relative; padding: 0 !important; }
+  .bar-fill { height: 100%; background: #4fffb0; opacity: 0.4; position: absolute; left: 0; top: 0; }
+  .highlight-col { background: rgba(79, 255, 176, 0.15); color: var(--accent-view); text-align: center; font-weight: bold; width: 60px; }
+  .trend-text { font-family: var(--font-mono); font-size: 10px; color: var(--muted); white-space: nowrap; }
+
+  /* トレンド詳細（スクロール固定用） */
   .sticky-col-1 { position: sticky; left: 0; background: var(--surface); z-index: 5; min-width: 80px; border-right: 1px solid var(--border) !important; }
   .sticky-col-2 { position: sticky; left: 80px; background: var(--surface); z-index: 5; border-right: 2px solid var(--border) !important; }
 
-  /* Asset Image Replica Style */
-  .bar-cell { width: 100px; position: relative; padding: 0 !important; }
-  .bar-fill { height: 100%; background: #4fffb0; opacity: 0.4; position: absolute; left: 0; top: 0; transition: width 0.6s ease; }
-  .highlight-col { background: rgba(79, 255, 176, 0.15); color: var(--accent-view); text-align: center; font-weight: bold; width: 60px; }
-  .trend-text { font-family: var(--font-mono); font-size: 10px; color: var(--muted); white-space: nowrap; }
   .status-badge { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; }
   .status-🔥 { background: rgba(255, 69, 0, 0.2); color: #ff4500; }
   .status-🟢 { background: rgba(79, 255, 176, 0.2); color: var(--accent-view); }
   .status-💤 { background: rgba(74, 74, 106, 0.2); color: var(--muted); }
 
-  .loading { display: flex; align-items: center; justify-content: center; height: 150px; color: var(--muted); font-family: var(--font-mono); }
-
-  @media (max-width:768px) {
-    .kpi-strip { grid-template-columns: repeat(2,1fr); }
-    .grid { grid-template-columns: 1fr; }
-  }
+  .loading { display:flex; align-items:center; justify-content:center; height:200px; font-family:var(--font-mono); font-size:11px; color:var(--muted); }
 </style>
 </head>
 <body>
 
 <header>
   <div class="logo">note<em>/</em>stats</div>
-  <div id="last-updated">loading stats...</div>
+  <div id="last-updated">loading...</div>
 </header>
 
 <div class="kpi-strip">
@@ -138,12 +134,12 @@
   </div>
 
   <div class="panel full">
-    <div class="panel-title">資産記事分析（稼働日数と増加トレンド）</div>
+    <div class="panel-title">資産記事分析（初期バースト後の定着確認）</div>
     <div class="table-container">
       <table class="trend-table">
         <thead>
           <tr>
-            <th>#</th>
+            <th style="width:50px;">#</th>
             <th>タイトル</th>
             <th colspan="2">期間増加数</th>
             <th>稼働日数</th>
@@ -151,14 +147,14 @@
           </tr>
         </thead>
         <tbody id="asset-body">
-          <tr><td colspan="6" class="loading">Analyzing assets...</td></tr>
+          <tr><td colspan="6" class="loading">資産記事をスキャン中...</td></tr>
         </tbody>
       </table>
     </div>
   </div>
 
   <div class="panel full">
-    <div class="panel-title">トレンド動態（詳細数値：横スクロール対応）</div>
+    <div class="panel-title">トレンド動態（詳細数値：横スクロールで確認）</div>
     <div class="table-container">
       <table class="trend-table">
         <thead>
@@ -171,7 +167,7 @@
           </tr>
         </thead>
         <tbody id="trend-body">
-          <tr><td colspan="11" class="loading">Calculating trends...</td></tr>
+          <tr><td colspan="11" class="loading">トレンド詳細を計算中...</td></tr>
         </tbody>
       </table>
     </div>
@@ -187,22 +183,20 @@
 const BASE = 'https://raw.githubusercontent.com/Goo-dev0505/note-stats-public/main/data/';
 
 async function fetchCSV(name) {
-  try {
-    const res = await fetch(BASE + name + '.csv?t=' + Date.now());
-    if (!res.ok) throw new Error(name + ' not found');
-    const text = await res.text();
-    const lines = text.trim().split('\n');
-    const headers = lines[0].split(',').map(h => h.trim());
-    return lines.slice(1).map(line => {
-      const vals = line.split(',');
-      const obj = {};
-      headers.forEach((h, i) => obj[h] = (vals[i] || '').trim());
-      return obj;
-    });
-  } catch(e) { console.error(e); return []; }
+  const res = await fetch(BASE + name + '.csv?t=' + Date.now());
+  if (!res.ok) throw new Error(name + ' not found');
+  const text = await res.text();
+  const lines = text.trim().split('\n');
+  const headers = lines[0].split(',').map(h => h.trim());
+  return lines.slice(1).map(line => {
+    const vals = line.split(',');
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = (vals[i] || '').trim());
+    return obj;
+  });
 }
 
-// --- KPI & Basic Charts ---
+// --- KPI & Basic Chart Builders ---
 function buildDaily(rows) {
   const r = rows.slice(-60);
   const labels = r.map(d => d['日付'] ? d['日付'].slice(5) : '');
@@ -225,7 +219,6 @@ function buildRanking(containerId, rows, valueKey) {
   if (!rows.length) return;
   const latest = rows.reduce((a,b) => a.date > b.date ? a : b).date;
   const sorted = rows.filter(r => r.date === latest).sort((a,b) => Number(b[valueKey]) - Number(a[valueKey])).slice(0,20);
-  const max = Number(sorted[0][valueKey] || 1);
   document.getElementById(containerId).innerHTML = sorted.map((r,i) => `
     <div class="rank-item">
       <span style="font-family:var(--font-mono); font-size:10px; color:var(--muted)">${String(i+1).padStart(2,'0')}</span>
@@ -235,10 +228,10 @@ function buildRanking(containerId, rows, valueKey) {
   `).join('');
 }
 
-// --- New Analysis Builders ---
+// --- New Analysis Table Builders ---
 function buildAssetTable(rows) {
   const tbody = document.getElementById('asset-body');
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6">No asset data found.</td></tr>'; return; }
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6">データがありません</td></tr>'; return; }
   
   const maxGain = Math.max(...rows.map(r => Number(r['期間増加PV'] || 0)), 1);
   
@@ -291,31 +284,37 @@ function buildQuad(rows) {
   });
 }
 
+// --- Main Init ---
 async function init() {
-  const [summary, articles, followers, trend, assets] = await Promise.all([
-    fetchCSV('daily_summary'), fetchCSV('articles'), fetchCSV('followers'),
-    fetchCSV('trend_analysis'), fetchCSV('asset_articles')
-  ]);
+  try {
+    const [summary, articles, followers, trend, assets] = await Promise.all([
+      fetchCSV('daily_summary'), fetchCSV('articles'), fetchCSV('followers'),
+      fetchCSV('trend_analysis'), fetchCSV('asset_articles')
+    ]);
 
-  if (summary.length) {
-    const latest = summary[summary.length-1];
-    document.getElementById('kpi-views').textContent = Number(latest['ビュー合計']).toLocaleString();
-    document.getElementById('kpi-likes').textContent = Number(latest['スキ合計']).toLocaleString();
-    document.getElementById('kpi-articles').textContent = Number(latest['記事数']).toLocaleString();
-    document.getElementById('kpi-followers').textContent = latest['フォロワー数'] || '—';
-    document.getElementById('last-updated').textContent = `updated ${latest['日付']} ${latest['更新時刻']||''}`;
-    
-    const vDiff = parseFloat(latest['ビュー前日比(%)']);
-    const elV = document.getElementById('kpi-views-diff');
-    elV.textContent = (vDiff >= 0 ? '▲' : '▼') + Math.abs(vDiff).toFixed(1) + '% 前日比';
-    elV.className = 'kpi-diff ' + (vDiff >= 0 ? 'up' : 'down');
+    if (summary.length) {
+      const latest = summary[summary.length-1];
+      document.getElementById('kpi-views').textContent = Number(latest['ビュー合計']).toLocaleString();
+      document.getElementById('kpi-likes').textContent = Number(latest['スキ合計']).toLocaleString();
+      document.getElementById('kpi-articles').textContent = Number(latest['記事数']).toLocaleString();
+      document.getElementById('kpi-followers').textContent = latest['フォロワー数'] || '—';
+      document.getElementById('last-updated').textContent = `updated ${latest['日付']} ${latest['更新時刻']||''}`;
+      
+      const vDiff = parseFloat(latest['ビュー前日比(%)']);
+      const elV = document.getElementById('kpi-views-diff');
+      elV.textContent = (vDiff >= 0 ? '▲' : '▼') + Math.abs(vDiff).toFixed(1) + '% 前日比';
+      elV.className = 'kpi-diff ' + (vDiff >= 0 ? 'up' : 'down');
+    }
+
+    buildDaily(summary);
+    buildRanking('ranking-views', articles, 'read_count');
+    buildAssetTable(assets);
+    buildTrendDetailed(trend);
+    buildQuad(summary);
+  } catch(e) {
+    console.error(e);
+    document.getElementById('last-updated').textContent = 'エラー: ' + e.message;
   }
-
-  buildDaily(summary);
-  buildRanking('ranking-views', articles, 'read_count');
-  buildAssetTable(assets);
-  buildTrendDetailed(trend);
-  buildQuad(summary);
 }
 
 init();
