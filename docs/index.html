@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>note stats dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --border: #1e1e2e;
+    --accent: #7fff6e;
+    --accent2: #6eb5ff;
+    --accent3: #ff6e9c;
+    --text: #e8e8f0;
+    --muted: #5a5a7a;
+    --font-mono: 'Space Mono', monospace;
+    --font-body: 'Noto Sans JP', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    padding: 0 0 60px;
+  }
+
+  /* Header */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 24px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    background: rgba(10,10,15,0.95);
+    backdrop-filter: blur(10px);
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .logo span { color: var(--muted); }
+
+  #last-updated {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* KPI strip */
+  .kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .kpi {
+    padding: 28px 40px;
+    border-right: 1px solid var(--border);
+    animation: fadeUp 0.5s ease both;
+  }
+
+  .kpi:last-child { border-right: none; }
+
+  .kpi-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .kpi-value {
+    font-family: var(--font-mono);
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  .kpi-value.green { color: var(--accent); }
+  .kpi-value.blue  { color: var(--accent2); }
+  .kpi-value.pink  { color: var(--accent3); }
+
+  .kpi-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  /* Main grid */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+  }
+
+  .panel {
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    padding: 32px 40px;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .panel:nth-child(2n) { border-right: none; }
+  .panel.full { grid-column: 1 / -1; border-right: none; }
+
+  .panel-title {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-title::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  .panel:nth-child(2) .panel-title::before { background: var(--accent2); }
+  .panel:nth-child(3) .panel-title::before { background: var(--accent3); }
+  .panel:nth-child(4) .panel-title::before { background: #ffd96e; }
+
+  .chart-wrap {
+    position: relative;
+    height: 280px;
+  }
+
+  .chart-wrap.tall { height: 340px; }
+
+  /* Ranking */
+  .ranking-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 320px;
+    overflow-y: auto;
+  }
+
+  .ranking-list::-webkit-scrollbar { width: 3px; }
+  .ranking-list::-webkit-scrollbar-track { background: transparent; }
+  .ranking-list::-webkit-scrollbar-thumb { background: var(--border); }
+
+  .rank-item {
+    display: grid;
+    grid-template-columns: 28px 1fr 80px;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: var(--surface);
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    transition: border-color 0.2s;
+  }
+
+  .rank-item:hover { border-color: var(--accent2); }
+
+  .rank-num {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .rank-num.top { color: var(--accent); font-weight: 700; }
+
+  .rank-title {
+    font-size: 12px;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .rank-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .rank-bar {
+    flex: 1;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .rank-bar-fill {
+    height: 100%;
+    background: var(--accent2);
+    border-radius: 2px;
+    transition: width 0.8s ease;
+  }
+
+  .rank-val {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--accent2);
+    min-width: 40px;
+    text-align: right;
+  }
+
+  /* Loading */
+  .loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 768px) {
+    .kpi-strip { grid-template-columns: repeat(2, 1fr); }
+    .grid { grid-template-columns: 1fr; }
+    .panel { border-right: none; }
+    header { padding: 16px 20px; }
+    .kpi { padding: 20px; }
+    .panel { padding: 24px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">note<span>/</span>stats</div>
+  <div id="last-updated">loading...</div>
+</header>
+
+<div class="kpi-strip">
+  <div class="kpi" style="animation-delay:0.1s">
+    <div class="kpi-label">Total Views</div>
+    <div class="kpi-value green" id="kpi-views">—</div>
+    <div class="kpi-sub" id="kpi-views-sub">累計ビュー</div>
+  </div>
+  <div class="kpi" style="animation-delay:0.2s">
+    <div class="kpi-label">Total Likes</div>
+    <div class="kpi-value blue" id="kpi-likes">—</div>
+    <div class="kpi-sub" id="kpi-likes-sub">累計スキ</div>
+  </div>
+  <div class="kpi" style="animation-delay:0.3s">
+    <div class="kpi-label">Articles</div>
+    <div class="kpi-value" id="kpi-articles">—</div>
+    <div class="kpi-sub">公開記事数</div>
+  </div>
+  <div class="kpi" style="animation-delay:0.4s">
+    <div class="kpi-label">Followers</div>
+    <div class="kpi-value pink" id="kpi-followers">—</div>
+    <div class="kpi-sub">フォロワー数</div>
+  </div>
+</div>
+
+<div class="grid">
+  <!-- 日次推移 -->
+  <div class="panel" style="animation-delay:0.2s">
+    <div class="panel-title">日次ビュー・スキ推移</div>
+    <div class="chart-wrap"><canvas id="chart-daily"></canvas></div>
+  </div>
+
+  <!-- ランキング -->
+  <div class="panel" style="animation-delay:0.3s">
+    <div class="panel-title">記事ビューランキング</div>
+    <div class="ranking-list" id="ranking-list">
+      <div class="loading">loading...</div>
+    </div>
+  </div>
+
+  <!-- フォロワー推移 -->
+  <div class="panel" style="animation-delay:0.4s">
+    <div class="panel-title">フォロワー数推移</div>
+    <div class="chart-wrap"><canvas id="chart-followers"></canvas></div>
+  </div>
+
+  <!-- 4象限 -->
+  <div class="panel" style="animation-delay:0.5s">
+    <div class="panel-title">4象限マップ（ビュー/記事 × スキ率）</div>
+    <div class="chart-wrap"><canvas id="chart-quad"></canvas></div>
+  </div>
+</div>
+
+<script>
+// ── CSV fetch & parse ──────────────────────────────────────
+const BASE = 'https://raw.githubusercontent.com/Goo-dev0505/note-stats-public/main/data/';
+
+async function fetchCSV(name) {
+  const res = await fetch(BASE + name + '?t=' + Date.now());
+  if (!res.ok) throw new Error(name + ' not found');
+  const text = await res.text();
+  const lines = text.trim().split('\n');
+  const headers = lines[0].split(',');
+  return lines.slice(1).map(line => {
+    const vals = line.split(',');
+    const obj = {};
+    headers.forEach((h, i) => obj[h.trim()] = (vals[i] || '').trim());
+    return obj;
+  });
+}
+
+// ── Chart defaults ─────────────────────────────────────────
+Chart.defaults.color = '#5a5a7a';
+Chart.defaults.font.family = "'Space Mono', monospace";
+Chart.defaults.font.size = 10;
+
+const GRID_COLOR = '#1e1e2e';
+
+function baseOptions(title) {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: true, labels: { boxWidth: 8, padding: 16, color: '#5a5a7a' } },
+      tooltip: {
+        backgroundColor: '#13131a',
+        borderColor: '#1e1e2e',
+        borderWidth: 1,
+        titleColor: '#e8e8f0',
+        bodyColor: '#5a5a7a',
+        padding: 12,
+      }
+    },
+    scales: {
+      x: { grid: { color: GRID_COLOR }, ticks: { maxTicksLimit: 8 } },
+      y: { grid: { color: GRID_COLOR } }
+    }
+  };
+}
+
+// ── Main ───────────────────────────────────────────────────
+async function init() {
+  try {
+    const [summary, articles, followers] = await Promise.all([
+      fetchCSV('daily_summary'),
+      fetchCSV('articles'),
+      fetchCSV('followers'),
+    ]);
+
+    const latest = summary[summary.length - 1];
+
+    // KPIs
+    document.getElementById('kpi-views').textContent    = Number(latest['ビュー合計']).toLocaleString();
+    document.getElementById('kpi-likes').textContent    = Number(latest['スキ合計']).toLocaleString();
+    document.getElementById('kpi-articles').textContent = latest['記事数'];
+    document.getElementById('kpi-followers').textContent = latest['フォロワー数'] || '—';
+    document.getElementById('last-updated').textContent  = 'updated ' + latest['日付'] + ' ' + (latest['更新時刻'] || '');
+
+    // 前日比サブテキスト
+    const vd = parseFloat(latest['ビュー前日比(%)']);
+    const ld = parseFloat(latest['スキ前日比(%)']);
+    if (!isNaN(vd)) document.getElementById('kpi-views-sub').textContent = (vd >= 0 ? '▲' : '▼') + Math.abs(vd).toFixed(1) + '% 前日比';
+    if (!isNaN(ld)) document.getElementById('kpi-likes-sub').textContent = (ld >= 0 ? '▲' : '▼') + Math.abs(ld).toFixed(1) + '% 前日比';
+
+    buildDaily(summary);
+    buildRanking(articles);
+    buildFollowers(summary, followers);
+    buildQuad(summary);
+
+  } catch (e) {
+    console.error(e);
+    document.getElementById('last-updated').textContent = 'データ取得失敗: ' + e.message;
+  }
+}
+
+// ── 日次推移 ───────────────────────────────────────────────
+function buildDaily(rows) {
+  const recent = rows.slice(-60);
+  const labels = recent.map(r => r['日付'].slice(5)); // MM/DD
+  const views  = recent.map(r => Number(r['ビュー合計']));
+  const likes  = recent.map(r => Number(r['スキ合計']));
+
+  new Chart(document.getElementById('chart-daily'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'ビュー',
+          data: views,
+          borderColor: '#7fff6e',
+          backgroundColor: 'rgba(127,255,110,0.06)',
+          borderWidth: 2,
+          pointRadius: 0,
+          fill: true,
+          tension: 0.3,
+          yAxisID: 'y',
+        },
+        {
+          label: 'スキ',
+          data: likes,
+          borderColor: '#6eb5ff',
+          backgroundColor: 'rgba(110,181,255,0.06)',
+          borderWidth: 2,
+          pointRadius: 0,
+          fill: true,
+          tension: 0.3,
+          yAxisID: 'y1',
+        },
+      ]
+    },
+    options: {
+      ...baseOptions(),
+      scales: {
+        x: { grid: { color: GRID_COLOR }, ticks: { maxTicksLimit: 8 } },
+        y:  { grid: { color: GRID_COLOR }, position: 'left' },
+        y1: { grid: { display: false }, position: 'right' },
+      }
+    }
+  });
+}
+
+// ── ランキング ─────────────────────────────────────────────
+function buildRanking(rows) {
+  // 最新日付だけ取得
+  const latest = rows.reduce((a, b) => a.date > b.date ? a : b).date;
+  const today  = rows.filter(r => r.date === latest)
+                     .sort((a, b) => Number(b.read_count) - Number(a.read_count))
+                     .slice(0, 20);
+
+  const max = Number(today[0]?.read_count || 1);
+  const list = document.getElementById('ranking-list');
+  list.innerHTML = today.map((r, i) => `
+    <div class="rank-item">
+      <span class="rank-num ${i < 3 ? 'top' : ''}">${String(i+1).padStart(2,'0')}</span>
+      <span class="rank-title" title="${r.title}">${r.title}</span>
+      <div class="rank-bar-wrap">
+        <div class="rank-bar"><div class="rank-bar-fill" style="width:${(Number(r.read_count)/max*100).toFixed(1)}%"></div></div>
+        <span class="rank-val">${Number(r.read_count).toLocaleString()}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── フォロワー推移 ─────────────────────────────────────────
+function buildFollowers(summary, followers) {
+  // followersがあればそちら、なければsummaryから
+  let labels, data;
+  const fRows = followers.filter(r => r['フォロワー数']);
+
+  if (fRows.length > 1) {
+    labels = fRows.map(r => r['日付'].slice(5));
+    data   = fRows.map(r => Number(r['フォロワー数']));
+  } else {
+    const s = summary.filter(r => r['フォロワー数']);
+    labels = s.map(r => r['日付'].slice(5));
+    data   = s.map(r => Number(r['フォロワー数']));
+  }
+
+  new Chart(document.getElementById('chart-followers'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'フォロワー数',
+        data,
+        borderColor: '#ff6e9c',
+        backgroundColor: 'rgba(255,110,156,0.08)',
+        borderWidth: 2,
+        pointRadius: data.length < 30 ? 4 : 0,
+        pointBackgroundColor: '#ff6e9c',
+        fill: true,
+        tension: 0.3,
+      }]
+    },
+    options: baseOptions()
+  });
+}
+
+// ── 4象限マップ ────────────────────────────────────────────
+function buildQuad(rows) {
+  const data = rows.map(r => ({
+    x: parseFloat(r['ビュー/記事']) || 0,
+    y: parseFloat(r['スキ率(%)']) || 0,
+    label: r['日付'],
+  }));
+
+  const xMean = data.reduce((s, d) => s + d.x, 0) / data.length;
+  const yMean = data.reduce((s, d) => s + d.y, 0) / data.length;
+
+  new Chart(document.getElementById('chart-quad'), {
+    type: 'scatter',
+    data: {
+      datasets: [{
+        label: '日次データ',
+        data,
+        backgroundColor: data.map((_, i) => `rgba(110,181,255,${0.2 + i/data.length*0.7})`),
+        pointRadius: 4,
+        pointHoverRadius: 7,
+      }]
+    },
+    options: {
+      ...baseOptions(),
+      plugins: {
+        ...baseOptions().plugins,
+        tooltip: {
+          ...baseOptions().plugins.tooltip,
+          callbacks: {
+            label: ctx => `${ctx.raw.label}  ビュー/記事:${ctx.raw.x.toFixed(1)}  スキ率:${ctx.raw.y.toFixed(2)}%`
+          }
+        },
+        annotation: undefined,
+      },
+      scales: {
+        x: {
+          grid: { color: GRID_COLOR },
+          title: { display: true, text: 'ビュー/記事', color: '#5a5a7a' },
+        },
+        y: {
+          grid: { color: GRID_COLOR },
+          title: { display: true, text: 'スキ率(%)', color: '#5a5a7a' },
+        }
+      }
+    },
+    plugins: [{
+      id: 'quadrant-lines',
+      afterDraw(chart) {
+        const { ctx, chartArea: { left, right, top, bottom }, scales: { x, y } } = chart;
+        const cx = x.getPixelForValue(xMean);
+        const cy = y.getPixelForValue(yMean);
+        ctx.save();
+        ctx.setLineDash([4, 4]);
+        ctx.strokeStyle = '#2e2e4e';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(cx, top); ctx.lineTo(cx, bottom); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(left, cy); ctx.lineTo(right, cy); ctx.stroke();
+        ctx.restore();
+      }
+    }]
+  });
+}
+
+init();
+</script>
+</body>
+</html>
