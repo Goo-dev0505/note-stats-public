@@ -102,6 +102,16 @@
     .panel { border-right: none !important; }
     header, .kpi, .panel { padding-left:16px; padding-right:16px; }
   }
+
+  /* --- 追加：分析セクション用のデザイン --- */
+  .status-badge { padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 600; }
+  .status-🔥 { background: rgba(255, 69, 0, 0.2); color: #ff4500; border: 1px solid #ff4500; }
+  .status-🟢 { background: rgba(79, 255, 176, 0.2); color: var(--accent-view); border: 1px solid var(--accent-view); }
+  .status-⚠️ { background: rgba(255, 217, 126, 0.2); color: var(--accent-article); border: 1px solid var(--accent-article); }
+  .status-💤 { background: rgba(74, 74, 106, 0.2); color: var(--muted); border: 1px solid var(--muted); }
+  .trend-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; }
+  .trend-table th { text-align: left; padding: 12px; border-bottom: 1px solid var(--border); color: var(--muted); }
+  .trend-table td { padding: 12px; border-bottom: 1px solid var(--border); }
 </style>
 </head>
 <body>
@@ -139,25 +149,43 @@
     <div class="panel-title">ビュー数（折れ線）・スキ数（棒グラフ）日次推移</div>
     <div class="chart-wrap"><canvas id="chart-daily"></canvas></div>
   </div>
-
   <div class="panel">
     <div class="panel-title">記事ビューランキング（上位20）</div>
     <div class="ranking-list" id="ranking-views"><div class="loading">loading...</div></div>
   </div>
-
   <div class="panel">
     <div class="panel-title">フォロワー数 日次推移</div>
     <div class="chart-wrap"><canvas id="chart-followers"></canvas></div>
   </div>
-
   <div class="panel">
     <div class="panel-title">記事スキ数ランキング（上位20）</div>
     <div class="ranking-list" id="ranking-likes"><div class="loading">loading...</div></div>
   </div>
-
   <div class="panel full">
     <div class="panel-title">4象限マップ（1記事あたりビュー × スキ率）</div>
     <div class="chart-wrap tall"><canvas id="chart-quad"></canvas></div>
+  </div>
+
+  <div class="panel full">
+    <div class="panel-title">トレンド分析（直近7日間の動き）</div>
+    <div style="overflow-x: auto;">
+      <table class="trend-table">
+        <thead>
+          <tr>
+            <th>状態</th><th>タイトル</th><th>スコア</th><th>前日比PV</th><th>7日合計</th>
+          </tr>
+        </thead>
+        <tbody id="trend-body">
+          <tr><td colspan="5" class="loading">解析データを読み込み中...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="panel full">
+    <div class="panel-title">資産記事（安定して読まれているストック記事）</div>
+    <div class="ranking-list" id="asset-list">
+      <div class="loading">資産記事を読み込み中...</div>
+    </div>
   </div>
 </div>
 
@@ -204,7 +232,7 @@ function setDiff(id, val) {
 
 function buildDaily(rows) {
   const r = rows.slice(-60);
-  const labels = r.map(d => d['日付'].slice(5));
+  const labels = r.map(d => d['日付'] ? d['日付'].slice(5) : '');
   const views  = r.map(d => Number(d['ビュー合計']));
   const likes  = r.map(d => Number(d['スキ合計']));
   new Chart(document.getElementById('chart-daily'), {
@@ -228,6 +256,7 @@ function buildDaily(rows) {
 }
 
 function buildRanking(containerId, rows, valueKey, barClass, valClass) {
+  if (!rows.length) return;
   const latest = rows.reduce((a,b) => a.date > b.date ? a : b).date;
   const sorted = rows.filter(r => r.date === latest)
                      .sort((a,b) => Number(b[valueKey]) - Number(a[valueKey]))
@@ -250,11 +279,11 @@ function buildFollowers(summary, followers) {
   const fRows = followers.filter(r => r['フォロワー数']);
   let labels, data;
   if (fRows.length > 1) {
-    labels = fRows.map(r => r['日付'].slice(5));
+    labels = fRows.map(r => r['日付'] ? r['日付'].slice(5) : '');
     data   = fRows.map(r => Number(r['フォロワー数']));
   } else {
     const s = summary.filter(r => r['フォロワー数']);
-    labels = s.map(r => r['日付'].slice(5));
+    labels = s.map(r => r['日付'] ? r['日付'].slice(5) : '');
     data   = s.map(r => Number(r['フォロワー数']));
   }
   new Chart(document.getElementById('chart-followers'), {
@@ -293,24 +322,73 @@ function buildQuad(rows) {
   });
 }
 
+// 新機能：トレンド表と資産記事の描画関数
+function buildTrendTable(rows) {
+  const tbody = document.getElementById('trend-body');
+  if (!rows || rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center">データがありません</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.slice(0, 10).map(r => {
+    const statusEmoji = r['状態'] ? r['状態'].split(' ')[0] : '💤'; 
+    return `
+      <tr>
+        <td><span class="status-badge status-${statusEmoji}">${r['状態'] || '💤 停止'}</span></td>
+        <td class="rank-title">${r['title'] || '---'}</td>
+        <td class="view-val">${r['トレンドスコア'] || '0'}</td>
+        <td class="view-val">+${Number(r['前日比PV'] || 0).toLocaleString()}</td>
+        <td>${Number(r['7日合計PV'] || 0).toLocaleString()}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function buildAssetList(rows) {
+  const container = document.getElementById('asset-list');
+  if (!rows || rows.length === 0) {
+    container.innerHTML = '<div class="loading">資産記事データがありません</div>';
+    return;
+  }
+  container.innerHTML = rows.slice(0, 10).map((r, i) => `
+    <div class="rank-item">
+      <span class="rank-num">${i+1}</span>
+      <span class="rank-title">${r.title || '---'}</span>
+      <div class="rank-right">
+        <span class="view-val">+${Number(r['期間増加PV'] || 0).toLocaleString()} PV</span>
+      </div>
+    </div>
+  `).join('');
+}
+
 async function init() {
   try {
-    const [summary, articles, followers] = await Promise.all([
-      fetchCSV('daily_summary'), fetchCSV('articles'), fetchCSV('followers'),
+    const [summary, articles, followers, trend, assets] = await Promise.all([
+      fetchCSV('daily_summary'), 
+      fetchCSV('articles'), 
+      fetchCSV('followers'),
+      fetchCSV('trend_analysis'),
+      fetchCSV('asset_articles')
     ]);
+
     const latest = summary[summary.length-1];
     document.getElementById('kpi-views').textContent     = Number(latest['ビュー合計']).toLocaleString();
     document.getElementById('kpi-likes').textContent     = Number(latest['スキ合計']).toLocaleString();
     document.getElementById('kpi-articles').textContent  = Number(latest['記事数']).toLocaleString();
     document.getElementById('kpi-followers').textContent = latest['フォロワー数'] ? Number(latest['フォロワー数']).toLocaleString() : '—';
     document.getElementById('last-updated').textContent  = 'updated ' + latest['日付'] + ' ' + (latest['更新時刻']||'');
+    
     setDiff('kpi-views-diff', parseFloat(latest['ビュー前日比(%)']));
     setDiff('kpi-likes-diff', parseFloat(latest['スキ前日比(%)']));
+    
+    // 各パーツの描画実行
     buildDaily(summary);
     buildRanking('ranking-views', articles, 'read_count', 'view-bar', 'view-val');
     buildFollowers(summary, followers);
     buildRanking('ranking-likes', articles, 'like_count', 'like-bar', 'like-val');
     buildQuad(summary);
+    buildTrendTable(trend);
+    buildAssetList(assets);
+
   } catch(e) {
     console.error(e);
     document.getElementById('last-updated').textContent = 'エラー: ' + e.message;
