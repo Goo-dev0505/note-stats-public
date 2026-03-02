@@ -320,7 +320,7 @@
 const BASE = 'https://raw.githubusercontent.com/Goo-dev0505/note-stats-public/main/data/';
 
 async function fetchCSV(name) {
-  const res = await fetch(BASE + name + '?t=' + Date.now());
+  const res = await fetch(BASE + name + '.csv?t=' + Date.now());
   if (!res.ok) throw new Error(name + ' not found');
   const text = await res.text();
   const lines = text.trim().split('\n');
