@@ -307,6 +307,12 @@
     <div class="panel-title">4象限マップ（ビュー/記事 × スキ率）</div>
     <div class="chart-wrap"><canvas id="chart-quad"></canvas></div>
   </div>
+
+  <!-- 積み上げ面グラフ -->
+  <div class="panel full" style="animation-delay:0.6s">
+    <div class="panel-title">日別ビュー内訳（上位10記事 ＋ その他）</div>
+    <div class="chart-wrap tall"><canvas id="chart-stack"></canvas></div>
+  </div>
 </div>
 
 <script>
@@ -314,7 +320,7 @@
 const BASE = 'https://raw.githubusercontent.com/Goo-dev0505/note-stats-public/main/data/';
 
 async function fetchCSV(name) {
-  const res = await fetch(BASE + name + '.csv?t=' + Date.now());
+  const res = await fetch(BASE + name + '?t=' + Date.now());
   if (!res.ok) throw new Error(name + ' not found');
   const text = await res.text();
   const lines = text.trim().split('\n');
@@ -384,6 +390,7 @@ async function init() {
     buildRanking(articles);
     buildFollowers(summary, followers);
     buildQuad(summary);
+    buildStack(articles);
 
   } catch (e) {
     console.error(e);
@@ -394,28 +401,17 @@ async function init() {
 // ── 日次推移 ───────────────────────────────────────────────
 function buildDaily(rows) {
   const recent = rows.slice(-60);
-  const labels = recent.map(r => r['日付'].slice(5));
+  const labels = recent.map(r => r['日付'].slice(5)); // MM/DD
   const views  = recent.map(r => Number(r['ビュー合計']));
   const likes  = recent.map(r => Number(r['スキ合計']));
 
   new Chart(document.getElementById('chart-daily'), {
-    type: 'bar',
+    type: 'line',
     data: {
       labels,
       datasets: [
         {
-          type: 'bar',
-          label: '累計スキ',
-          data: likes,
-          backgroundColor: 'rgba(110,181,255,0.5)',
-          borderColor: '#6eb5ff',
-          borderWidth: 1,
-          yAxisID: 'y1',
-          order: 2,
-        },
-        {
-          type: 'line',
-          label: '累計ビュー',
+          label: 'ビュー',
           data: views,
           borderColor: '#7fff6e',
           backgroundColor: 'rgba(127,255,110,0.06)',
@@ -424,16 +420,26 @@ function buildDaily(rows) {
           fill: true,
           tension: 0.3,
           yAxisID: 'y',
-          order: 1,
+        },
+        {
+          label: 'スキ',
+          data: likes,
+          borderColor: '#6eb5ff',
+          backgroundColor: 'rgba(110,181,255,0.06)',
+          borderWidth: 2,
+          pointRadius: 0,
+          fill: true,
+          tension: 0.3,
+          yAxisID: 'y1',
         },
       ]
     },
     options: {
       ...baseOptions(),
       scales: {
-        x:  { grid: { color: GRID_COLOR }, ticks: { maxTicksLimit: 8 } },
-        y:  { grid: { color: GRID_COLOR }, position: 'left',  title: { display: true, text: 'ビュー', color: '#5a5a7a' } },
-        y1: { grid: { display: false },    position: 'right', title: { display: true, text: 'スキ',   color: '#5a5a7a' } },
+        x: { grid: { color: GRID_COLOR }, ticks: { maxTicksLimit: 8 } },
+        y:  { grid: { color: GRID_COLOR }, position: 'left' },
+        y1: { grid: { display: false }, position: 'right' },
       }
     }
   });
@@ -556,6 +562,104 @@ function buildQuad(rows) {
         ctx.restore();
       }
     }]
+  });
+}
+
+// ── 積み上げ面グラフ ───────────────────────────────────────
+function buildStack(rows) {
+  // 日付ごとにグループ化
+  const byDate = {};
+  rows.forEach(r => {
+    if (!byDate[r.date]) byDate[r.date] = {};
+    byDate[r.date][r.title] = Number(r.read_count) || 0;
+  });
+
+  const dates = Object.keys(byDate).sort().slice(-60); // 直近60日
+
+  // 記事ごとの累計ビュー（最終日）でランキング
+  const lastDate = dates[dates.length - 1];
+  const totals = {};
+  rows.filter(r => r.date === lastDate).forEach(r => {
+    totals[r.title] = Number(r.read_count) || 0;
+  });
+
+  const top10 = Object.entries(totals)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([t]) => t);
+
+  // 日別ビュー（累計差分）を計算
+  const dailyByTitle = {};
+  [...top10, '__others__'].forEach(t => dailyByTitle[t] = []);
+
+  dates.forEach((date, i) => {
+    const prevDate = i > 0 ? dates[i - 1] : null;
+    const curr = byDate[date] || {};
+    const prev = prevDate ? byDate[prevDate] || {} : {};
+
+    let othersVal = 0;
+    Object.keys(curr).forEach(title => {
+      const gain = Math.max(0, (curr[title] || 0) - (prev[title] || 0));
+      if (top10.includes(title)) {
+        dailyByTitle[title].push(gain);
+      } else {
+        othersVal += gain;
+      }
+    });
+    dailyByTitle['__others__'].push(othersVal);
+  });
+
+  // カラーパレット（その他はグレー）
+  const palette = [
+    'rgba(110,181,255,0.7)', 'rgba(127,255,110,0.7)', 'rgba(255,110,156,0.7)',
+    'rgba(255,217,110,0.7)', 'rgba(180,110,255,0.7)', 'rgba(110,255,217,0.7)',
+    'rgba(255,160,110,0.7)', 'rgba(110,255,160,0.7)', 'rgba(255,110,110,0.7)',
+    'rgba(160,255,110,0.7)',
+  ];
+
+  const datasets = [
+    {
+      label: 'その他',
+      data: dailyByTitle['__others__'],
+      backgroundColor: 'rgba(60,60,80,0.6)',
+      borderColor: 'rgba(60,60,80,0.8)',
+      borderWidth: 0,
+      fill: true,
+      tension: 0.3,
+      pointRadius: 0,
+    },
+    ...top10.map((title, i) => ({
+      label: title.length > 20 ? title.slice(0, 20) + '…' : title,
+      data: dailyByTitle[title],
+      backgroundColor: palette[i],
+      borderColor: palette[i].replace('0.7', '1'),
+      borderWidth: 0,
+      fill: true,
+      tension: 0.3,
+      pointRadius: 0,
+    }))
+  ];
+
+  new Chart(document.getElementById('chart-stack'), {
+    type: 'line',
+    data: {
+      labels: dates.map(d => d.slice(5)),
+      datasets,
+    },
+    options: {
+      ...baseOptions(),
+      plugins: {
+        ...baseOptions().plugins,
+        legend: {
+          display: true,
+          labels: { boxWidth: 8, padding: 10, color: '#5a5a7a', font: { size: 9 } }
+        },
+      },
+      scales: {
+        x: { grid: { color: GRID_COLOR }, ticks: { maxTicksLimit: 10 } },
+        y: { grid: { color: GRID_COLOR }, stacked: true, title: { display: true, text: '日別ビュー', color: '#5a5a7a' } },
+      }
+    }
   });
 }
 
