@@ -5,318 +5,163 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>note stats dashboard</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0a0a0f;
-    --surface: #13131a;
-    --border: #1e1e2e;
-    --accent: #7fff6e;
-    --accent2: #6eb5ff;
-    --accent3: #ff6e9c;
-    --text: #e8e8f0;
-    --muted: #5a5a7a;
-    --font-mono: 'Space Mono', monospace;
+    --bg: #0d0d14;
+    --surface: #14141f;
+    --border: #1f1f30;
+    --accent-view: #4fffb0;
+    --accent-like: #ff7eb3;
+    --accent-follower: #7eb3ff;
+    --accent-article: #ffd97e;
+    --text: #dde0f0;
+    --muted: #4a4a6a;
+    --font-mono: 'IBM Plex Mono', monospace;
     --font-body: 'Noto Sans JP', sans-serif;
   }
-
   * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; padding-bottom: 60px; }
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font-body);
-    min-height: 100vh;
-    padding: 0 0 60px;
-  }
-
-  /* Header */
   header {
     border-bottom: 1px solid var(--border);
-    padding: 24px 40px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    position: sticky;
-    top: 0;
-    background: rgba(10,10,15,0.95);
-    backdrop-filter: blur(10px);
+    padding: 18px 36px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0;
+    background: rgba(13,13,20,0.96);
+    backdrop-filter: blur(12px);
     z-index: 100;
   }
+  .logo { font-family: var(--font-mono); font-size: 14px; font-weight: 600; color: var(--accent-view); letter-spacing: 0.08em; }
+  .logo em { color: var(--muted); font-style: normal; }
+  #last-updated { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
 
-  .logo {
-    font-family: var(--font-mono);
-    font-size: 13px;
-    color: var(--accent);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-  }
-
-  .logo span { color: var(--muted); }
-
-  #last-updated {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--muted);
-  }
-
-  /* KPI strip */
-  .kpi-strip {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    border-bottom: 1px solid var(--border);
-  }
-
-  .kpi {
-    padding: 28px 40px;
-    border-right: 1px solid var(--border);
-    animation: fadeUp 0.5s ease both;
-  }
-
+  .kpi-strip { display: grid; grid-template-columns: repeat(4,1fr); border-bottom: 1px solid var(--border); }
+  .kpi { padding: 24px 36px; border-right: 1px solid var(--border); }
   .kpi:last-child { border-right: none; }
+  .kpi-label { font-family: var(--font-mono); font-size: 10px; color: var(--muted); letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 6px; }
+  .kpi-value { font-family: var(--font-mono); font-size: 36px; font-weight: 600; line-height: 1; }
+  .kpi-value.v { color: var(--accent-view); }
+  .kpi-value.l { color: var(--accent-like); }
+  .kpi-value.a { color: var(--accent-article); }
+  .kpi-value.f { color: var(--accent-follower); }
+  .kpi-diff { margin-top: 8px; font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+  .kpi-diff.up   { color: var(--accent-view); }
+  .kpi-diff.down { color: var(--accent-like); }
 
-  .kpi-label {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    color: var(--muted);
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    margin-bottom: 8px;
-  }
-
-  .kpi-value {
-    font-family: var(--font-mono);
-    font-size: 32px;
-    font-weight: 700;
-    line-height: 1;
-    color: var(--text);
-  }
-
-  .kpi-value.green { color: var(--accent); }
-  .kpi-value.blue  { color: var(--accent2); }
-  .kpi-value.pink  { color: var(--accent3); }
-
-  .kpi-sub {
-    font-size: 11px;
-    color: var(--muted);
-    margin-top: 6px;
-  }
-
-  /* Main grid */
-  .grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0;
-  }
-
-  .panel {
-    border-bottom: 1px solid var(--border);
-    border-right: 1px solid var(--border);
-    padding: 32px 40px;
-    animation: fadeUp 0.6s ease both;
-  }
-
+  .grid { display: grid; grid-template-columns: 1fr 1fr; }
+  .panel { border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); padding: 28px 36px; }
   .panel:nth-child(2n) { border-right: none; }
-  .panel.full { grid-column: 1 / -1; border-right: none; }
+  .panel.full { grid-column: 1/-1; border-right: none; }
 
   .panel-title {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--muted);
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    margin-bottom: 24px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    font-family: var(--font-mono); font-size: 10px; color: var(--muted);
+    letter-spacing: 0.18em; text-transform: uppercase;
+    margin-bottom: 20px; display: flex; align-items: center; gap: 8px;
   }
+  .panel-title::before { content:''; width:6px; height:6px; border-radius:50%; background: var(--accent-view); flex-shrink:0; }
+  .panel:nth-child(2)  .panel-title::before { background: var(--accent-like); }
+  .panel:nth-child(3)  .panel-title::before { background: var(--accent-follower); }
+  .panel:nth-child(4)  .panel-title::before { background: var(--accent-article); }
+  .panel.full          .panel-title::before { background: #b07eff; }
 
-  .panel-title::before {
-    content: '';
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--accent);
-  }
+  .chart-wrap { position: relative; height: 300px; }
+  .chart-wrap.tall { height: 380px; }
 
-  .panel:nth-child(2) .panel-title::before { background: var(--accent2); }
-  .panel:nth-child(3) .panel-title::before { background: var(--accent3); }
-  .panel:nth-child(4) .panel-title::before { background: #ffd96e; }
-
-  .chart-wrap {
-    position: relative;
-    height: 280px;
-  }
-
-  .chart-wrap.tall { height: 340px; }
-
-  /* Ranking */
-  .ranking-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    max-height: 320px;
-    overflow-y: auto;
-  }
-
+  .ranking-list { display: flex; flex-direction: column; gap: 6px; max-height: 360px; overflow-y: auto; padding-right: 4px; }
   .ranking-list::-webkit-scrollbar { width: 3px; }
-  .ranking-list::-webkit-scrollbar-track { background: transparent; }
   .ranking-list::-webkit-scrollbar-thumb { background: var(--border); }
 
   .rank-item {
-    display: grid;
-    grid-template-columns: 28px 1fr 80px;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
-    background: var(--surface);
-    border-radius: 4px;
-    border: 1px solid var(--border);
-    transition: border-color 0.2s;
+    display: grid; grid-template-columns: 26px 1fr 90px;
+    align-items: center; gap: 10px;
+    padding: 9px 12px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 3px;
+    transition: border-color 0.15s;
   }
+  .rank-item:hover { border-color: var(--accent-like); }
+  .rank-num { font-family: var(--font-mono); font-size: 10px; color: var(--muted); text-align: center; }
+  .rank-num.gold   { color: #ffd97e; font-weight: 600; }
+  .rank-num.silver { color: #b0b8d0; font-weight: 600; }
+  .rank-num.bronze { color: #c8845a; font-weight: 600; }
+  .rank-title { font-size: 11px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rank-right { display: flex; align-items: center; gap: 6px; }
+  .rank-bar { flex:1; height:2px; background: var(--border); border-radius:1px; overflow:hidden; }
+  .rank-bar-fill { height:100%; border-radius:1px; transition: width 0.8s ease; }
+  .rank-val { font-family: var(--font-mono); font-size: 10px; min-width:40px; text-align:right; }
+  .view-bar { background: var(--accent-view); }
+  .like-bar { background: var(--accent-like); }
+  .view-val { color: var(--accent-view); }
+  .like-val { color: var(--accent-like); }
 
-  .rank-item:hover { border-color: var(--accent2); }
+  .loading { display:flex; align-items:center; justify-content:center; height:200px; font-family:var(--font-mono); font-size:11px; color:var(--muted); letter-spacing:0.1em; }
 
-  .rank-num {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--muted);
-    text-align: center;
-  }
-
-  .rank-num.top { color: var(--accent); font-weight: 700; }
-
-  .rank-title {
-    font-size: 12px;
-    color: var(--text);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .rank-bar-wrap {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .rank-bar {
-    flex: 1;
-    height: 3px;
-    background: var(--border);
-    border-radius: 2px;
-    overflow: hidden;
-  }
-
-  .rank-bar-fill {
-    height: 100%;
-    background: var(--accent2);
-    border-radius: 2px;
-    transition: width 0.8s ease;
-  }
-
-  .rank-val {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--accent2);
-    min-width: 40px;
-    text-align: right;
-  }
-
-  /* Loading */
-  .loading {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 200px;
-    font-family: var(--font-mono);
-    font-size: 12px;
-    color: var(--muted);
-    letter-spacing: 0.1em;
-  }
-
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(16px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  @media (max-width: 768px) {
-    .kpi-strip { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width:768px) {
+    .kpi-strip { grid-template-columns: repeat(2,1fr); }
     .grid { grid-template-columns: 1fr; }
-    .panel { border-right: none; }
-    header { padding: 16px 20px; }
-    .kpi { padding: 20px; }
-    .panel { padding: 24px 20px; }
+    .panel { border-right: none !important; }
+    header, .kpi, .panel { padding-left:16px; padding-right:16px; }
   }
 </style>
 </head>
 <body>
 
 <header>
-  <div class="logo">note<span>/</span>stats</div>
+  <div class="logo">note<em>/</em>stats</div>
   <div id="last-updated">loading...</div>
 </header>
 
 <div class="kpi-strip">
-  <div class="kpi" style="animation-delay:0.1s">
+  <div class="kpi">
     <div class="kpi-label">Total Views</div>
-    <div class="kpi-value green" id="kpi-views">—</div>
-    <div class="kpi-sub" id="kpi-views-sub">累計ビュー</div>
+    <div class="kpi-value v" id="kpi-views">—</div>
+    <div class="kpi-diff" id="kpi-views-diff">前日比</div>
   </div>
-  <div class="kpi" style="animation-delay:0.2s">
+  <div class="kpi">
     <div class="kpi-label">Total Likes</div>
-    <div class="kpi-value blue" id="kpi-likes">—</div>
-    <div class="kpi-sub" id="kpi-likes-sub">累計スキ</div>
+    <div class="kpi-value l" id="kpi-likes">—</div>
+    <div class="kpi-diff" id="kpi-likes-diff">前日比</div>
   </div>
-  <div class="kpi" style="animation-delay:0.3s">
+  <div class="kpi">
     <div class="kpi-label">Articles</div>
-    <div class="kpi-value" id="kpi-articles">—</div>
-    <div class="kpi-sub">公開記事数</div>
+    <div class="kpi-value a" id="kpi-articles">—</div>
+    <div class="kpi-diff">公開記事数</div>
   </div>
-  <div class="kpi" style="animation-delay:0.4s">
+  <div class="kpi">
     <div class="kpi-label">Followers</div>
-    <div class="kpi-value pink" id="kpi-followers">—</div>
-    <div class="kpi-sub">フォロワー数</div>
+    <div class="kpi-value f" id="kpi-followers">—</div>
+    <div class="kpi-diff">フォロワー数</div>
   </div>
 </div>
 
 <div class="grid">
-  <!-- 日次推移 -->
-  <div class="panel" style="animation-delay:0.2s">
-    <div class="panel-title">日次ビュー・スキ推移</div>
+  <div class="panel">
+    <div class="panel-title">ビュー数（折れ線）・スキ数（棒グラフ）日次推移</div>
     <div class="chart-wrap"><canvas id="chart-daily"></canvas></div>
   </div>
 
-  <!-- ランキング -->
-  <div class="panel" style="animation-delay:0.3s">
-    <div class="panel-title">記事ビューランキング</div>
-    <div class="ranking-list" id="ranking-list">
-      <div class="loading">loading...</div>
-    </div>
+  <div class="panel">
+    <div class="panel-title">記事ビューランキング（上位20）</div>
+    <div class="ranking-list" id="ranking-views"><div class="loading">loading...</div></div>
   </div>
 
-  <!-- フォロワー推移 -->
-  <div class="panel" style="animation-delay:0.4s">
-    <div class="panel-title">フォロワー数推移</div>
+  <div class="panel">
+    <div class="panel-title">フォロワー数 日次推移</div>
     <div class="chart-wrap"><canvas id="chart-followers"></canvas></div>
   </div>
 
-  <!-- 4象限 -->
-  <div class="panel" style="animation-delay:0.5s">
-    <div class="panel-title">4象限マップ（ビュー/記事 × スキ率）</div>
-    <div class="chart-wrap"><canvas id="chart-quad"></canvas></div>
+  <div class="panel">
+    <div class="panel-title">記事スキ数ランキング（上位20）</div>
+    <div class="ranking-list" id="ranking-likes"><div class="loading">loading...</div></div>
   </div>
 
-  <!-- 積み上げ面グラフ -->
-  <div class="panel full" style="animation-delay:0.6s">
-    <div class="panel-title">日別ビュー内訳（上位10記事 ＋ その他）</div>
-    <div class="chart-wrap tall"><canvas id="chart-stack"></canvas></div>
+  <div class="panel full">
+    <div class="panel-title">4象限マップ（1記事あたりビュー × スキ率）</div>
+    <div class="chart-wrap tall"><canvas id="chart-quad"></canvas></div>
   </div>
 </div>
 
 <script>
-// ── CSV fetch & parse ──────────────────────────────────────
 const BASE = 'https://raw.githubusercontent.com/Goo-dev0505/note-stats-public/main/data/';
 
 async function fetchCSV(name) {
@@ -333,146 +178,77 @@ async function fetchCSV(name) {
   });
 }
 
-// ── Chart defaults ─────────────────────────────────────────
-Chart.defaults.color = '#5a5a7a';
-Chart.defaults.font.family = "'Space Mono', monospace";
+Chart.defaults.color = '#4a4a6a';
+Chart.defaults.font.family = "'IBM Plex Mono', monospace";
 Chart.defaults.font.size = 10;
+const GC = '#1f1f30';
 
-const GRID_COLOR = '#1e1e2e';
-
-function baseOptions(title) {
+function base() {
   return {
-    responsive: true,
-    maintainAspectRatio: false,
+    responsive: true, maintainAspectRatio: false,
     plugins: {
-      legend: { display: true, labels: { boxWidth: 8, padding: 16, color: '#5a5a7a' } },
-      tooltip: {
-        backgroundColor: '#13131a',
-        borderColor: '#1e1e2e',
-        borderWidth: 1,
-        titleColor: '#e8e8f0',
-        bodyColor: '#5a5a7a',
-        padding: 12,
-      }
+      legend: { display: true, labels: { boxWidth: 8, padding: 14, color: '#4a4a6a' } },
+      tooltip: { backgroundColor:'#14141f', borderColor:'#1f1f30', borderWidth:1, titleColor:'#dde0f0', bodyColor:'#4a4a6a', padding:10 }
     },
-    scales: {
-      x: { grid: { color: GRID_COLOR }, ticks: { maxTicksLimit: 8 } },
-      y: { grid: { color: GRID_COLOR } }
-    }
+    scales: { x: { grid:{ color:GC }, ticks:{ maxTicksLimit:8 } }, y: { grid:{ color:GC } } }
   };
 }
 
-// ── Main ───────────────────────────────────────────────────
-async function init() {
-  try {
-    const [summary, articles, followers] = await Promise.all([
-      fetchCSV('daily_summary'),
-      fetchCSV('articles'),
-      fetchCSV('followers'),
-    ]);
-
-    const latest = summary[summary.length - 1];
-
-    // KPIs
-    document.getElementById('kpi-views').textContent    = Number(latest['ビュー合計']).toLocaleString();
-    document.getElementById('kpi-likes').textContent    = Number(latest['スキ合計']).toLocaleString();
-    document.getElementById('kpi-articles').textContent = latest['記事数'];
-    document.getElementById('kpi-followers').textContent = latest['フォロワー数'] || '—';
-    document.getElementById('last-updated').textContent  = 'updated ' + latest['日付'] + ' ' + (latest['更新時刻'] || '');
-
-    // 前日比サブテキスト
-    const vd = parseFloat(latest['ビュー前日比(%)']);
-    const ld = parseFloat(latest['スキ前日比(%)']);
-    if (!isNaN(vd)) document.getElementById('kpi-views-sub').textContent = (vd >= 0 ? '▲' : '▼') + Math.abs(vd).toFixed(1) + '% 前日比';
-    if (!isNaN(ld)) document.getElementById('kpi-likes-sub').textContent = (ld >= 0 ? '▲' : '▼') + Math.abs(ld).toFixed(1) + '% 前日比';
-
-    buildDaily(summary);
-    buildRanking(articles);
-    buildFollowers(summary, followers);
-    buildQuad(summary);
-    buildStack(articles);
-
-  } catch (e) {
-    console.error(e);
-    document.getElementById('last-updated').textContent = 'データ取得失敗: ' + e.message;
-  }
+function setDiff(id, val) {
+  if (isNaN(val)) return;
+  const el = document.getElementById(id);
+  const sign = val >= 0 ? '▲' : '▼';
+  el.textContent = sign + Math.abs(val).toFixed(1) + '% 前日比';
+  el.className = 'kpi-diff ' + (val >= 0 ? 'up' : 'down');
 }
 
-// ── 日次推移 ───────────────────────────────────────────────
 function buildDaily(rows) {
-  const recent = rows.slice(-60);
-  const labels = recent.map(r => r['日付'].slice(5)); // MM/DD
-  const views  = recent.map(r => Number(r['ビュー合計']));
-  const likes  = recent.map(r => Number(r['スキ合計']));
-
+  const r = rows.slice(-60);
+  const labels = r.map(d => d['日付'].slice(5));
+  const views  = r.map(d => Number(d['ビュー合計']));
+  const likes  = r.map(d => Number(d['スキ合計']));
   new Chart(document.getElementById('chart-daily'), {
-    type: 'line',
+    type: 'bar',
     data: {
       labels,
       datasets: [
-        {
-          label: 'ビュー',
-          data: views,
-          borderColor: '#7fff6e',
-          backgroundColor: 'rgba(127,255,110,0.06)',
-          borderWidth: 2,
-          pointRadius: 0,
-          fill: true,
-          tension: 0.3,
-          yAxisID: 'y',
-        },
-        {
-          label: 'スキ',
-          data: likes,
-          borderColor: '#6eb5ff',
-          backgroundColor: 'rgba(110,181,255,0.06)',
-          borderWidth: 2,
-          pointRadius: 0,
-          fill: true,
-          tension: 0.3,
-          yAxisID: 'y1',
-        },
+        { type:'bar',  label:'累計スキ',  data:likes, backgroundColor:'rgba(255,126,179,0.45)', borderColor:'rgba(255,126,179,0.8)', borderWidth:1, yAxisID:'y1', order:2 },
+        { type:'line', label:'累計ビュー', data:views, borderColor:'#4fffb0', backgroundColor:'rgba(79,255,176,0.07)', borderWidth:2, pointRadius:0, fill:true, tension:0.3, yAxisID:'y', order:1 },
       ]
     },
     options: {
-      ...baseOptions(),
+      ...base(),
       scales: {
-        x: { grid: { color: GRID_COLOR }, ticks: { maxTicksLimit: 8 } },
-        y:  { grid: { color: GRID_COLOR }, position: 'left' },
-        y1: { grid: { display: false }, position: 'right' },
+        x:  { grid:{ color:GC }, ticks:{ maxTicksLimit:10 } },
+        y:  { grid:{ color:GC }, position:'left',  title:{ display:true, text:'ビュー', color:'#4a4a6a' } },
+        y1: { grid:{ display:false }, position:'right', title:{ display:true, text:'スキ', color:'#4a4a6a' } },
       }
     }
   });
 }
 
-// ── ランキング ─────────────────────────────────────────────
-function buildRanking(rows) {
-  // 最新日付だけ取得
-  const latest = rows.reduce((a, b) => a.date > b.date ? a : b).date;
-  const today  = rows.filter(r => r.date === latest)
-                     .sort((a, b) => Number(b.read_count) - Number(a.read_count))
-                     .slice(0, 20);
-
-  const max = Number(today[0]?.read_count || 1);
-  const list = document.getElementById('ranking-list');
-  list.innerHTML = today.map((r, i) => `
+function buildRanking(containerId, rows, valueKey, barClass, valClass) {
+  const latest = rows.reduce((a,b) => a.date > b.date ? a : b).date;
+  const sorted = rows.filter(r => r.date === latest)
+                     .sort((a,b) => Number(b[valueKey]) - Number(a[valueKey]))
+                     .slice(0,20);
+  const max = Number(sorted[0]?.[valueKey] || 1);
+  const medal = i => i===0?'gold':i===1?'silver':i===2?'bronze':'';
+  document.getElementById(containerId).innerHTML = sorted.map((r,i) => `
     <div class="rank-item">
-      <span class="rank-num ${i < 3 ? 'top' : ''}">${String(i+1).padStart(2,'0')}</span>
+      <span class="rank-num ${medal(i)}">${String(i+1).padStart(2,'0')}</span>
       <span class="rank-title" title="${r.title}">${r.title}</span>
-      <div class="rank-bar-wrap">
-        <div class="rank-bar"><div class="rank-bar-fill" style="width:${(Number(r.read_count)/max*100).toFixed(1)}%"></div></div>
-        <span class="rank-val">${Number(r.read_count).toLocaleString()}</span>
+      <div class="rank-right">
+        <div class="rank-bar"><div class="rank-bar-fill ${barClass}" style="width:${(Number(r[valueKey])/max*100).toFixed(1)}%"></div></div>
+        <span class="rank-val ${valClass}">${Number(r[valueKey]).toLocaleString()}</span>
       </div>
     </div>
   `).join('');
 }
 
-// ── フォロワー推移 ─────────────────────────────────────────
 function buildFollowers(summary, followers) {
-  // followersがあればそちら、なければsummaryから
-  let labels, data;
   const fRows = followers.filter(r => r['フォロワー数']);
-
+  let labels, data;
   if (fRows.length > 1) {
     labels = fRows.map(r => r['日付'].slice(5));
     data   = fRows.map(r => Number(r['フォロワー数']));
@@ -481,186 +257,64 @@ function buildFollowers(summary, followers) {
     labels = s.map(r => r['日付'].slice(5));
     data   = s.map(r => Number(r['フォロワー数']));
   }
-
   new Chart(document.getElementById('chart-followers'), {
     type: 'line',
-    data: {
-      labels,
-      datasets: [{
-        label: 'フォロワー数',
-        data,
-        borderColor: '#ff6e9c',
-        backgroundColor: 'rgba(255,110,156,0.08)',
-        borderWidth: 2,
-        pointRadius: data.length < 30 ? 4 : 0,
-        pointBackgroundColor: '#ff6e9c',
-        fill: true,
-        tension: 0.3,
-      }]
-    },
-    options: baseOptions()
+    data: { labels, datasets: [{ label:'フォロワー数', data, borderColor:'#7eb3ff', backgroundColor:'rgba(126,179,255,0.08)', borderWidth:2, pointRadius:data.length<30?4:0, pointBackgroundColor:'#7eb3ff', fill:true, tension:0.3 }] },
+    options: base()
   });
 }
 
-// ── 4象限マップ ────────────────────────────────────────────
 function buildQuad(rows) {
-  const data = rows.map(r => ({
-    x: parseFloat(r['ビュー/記事']) || 0,
-    y: parseFloat(r['スキ率(%)']) || 0,
-    label: r['日付'],
-  }));
-
-  const xMean = data.reduce((s, d) => s + d.x, 0) / data.length;
-  const yMean = data.reduce((s, d) => s + d.y, 0) / data.length;
-
+  const data = rows.map(r => ({ x:parseFloat(r['ビュー/記事'])||0, y:parseFloat(r['スキ率(%)'])||0, label:r['日付'] }));
+  const xMean = data.reduce((s,d)=>s+d.x,0)/data.length;
+  const yMean = data.reduce((s,d)=>s+d.y,0)/data.length;
   new Chart(document.getElementById('chart-quad'), {
     type: 'scatter',
-    data: {
-      datasets: [{
-        label: '日次データ',
-        data,
-        backgroundColor: data.map((_, i) => `rgba(110,181,255,${0.2 + i/data.length*0.7})`),
-        pointRadius: 4,
-        pointHoverRadius: 7,
-      }]
-    },
+    data: { datasets: [{ label:'日次データ', data, backgroundColor:data.map((_,i)=>`rgba(176,126,255,${0.15+i/data.length*0.7})`), pointRadius:4, pointHoverRadius:7 }] },
     options: {
-      ...baseOptions(),
-      plugins: {
-        ...baseOptions().plugins,
-        tooltip: {
-          ...baseOptions().plugins.tooltip,
-          callbacks: {
-            label: ctx => `${ctx.raw.label}  ビュー/記事:${ctx.raw.x.toFixed(1)}  スキ率:${ctx.raw.y.toFixed(2)}%`
-          }
-        },
-        annotation: undefined,
-      },
+      ...base(),
+      plugins: { ...base().plugins, tooltip: { ...base().plugins.tooltip, callbacks: { label: ctx=>`${ctx.raw.label}  ビュー/記事:${ctx.raw.x.toFixed(1)}  スキ率:${ctx.raw.y.toFixed(2)}%` } } },
       scales: {
-        x: {
-          grid: { color: GRID_COLOR },
-          title: { display: true, text: 'ビュー/記事', color: '#5a5a7a' },
-        },
-        y: {
-          grid: { color: GRID_COLOR },
-          title: { display: true, text: 'スキ率(%)', color: '#5a5a7a' },
-        }
+        x: { grid:{color:GC}, title:{display:true, text:'1記事あたりビュー', color:'#4a4a6a'} },
+        y: { grid:{color:GC}, title:{display:true, text:'スキ率(%)',          color:'#4a4a6a'} },
       }
     },
     plugins: [{
-      id: 'quadrant-lines',
+      id:'quad-lines',
       afterDraw(chart) {
-        const { ctx, chartArea: { left, right, top, bottom }, scales: { x, y } } = chart;
-        const cx = x.getPixelForValue(xMean);
-        const cy = y.getPixelForValue(yMean);
-        ctx.save();
-        ctx.setLineDash([4, 4]);
-        ctx.strokeStyle = '#2e2e4e';
-        ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.moveTo(cx, top); ctx.lineTo(cx, bottom); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(left, cy); ctx.lineTo(right, cy); ctx.stroke();
+        const {ctx, chartArea:{left,right,top,bottom}, scales:{x,y}} = chart;
+        const cx = x.getPixelForValue(xMean), cy = y.getPixelForValue(yMean);
+        ctx.save(); ctx.setLineDash([4,4]); ctx.strokeStyle='#2a2a42'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(cx,top);  ctx.lineTo(cx,bottom); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(left,cy); ctx.lineTo(right,cy);  ctx.stroke();
         ctx.restore();
       }
     }]
   });
 }
 
-// ── 積み上げ面グラフ ───────────────────────────────────────
-function buildStack(rows) {
-  // 日付ごとにグループ化
-  const byDate = {};
-  rows.forEach(r => {
-    if (!byDate[r.date]) byDate[r.date] = {};
-    byDate[r.date][r.title] = Number(r.read_count) || 0;
-  });
-
-  const dates = Object.keys(byDate).sort().slice(-60); // 直近60日
-
-  // 記事ごとの累計ビュー（最終日）でランキング
-  const lastDate = dates[dates.length - 1];
-  const totals = {};
-  rows.filter(r => r.date === lastDate).forEach(r => {
-    totals[r.title] = Number(r.read_count) || 0;
-  });
-
-  const top10 = Object.entries(totals)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10)
-    .map(([t]) => t);
-
-  // 日別ビュー（累計差分）を計算
-  const dailyByTitle = {};
-  [...top10, '__others__'].forEach(t => dailyByTitle[t] = []);
-
-  dates.forEach((date, i) => {
-    const prevDate = i > 0 ? dates[i - 1] : null;
-    const curr = byDate[date] || {};
-    const prev = prevDate ? byDate[prevDate] || {} : {};
-
-    let othersVal = 0;
-    Object.keys(curr).forEach(title => {
-      const gain = Math.max(0, (curr[title] || 0) - (prev[title] || 0));
-      if (top10.includes(title)) {
-        dailyByTitle[title].push(gain);
-      } else {
-        othersVal += gain;
-      }
-    });
-    dailyByTitle['__others__'].push(othersVal);
-  });
-
-  // カラーパレット（その他はグレー）
-  const palette = [
-    'rgba(110,181,255,0.7)', 'rgba(127,255,110,0.7)', 'rgba(255,110,156,0.7)',
-    'rgba(255,217,110,0.7)', 'rgba(180,110,255,0.7)', 'rgba(110,255,217,0.7)',
-    'rgba(255,160,110,0.7)', 'rgba(110,255,160,0.7)', 'rgba(255,110,110,0.7)',
-    'rgba(160,255,110,0.7)',
-  ];
-
-  const datasets = [
-    {
-      label: 'その他',
-      data: dailyByTitle['__others__'],
-      backgroundColor: 'rgba(60,60,80,0.6)',
-      borderColor: 'rgba(60,60,80,0.8)',
-      borderWidth: 0,
-      fill: true,
-      tension: 0.3,
-      pointRadius: 0,
-    },
-    ...top10.map((title, i) => ({
-      label: title.length > 20 ? title.slice(0, 20) + '…' : title,
-      data: dailyByTitle[title],
-      backgroundColor: palette[i],
-      borderColor: palette[i].replace('0.7', '1'),
-      borderWidth: 0,
-      fill: true,
-      tension: 0.3,
-      pointRadius: 0,
-    }))
-  ];
-
-  new Chart(document.getElementById('chart-stack'), {
-    type: 'line',
-    data: {
-      labels: dates.map(d => d.slice(5)),
-      datasets,
-    },
-    options: {
-      ...baseOptions(),
-      plugins: {
-        ...baseOptions().plugins,
-        legend: {
-          display: true,
-          labels: { boxWidth: 8, padding: 10, color: '#5a5a7a', font: { size: 9 } }
-        },
-      },
-      scales: {
-        x: { grid: { color: GRID_COLOR }, ticks: { maxTicksLimit: 10 } },
-        y: { grid: { color: GRID_COLOR }, stacked: true, title: { display: true, text: '日別ビュー', color: '#5a5a7a' } },
-      }
-    }
-  });
+async function init() {
+  try {
+    const [summary, articles, followers] = await Promise.all([
+      fetchCSV('daily_summary'), fetchCSV('articles'), fetchCSV('followers'),
+    ]);
+    const latest = summary[summary.length-1];
+    document.getElementById('kpi-views').textContent     = Number(latest['ビュー合計']).toLocaleString();
+    document.getElementById('kpi-likes').textContent     = Number(latest['スキ合計']).toLocaleString();
+    document.getElementById('kpi-articles').textContent  = Number(latest['記事数']).toLocaleString();
+    document.getElementById('kpi-followers').textContent = latest['フォロワー数'] ? Number(latest['フォロワー数']).toLocaleString() : '—';
+    document.getElementById('last-updated').textContent  = 'updated ' + latest['日付'] + ' ' + (latest['更新時刻']||'');
+    setDiff('kpi-views-diff', parseFloat(latest['ビュー前日比(%)']));
+    setDiff('kpi-likes-diff', parseFloat(latest['スキ前日比(%)']));
+    buildDaily(summary);
+    buildRanking('ranking-views', articles, 'read_count', 'view-bar', 'view-val');
+    buildFollowers(summary, followers);
+    buildRanking('ranking-likes', articles, 'like_count', 'like-bar', 'like-val');
+    buildQuad(summary);
+  } catch(e) {
+    console.error(e);
+    document.getElementById('last-updated').textContent = 'エラー: ' + e.message;
+  }
 }
 
 init();
