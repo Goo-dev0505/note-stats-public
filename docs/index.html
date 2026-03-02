@@ -394,17 +394,28 @@ async function init() {
 // ── 日次推移 ───────────────────────────────────────────────
 function buildDaily(rows) {
   const recent = rows.slice(-60);
-  const labels = recent.map(r => r['日付'].slice(5)); // MM/DD
+  const labels = recent.map(r => r['日付'].slice(5));
   const views  = recent.map(r => Number(r['ビュー合計']));
   const likes  = recent.map(r => Number(r['スキ合計']));
 
   new Chart(document.getElementById('chart-daily'), {
-    type: 'line',
+    type: 'bar',
     data: {
       labels,
       datasets: [
         {
-          label: 'ビュー',
+          type: 'bar',
+          label: '累計スキ',
+          data: likes,
+          backgroundColor: 'rgba(110,181,255,0.5)',
+          borderColor: '#6eb5ff',
+          borderWidth: 1,
+          yAxisID: 'y1',
+          order: 2,
+        },
+        {
+          type: 'line',
+          label: '累計ビュー',
           data: views,
           borderColor: '#7fff6e',
           backgroundColor: 'rgba(127,255,110,0.06)',
@@ -413,26 +424,16 @@ function buildDaily(rows) {
           fill: true,
           tension: 0.3,
           yAxisID: 'y',
-        },
-        {
-          label: 'スキ',
-          data: likes,
-          borderColor: '#6eb5ff',
-          backgroundColor: 'rgba(110,181,255,0.06)',
-          borderWidth: 2,
-          pointRadius: 0,
-          fill: true,
-          tension: 0.3,
-          yAxisID: 'y1',
+          order: 1,
         },
       ]
     },
     options: {
       ...baseOptions(),
       scales: {
-        x: { grid: { color: GRID_COLOR }, ticks: { maxTicksLimit: 8 } },
-        y:  { grid: { color: GRID_COLOR }, position: 'left' },
-        y1: { grid: { display: false }, position: 'right' },
+        x:  { grid: { color: GRID_COLOR }, ticks: { maxTicksLimit: 8 } },
+        y:  { grid: { color: GRID_COLOR }, position: 'left',  title: { display: true, text: 'ビュー', color: '#5a5a7a' } },
+        y1: { grid: { display: false },    position: 'right', title: { display: true, text: 'スキ',   color: '#5a5a7a' } },
       }
     }
   });
