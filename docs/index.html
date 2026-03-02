@@ -23,17 +23,13 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; padding-bottom: 60px; }
 
+  /* Layout */
   header {
     border-bottom: 1px solid var(--border);
-    padding: 18px 36px;
-    display: flex; align-items: center; justify-content: space-between;
-    position: sticky; top: 0;
-    background: rgba(13,13,20,0.96);
-    backdrop-filter: blur(12px);
-    z-index: 100;
+    padding: 18px 36px; display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; background: rgba(13,13,20,0.96); backdrop-filter: blur(12px); z-index: 100;
   }
   .logo { font-family: var(--font-mono); font-size: 14px; font-weight: 600; color: var(--accent-view); letter-spacing: 0.08em; }
-  .logo em { color: var(--muted); font-style: normal; }
   #last-updated { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
 
   .kpi-strip { display: grid; grid-template-columns: repeat(4,1fr); border-bottom: 1px solid var(--border); }
@@ -46,7 +42,7 @@
   .kpi-value.a { color: var(--accent-article); }
   .kpi-value.f { color: var(--accent-follower); }
   .kpi-diff { margin-top: 8px; font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
-  .kpi-diff.up   { color: var(--accent-view); }
+  .kpi-diff.up { color: var(--accent-view); }
   .kpi-diff.down { color: var(--accent-like); }
 
   .grid { display: grid; grid-template-columns: 1fr 1fr; }
@@ -59,66 +55,53 @@
     letter-spacing: 0.18em; text-transform: uppercase;
     margin-bottom: 20px; display: flex; align-items: center; gap: 8px;
   }
-  .panel-title::before { content:''; width:6px; height:6px; border-radius:50%; background: var(--accent-view); flex-shrink:0; }
-  .panel:nth-child(2)  .panel-title::before { background: var(--accent-like); }
-  .panel:nth-child(3)  .panel-title::before { background: var(--accent-follower); }
-  .panel:nth-child(4)  .panel-title::before { background: var(--accent-article); }
-  .panel.full          .panel-title::before { background: #b07eff; }
+  .panel-title::before { content:''; width:6px; height:6px; border-radius:50%; background: var(--accent-view); }
 
+  /* Charts & Lists */
   .chart-wrap { position: relative; height: 300px; }
   .chart-wrap.tall { height: 380px; }
-
-  .ranking-list { display: flex; flex-direction: column; gap: 6px; max-height: 360px; overflow-y: auto; padding-right: 4px; }
-  .ranking-list::-webkit-scrollbar { width: 3px; }
-  .ranking-list::-webkit-scrollbar-thumb { background: var(--border); }
-
+  .ranking-list { display: flex; flex-direction: column; gap: 6px; max-height: 400px; overflow-y: auto; }
   .rank-item {
     display: grid; grid-template-columns: 26px 1fr 90px;
-    align-items: center; gap: 10px;
-    padding: 9px 12px;
+    align-items: center; gap: 10px; padding: 9px 12px;
     background: var(--surface); border: 1px solid var(--border); border-radius: 3px;
-    transition: border-color 0.15s;
   }
-  .rank-item:hover { border-color: var(--accent-like); }
-  .rank-num { font-family: var(--font-mono); font-size: 10px; color: var(--muted); text-align: center; }
-  .rank-num.gold   { color: #ffd97e; font-weight: 600; }
-  .rank-num.silver { color: #b0b8d0; font-weight: 600; }
-  .rank-num.bronze { color: #c8845a; font-weight: 600; }
-  .rank-title { font-size: 11px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .rank-right { display: flex; align-items: center; gap: 6px; }
-  .rank-bar { flex:1; height:2px; background: var(--border); border-radius:1px; overflow:hidden; }
-  .rank-bar-fill { height:100%; border-radius:1px; transition: width 0.8s ease; }
-  .rank-val { font-family: var(--font-mono); font-size: 10px; min-width:40px; text-align:right; }
-  .view-bar { background: var(--accent-view); }
-  .like-bar { background: var(--accent-like); }
-  .view-val { color: var(--accent-view); }
-  .like-val { color: var(--accent-like); }
+  .rank-title { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .view-val { color: var(--accent-view); font-family: var(--font-mono); }
 
-  .loading { display:flex; align-items:center; justify-content:center; height:200px; font-family:var(--font-mono); font-size:11px; color:var(--muted); letter-spacing:0.1em; }
+  /* Table Custom (Images styles) */
+  .table-container { overflow-x: auto; border: 1px solid var(--border); }
+  .trend-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 11px; }
+  .trend-table th, .trend-table td { padding: 12px; border-bottom: 1px solid var(--border); border-right: 1px solid rgba(255,255,255,0.05); }
+  .trend-table th { background: var(--bg); color: var(--muted); position: sticky; top: 0; z-index: 10; text-align: left; }
+  
+  /* Sticky Columns */
+  .sticky-col-1 { position: sticky; left: 0; background: var(--surface); z-index: 5; min-width: 80px; border-right: 1px solid var(--border) !important; }
+  .sticky-col-2 { position: sticky; left: 80px; background: var(--surface); z-index: 5; border-right: 2px solid var(--border) !important; }
+
+  /* Asset Image Replica Style */
+  .bar-cell { width: 100px; position: relative; padding: 0 !important; }
+  .bar-fill { height: 100%; background: #4fffb0; opacity: 0.4; position: absolute; left: 0; top: 0; transition: width 0.6s ease; }
+  .highlight-col { background: rgba(79, 255, 176, 0.15); color: var(--accent-view); text-align: center; font-weight: bold; width: 60px; }
+  .trend-text { font-family: var(--font-mono); font-size: 10px; color: var(--muted); white-space: nowrap; }
+  .status-badge { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+  .status-🔥 { background: rgba(255, 69, 0, 0.2); color: #ff4500; }
+  .status-🟢 { background: rgba(79, 255, 176, 0.2); color: var(--accent-view); }
+  .status-💤 { background: rgba(74, 74, 106, 0.2); color: var(--muted); }
+
+  .loading { display: flex; align-items: center; justify-content: center; height: 150px; color: var(--muted); font-family: var(--font-mono); }
 
   @media (max-width:768px) {
     .kpi-strip { grid-template-columns: repeat(2,1fr); }
     .grid { grid-template-columns: 1fr; }
-    .panel { border-right: none !important; }
-    header, .kpi, .panel { padding-left:16px; padding-right:16px; }
   }
-
-  /* --- 追加：分析セクション用のデザイン --- */
-  .status-badge { padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 600; }
-  .status-🔥 { background: rgba(255, 69, 0, 0.2); color: #ff4500; border: 1px solid #ff4500; }
-  .status-🟢 { background: rgba(79, 255, 176, 0.2); color: var(--accent-view); border: 1px solid var(--accent-view); }
-  .status-⚠️ { background: rgba(255, 217, 126, 0.2); color: var(--accent-article); border: 1px solid var(--accent-article); }
-  .status-💤 { background: rgba(74, 74, 106, 0.2); color: var(--muted); border: 1px solid var(--muted); }
-  .trend-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; }
-  .trend-table th { text-align: left; padding: 12px; border-bottom: 1px solid var(--border); color: var(--muted); }
-  .trend-table td { padding: 12px; border-bottom: 1px solid var(--border); }
 </style>
 </head>
 <body>
 
 <header>
   <div class="logo">note<em>/</em>stats</div>
-  <div id="last-updated">loading...</div>
+  <div id="last-updated">loading stats...</div>
 </header>
 
 <div class="kpi-strip">
@@ -153,39 +136,50 @@
     <div class="panel-title">記事ビューランキング（上位20）</div>
     <div class="ranking-list" id="ranking-views"><div class="loading">loading...</div></div>
   </div>
-  <div class="panel">
-    <div class="panel-title">フォロワー数 日次推移</div>
-    <div class="chart-wrap"><canvas id="chart-followers"></canvas></div>
-  </div>
-  <div class="panel">
-    <div class="panel-title">記事スキ数ランキング（上位20）</div>
-    <div class="ranking-list" id="ranking-likes"><div class="loading">loading...</div></div>
-  </div>
-  <div class="panel full">
-    <div class="panel-title">4象限マップ（1記事あたりビュー × スキ率）</div>
-    <div class="chart-wrap tall"><canvas id="chart-quad"></canvas></div>
-  </div>
 
   <div class="panel full">
-    <div class="panel-title">トレンド分析（直近7日間の動き）</div>
-    <div style="overflow-x: auto;">
+    <div class="panel-title">資産記事分析（稼働日数と増加トレンド）</div>
+    <div class="table-container">
       <table class="trend-table">
         <thead>
           <tr>
-            <th>状態</th><th>タイトル</th><th>スコア</th><th>前日比PV</th><th>7日合計</th>
+            <th>#</th>
+            <th>タイトル</th>
+            <th colspan="2">期間増加数</th>
+            <th>稼働日数</th>
+            <th>推移</th>
           </tr>
         </thead>
-        <tbody id="trend-body">
-          <tr><td colspan="5" class="loading">解析データを読み込み中...</td></tr>
+        <tbody id="asset-body">
+          <tr><td colspan="6" class="loading">Analyzing assets...</td></tr>
         </tbody>
       </table>
     </div>
   </div>
+
   <div class="panel full">
-    <div class="panel-title">資産記事（安定して読まれているストック記事）</div>
-    <div class="ranking-list" id="asset-list">
-      <div class="loading">資産記事を読み込み中...</div>
+    <div class="panel-title">トレンド動態（詳細数値：横スクロール対応）</div>
+    <div class="table-container">
+      <table class="trend-table">
+        <thead>
+          <tr>
+            <th class="sticky-col-1">状態</th>
+            <th class="sticky-col-2">タイトル</th>
+            <th>スコア</th>
+            <th>-1日</th><th>-2日</th><th>-3日</th><th>-4日</th><th>-5日</th><th>-6日</th><th>-7日</th>
+            <th>累計PV</th>
+          </tr>
+        </thead>
+        <tbody id="trend-body">
+          <tr><td colspan="11" class="loading">Calculating trends...</td></tr>
+        </tbody>
+      </table>
     </div>
+  </div>
+
+  <div class="panel full">
+    <div class="panel-title">4象限マップ（1記事あたりビュー × スキ率）</div>
+    <div class="chart-wrap tall"><canvas id="chart-quad"></canvas></div>
   </div>
 </div>
 
@@ -193,206 +187,135 @@
 const BASE = 'https://raw.githubusercontent.com/Goo-dev0505/note-stats-public/main/data/';
 
 async function fetchCSV(name) {
-  const res = await fetch(BASE + name + '.csv?t=' + Date.now());
-  if (!res.ok) throw new Error(name + ' not found');
-  const text = await res.text();
-  const lines = text.trim().split('\n');
-  const headers = lines[0].split(',');
-  return lines.slice(1).map(line => {
-    const vals = line.split(',');
-    const obj = {};
-    headers.forEach((h, i) => obj[h.trim()] = (vals[i] || '').trim());
-    return obj;
-  });
+  try {
+    const res = await fetch(BASE + name + '.csv?t=' + Date.now());
+    if (!res.ok) throw new Error(name + ' not found');
+    const text = await res.text();
+    const lines = text.trim().split('\n');
+    const headers = lines[0].split(',').map(h => h.trim());
+    return lines.slice(1).map(line => {
+      const vals = line.split(',');
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = (vals[i] || '').trim());
+      return obj;
+    });
+  } catch(e) { console.error(e); return []; }
 }
 
-Chart.defaults.color = '#4a4a6a';
-Chart.defaults.font.family = "'IBM Plex Mono', monospace";
-Chart.defaults.font.size = 10;
-const GC = '#1f1f30';
-
-function base() {
-  return {
-    responsive: true, maintainAspectRatio: false,
-    plugins: {
-      legend: { display: true, labels: { boxWidth: 8, padding: 14, color: '#4a4a6a' } },
-      tooltip: { backgroundColor:'#14141f', borderColor:'#1f1f30', borderWidth:1, titleColor:'#dde0f0', bodyColor:'#4a4a6a', padding:10 }
-    },
-    scales: { x: { grid:{ color:GC }, ticks:{ maxTicksLimit:8 } }, y: { grid:{ color:GC } } }
-  };
-}
-
-function setDiff(id, val) {
-  if (isNaN(val)) return;
-  const el = document.getElementById(id);
-  const sign = val >= 0 ? '▲' : '▼';
-  el.textContent = sign + Math.abs(val).toFixed(1) + '% 前日比';
-  el.className = 'kpi-diff ' + (val >= 0 ? 'up' : 'down');
-}
-
+// --- KPI & Basic Charts ---
 function buildDaily(rows) {
   const r = rows.slice(-60);
   const labels = r.map(d => d['日付'] ? d['日付'].slice(5) : '');
-  const views  = r.map(d => Number(d['ビュー合計']));
-  const likes  = r.map(d => Number(d['スキ合計']));
+  const views = r.map(d => Number(d['ビュー合計']));
+  const likes = r.map(d => Number(d['スキ合計']));
   new Chart(document.getElementById('chart-daily'), {
     type: 'bar',
     data: {
       labels,
       datasets: [
-        { type:'bar',  label:'累計スキ',  data:likes, backgroundColor:'rgba(255,126,179,0.45)', borderColor:'rgba(255,126,179,0.8)', borderWidth:1, yAxisID:'y1', order:2 },
-        { type:'line', label:'累計ビュー', data:views, borderColor:'#4fffb0', backgroundColor:'rgba(79,255,176,0.07)', borderWidth:2, pointRadius:0, fill:true, tension:0.3, yAxisID:'y', order:1 },
+        { type:'bar', label:'累計スキ', data:likes, backgroundColor:'rgba(255,126,179,0.4)', borderColor:'#ff7eb3', borderWidth:1, yAxisID:'y1' },
+        { type:'line', label:'累計ビュー', data:views, borderColor:'#4fffb0', backgroundColor:'rgba(79,255,176,0.05)', fill:true, tension:0.3, yAxisID:'y' }
       ]
     },
-    options: {
-      ...base(),
-      scales: {
-        x:  { grid:{ color:GC }, ticks:{ maxTicksLimit:10 } },
-        y:  { grid:{ color:GC }, position:'left',  title:{ display:true, text:'ビュー', color:'#4a4a6a' } },
-        y1: { grid:{ display:false }, position:'right', title:{ display:true, text:'スキ', color:'#4a4a6a' } },
-      }
-    }
+    options: { responsive:true, maintainAspectRatio:false, scales: { y1:{position:'right', grid:{display:false}} } }
   });
 }
 
-function buildRanking(containerId, rows, valueKey, barClass, valClass) {
+function buildRanking(containerId, rows, valueKey) {
   if (!rows.length) return;
   const latest = rows.reduce((a,b) => a.date > b.date ? a : b).date;
-  const sorted = rows.filter(r => r.date === latest)
-                     .sort((a,b) => Number(b[valueKey]) - Number(a[valueKey]))
-                     .slice(0,20);
-  const max = Number(sorted[0]?.[valueKey] || 1);
-  const medal = i => i===0?'gold':i===1?'silver':i===2?'bronze':'';
+  const sorted = rows.filter(r => r.date === latest).sort((a,b) => Number(b[valueKey]) - Number(a[valueKey])).slice(0,20);
+  const max = Number(sorted[0][valueKey] || 1);
   document.getElementById(containerId).innerHTML = sorted.map((r,i) => `
     <div class="rank-item">
-      <span class="rank-num ${medal(i)}">${String(i+1).padStart(2,'0')}</span>
+      <span style="font-family:var(--font-mono); font-size:10px; color:var(--muted)">${String(i+1).padStart(2,'0')}</span>
       <span class="rank-title" title="${r.title}">${r.title}</span>
-      <div class="rank-right">
-        <div class="rank-bar"><div class="rank-bar-fill ${barClass}" style="width:${(Number(r[valueKey])/max*100).toFixed(1)}%"></div></div>
-        <span class="rank-val ${valClass}">${Number(r[valueKey]).toLocaleString()}</span>
-      </div>
+      <div style="text-align:right"><span class="view-val">${Number(r[valueKey]).toLocaleString()}</span></div>
     </div>
   `).join('');
 }
 
-function buildFollowers(summary, followers) {
-  const fRows = followers.filter(r => r['フォロワー数']);
-  let labels, data;
-  if (fRows.length > 1) {
-    labels = fRows.map(r => r['日付'] ? r['日付'].slice(5) : '');
-    data   = fRows.map(r => Number(r['フォロワー数']));
-  } else {
-    const s = summary.filter(r => r['フォロワー数']);
-    labels = s.map(r => r['日付'] ? r['日付'].slice(5) : '');
-    data   = s.map(r => Number(r['フォロワー数']));
-  }
-  new Chart(document.getElementById('chart-followers'), {
-    type: 'line',
-    data: { labels, datasets: [{ label:'フォロワー数', data, borderColor:'#7eb3ff', backgroundColor:'rgba(126,179,255,0.08)', borderWidth:2, pointRadius:data.length<30?4:0, pointBackgroundColor:'#7eb3ff', fill:true, tension:0.3 }] },
-    options: base()
-  });
-}
-
-function buildQuad(rows) {
-  const data = rows.map(r => ({ x:parseFloat(r['ビュー/記事'])||0, y:parseFloat(r['スキ率(%)'])||0, label:r['日付'] }));
-  const xMean = data.reduce((s,d)=>s+d.x,0)/data.length;
-  const yMean = data.reduce((s,d)=>s+d.y,0)/data.length;
-  new Chart(document.getElementById('chart-quad'), {
-    type: 'scatter',
-    data: { datasets: [{ label:'日次データ', data, backgroundColor:data.map((_,i)=>`rgba(176,126,255,${0.15+i/data.length*0.7})`), pointRadius:4, pointHoverRadius:7 }] },
-    options: {
-      ...base(),
-      plugins: { ...base().plugins, tooltip: { ...base().plugins.tooltip, callbacks: { label: ctx=>`${ctx.raw.label}  ビュー/記事:${ctx.raw.x.toFixed(1)}  スキ率:${ctx.raw.y.toFixed(2)}%` } } },
-      scales: {
-        x: { grid:{color:GC}, title:{display:true, text:'1記事あたりビュー', color:'#4a4a6a'} },
-        y: { grid:{color:GC}, title:{display:true, text:'スキ率(%)',          color:'#4a4a6a'} },
-      }
-    },
-    plugins: [{
-      id:'quad-lines',
-      afterDraw(chart) {
-        const {ctx, chartArea:{left,right,top,bottom}, scales:{x,y}} = chart;
-        const cx = x.getPixelForValue(xMean), cy = y.getPixelForValue(yMean);
-        ctx.save(); ctx.setLineDash([4,4]); ctx.strokeStyle='#2a2a42'; ctx.lineWidth=1;
-        ctx.beginPath(); ctx.moveTo(cx,top);  ctx.lineTo(cx,bottom); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(left,cy); ctx.lineTo(right,cy);  ctx.stroke();
-        ctx.restore();
-      }
-    }]
-  });
-}
-
-// 新機能：トレンド表と資産記事の描画関数
-function buildTrendTable(rows) {
-  const tbody = document.getElementById('trend-body');
-  if (!rows || rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center">データがありません</td></tr>';
-    return;
-  }
-  tbody.innerHTML = rows.slice(0, 10).map(r => {
-    const statusEmoji = r['状態'] ? r['状態'].split(' ')[0] : '💤'; 
+// --- New Analysis Builders ---
+function buildAssetTable(rows) {
+  const tbody = document.getElementById('asset-body');
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6">No asset data found.</td></tr>'; return; }
+  
+  const maxGain = Math.max(...rows.map(r => Number(r['期間増加PV'] || 0)), 1);
+  
+  tbody.innerHTML = rows.slice(0, 15).map((r, i) => {
+    const gain = Number(r['期間増加PV'] || 0);
+    const barWidth = (gain / maxGain * 100).toFixed(1);
+    const trend = r['推移PV'] ? r['推移PV'].replace(/→/g, '→') : '---';
     return `
       <tr>
-        <td><span class="status-badge status-${statusEmoji}">${r['状態'] || '💤 停止'}</span></td>
-        <td class="rank-title">${r['title'] || '---'}</td>
-        <td class="view-val">${r['トレンドスコア'] || '0'}</td>
-        <td class="view-val">+${Number(r['前日比PV'] || 0).toLocaleString()}</td>
-        <td>${Number(r['7日合計PV'] || 0).toLocaleString()}</td>
+        <td style="color:var(--muted); text-align:center;">${rows.length - i}</td>
+        <td class="rank-title" style="max-width:300px;">${r.title}</td>
+        <td class="bar-cell"><div class="bar-fill" style="width:${barWidth}%"></div></td>
+        <td style="text-align:right; font-weight:bold; width:60px;">${gain.toLocaleString()}</td>
+        <td class="highlight-col">${r['稼働日数']}</td>
+        <td class="trend-text">${trend}</td>
       </tr>
     `;
   }).join('');
 }
 
-function buildAssetList(rows) {
-  const container = document.getElementById('asset-list');
-  if (!rows || rows.length === 0) {
-    container.innerHTML = '<div class="loading">資産記事データがありません</div>';
-    return;
-  }
-  container.innerHTML = rows.slice(0, 10).map((r, i) => `
-    <div class="rank-item">
-      <span class="rank-num">${i+1}</span>
-      <span class="rank-title">${r.title || '---'}</span>
-      <div class="rank-right">
-        <span class="view-val">+${Number(r['期間増加PV'] || 0).toLocaleString()} PV</span>
-      </div>
-    </div>
-  `).join('');
+function buildTrendDetailed(rows) {
+  const tbody = document.getElementById('trend-body');
+  if (!rows.length) return;
+  
+  tbody.innerHTML = rows.slice(0, 20).map(r => {
+    const statusEmoji = r['状態'] ? r['状態'].split(' ')[0] : '💤';
+    const dailyCells = [1,2,3,4,5,6,7].map(i => {
+      const v = Number(r[`-${i}日PV`] || 0);
+      return `<td style="text-align:right; color:${v>0?'var(--text)':'var(--muted)'}">${v}</td>`;
+    }).join('');
+
+    return `
+      <tr>
+        <td class="sticky-col-1"><span class="status-badge status-${statusEmoji}">${r['状態']}</span></td>
+        <td class="sticky-col-2 rank-title" style="max-width:250px;">${r['title']}</td>
+        <td style="text-align:center; font-weight:bold; color:var(--accent-view)">${r['トレンドスコア']}</td>
+        ${dailyCells}
+        <td style="text-align:right; font-weight:600;">${Number(r['累計PV']).toLocaleString()}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function buildQuad(rows) {
+  const data = rows.map(r => ({ x:parseFloat(r['ビュー/記事'])||0, y:parseFloat(r['スキ率(%)'])||0, label:r['日付'] }));
+  new Chart(document.getElementById('chart-quad'), {
+    type: 'scatter',
+    data: { datasets: [{ label:'日次動態', data, backgroundColor:'rgba(176,126,255,0.6)', pointRadius:5 }] },
+    options: { responsive:true, maintainAspectRatio:false, scales: { x:{title:{display:true, text:'Views/Article'}}, y:{title:{display:true, text:'Like Rate (%)'}} } }
+  });
 }
 
 async function init() {
-  try {
-    const [summary, articles, followers, trend, assets] = await Promise.all([
-      fetchCSV('daily_summary'), 
-      fetchCSV('articles'), 
-      fetchCSV('followers'),
-      fetchCSV('trend_analysis'),
-      fetchCSV('asset_articles')
-    ]);
+  const [summary, articles, followers, trend, assets] = await Promise.all([
+    fetchCSV('daily_summary'), fetchCSV('articles'), fetchCSV('followers'),
+    fetchCSV('trend_analysis'), fetchCSV('asset_articles')
+  ]);
 
+  if (summary.length) {
     const latest = summary[summary.length-1];
-    document.getElementById('kpi-views').textContent     = Number(latest['ビュー合計']).toLocaleString();
-    document.getElementById('kpi-likes').textContent     = Number(latest['スキ合計']).toLocaleString();
-    document.getElementById('kpi-articles').textContent  = Number(latest['記事数']).toLocaleString();
-    document.getElementById('kpi-followers').textContent = latest['フォロワー数'] ? Number(latest['フォロワー数']).toLocaleString() : '—';
-    document.getElementById('last-updated').textContent  = 'updated ' + latest['日付'] + ' ' + (latest['更新時刻']||'');
+    document.getElementById('kpi-views').textContent = Number(latest['ビュー合計']).toLocaleString();
+    document.getElementById('kpi-likes').textContent = Number(latest['スキ合計']).toLocaleString();
+    document.getElementById('kpi-articles').textContent = Number(latest['記事数']).toLocaleString();
+    document.getElementById('kpi-followers').textContent = latest['フォロワー数'] || '—';
+    document.getElementById('last-updated').textContent = `updated ${latest['日付']} ${latest['更新時刻']||''}`;
     
-    setDiff('kpi-views-diff', parseFloat(latest['ビュー前日比(%)']));
-    setDiff('kpi-likes-diff', parseFloat(latest['スキ前日比(%)']));
-    
-    // 各パーツの描画実行
-    buildDaily(summary);
-    buildRanking('ranking-views', articles, 'read_count', 'view-bar', 'view-val');
-    buildFollowers(summary, followers);
-    buildRanking('ranking-likes', articles, 'like_count', 'like-bar', 'like-val');
-    buildQuad(summary);
-    buildTrendTable(trend);
-    buildAssetList(assets);
-
-  } catch(e) {
-    console.error(e);
-    document.getElementById('last-updated').textContent = 'エラー: ' + e.message;
+    const vDiff = parseFloat(latest['ビュー前日比(%)']);
+    const elV = document.getElementById('kpi-views-diff');
+    elV.textContent = (vDiff >= 0 ? '▲' : '▼') + Math.abs(vDiff).toFixed(1) + '% 前日比';
+    elV.className = 'kpi-diff ' + (vDiff >= 0 ? 'up' : 'down');
   }
+
+  buildDaily(summary);
+  buildRanking('ranking-views', articles, 'read_count');
+  buildAssetTable(assets);
+  buildTrendDetailed(trend);
+  buildQuad(summary);
 }
 
 init();
