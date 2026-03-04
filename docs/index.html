@@ -3,214 +3,752 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>note stats dashboard</title>
+<title>note / stats</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;600;700&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #0d0d14;
-    --surface: #14141f;
-    --border: #1f1f30;
-    --accent-view: #4fffb0;
-    --accent-like: #ff7eb3;
-    --accent-follower: #7eb3ff;
-    --accent-article: #ffd97e;
-    --text: #dde0f0;
-    --muted: #4a4a6a;
-    --font-mono: 'IBM Plex Mono', monospace;
-    --font-body: 'Noto Sans JP', sans-serif;
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; padding-bottom: 60px; }
+:root {
+  --bg:        #06080f;
+  --bg2:       #0b0e1a;
+  --surface:   #0f1221;
+  --surface2:  #141729;
+  --border:    rgba(255,255,255,0.07);
+  --border2:   rgba(255,255,255,0.12);
 
-  header {
-    border-bottom: 1px solid var(--border);
-    padding: 18px 36px; display: flex; align-items: center; justify-content: space-between;
-    position: sticky; top: 0; background: rgba(13,13,20,0.96); backdrop-filter: blur(12px); z-index: 100;
-  }
-  .logo { font-family: var(--font-mono); font-size: 14px; font-weight: 600; color: var(--accent-view); letter-spacing: 0.08em; }
-  .logo em { color: var(--muted); font-style: normal; }
-  #last-updated { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+  --cyan:      #00e5ff;
+  --cyan-dim:  rgba(0,229,255,0.12);
+  --cyan-glow: rgba(0,229,255,0.25);
+  --pink:      #ff4d8d;
+  --pink-dim:  rgba(255,77,141,0.12);
+  --gold:      #ffc947;
+  --gold-dim:  rgba(255,201,71,0.12);
+  --violet:    #9d6fff;
+  --violet-dim:rgba(157,111,255,0.12);
+  --green:     #00e5a0;
+  --red:       #ff4d6a;
 
-  .kpi-strip { display: grid; grid-template-columns: repeat(4,1fr); border-bottom: 1px solid var(--border); }
-  .kpi { padding: 24px 36px; border-right: 1px solid var(--border); }
-  .kpi:last-child { border-right: none; }
-  .kpi-label { font-family: var(--font-mono); font-size: 10px; color: var(--muted); letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 6px; }
-  .kpi-value { font-family: var(--font-mono); font-size: 36px; font-weight: 600; line-height: 1; }
-  .kpi-value.v { color: var(--accent-view); }
-  .kpi-value.l { color: var(--accent-like); }
-  .kpi-value.a { color: var(--accent-article); }
-  .kpi-value.f { color: var(--accent-follower); }
-  .kpi-diff { margin-top: 8px; font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
-  .kpi-diff.up { color: var(--accent-view); }
-  .kpi-diff.down { color: var(--accent-like); }
+  --text:      #e8ecf8;
+  --text2:     #8891b0;
+  --text3:     #3d4466;
 
-  .grid { display: grid; grid-template-columns: 1fr 1fr; }
-  .panel { border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); padding: 28px 36px; }
-  .panel:nth-child(2n) { border-right: none; }
-  .panel.full { grid-column: 1/-1; border-right: none; }
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Syne', sans-serif;
 
-  .panel-title {
-    font-family: var(--font-mono); font-size: 10px; color: var(--muted);
-    letter-spacing: 0.18em; text-transform: uppercase;
-    margin-bottom: 20px; display: flex; align-items: center; gap: 8px;
-  }
-  .panel-title::before { content:''; width:6px; height:6px; border-radius:50%; background: var(--accent-view); flex-shrink:0; }
-  .panel:nth-child(2) .panel-title::before { background: var(--accent-like); }
-  .panel:nth-child(3) .panel-title::before { background: var(--accent-follower); }
-  .panel:nth-child(4) .panel-title::before { background: var(--accent-article); }
+  --r: 6px;
+}
 
-  .chart-wrap { position: relative; height: 300px; }
-  .chart-wrap.tall { height: 380px; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
-  .ranking-list { display: flex; flex-direction: column; gap: 6px; max-height: 360px; overflow-y: auto; padding-right: 4px; }
-  .ranking-list::-webkit-scrollbar { width: 3px; }
-  .ranking-list::-webkit-scrollbar-thumb { background: var(--border); }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
 
-  .rank-item {
-    display: grid; grid-template-columns: 26px 1fr 90px;
-    align-items: center; gap: 10px; padding: 9px 12px;
-    background: var(--surface); border: 1px solid var(--border); border-radius: 3px;
-    transition: border-color 0.15s;
-  }
-  .rank-item:hover { border-color: var(--accent-like); }
-  .rank-num { font-family: var(--font-mono); font-size: 10px; color: var(--muted); text-align: center; }
-  .rank-num.gold { color: #ffd97e; font-weight: 600; }
-  .rank-num.silver { color: #b0b8d0; font-weight: 600; }
-  .rank-num.bronze { color: #c8845a; font-weight: 600; }
-  .rank-title { font-size: 11px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .rank-right { display: flex; align-items: center; gap: 6px; }
-  .rank-bar { flex:1; height:2px; background: var(--border); border-radius:1px; overflow:hidden; }
-  .rank-bar-fill { height:100%; border-radius:1px; transition: width 0.8s ease; }
-  .rank-val { font-family: var(--font-mono); font-size: 10px; min-width:40px; text-align:right; }
-  .view-bar { background: var(--accent-view); }
-  .like-bar { background: var(--accent-like); }
-  .view-val { color: var(--accent-view); font-family: var(--font-mono); }
+/* ─── NOISE OVERLAY ─── */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 999;
+}
 
-  /* --- 追加：解析テーブル用スタイル --- */
-  .table-container { overflow-x: auto; border: 1px solid var(--border); }
-  .trend-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 11px; }
-  .trend-table th, .trend-table td { padding: 12px; border-bottom: 1px solid var(--border); border-right: 1px solid rgba(255,255,255,0.05); }
-  .trend-table th { background: var(--bg); color: var(--muted); position: sticky; top: 0; z-index: 10; text-align: left; }
-  
-  /* 資産記事（画像再現スタイル） */
-  .bar-cell { width: 100px; position: relative; padding: 0 !important; }
-  .bar-fill { height: 100%; background: #4fffb0; opacity: 0.4; position: absolute; left: 0; top: 0; }
-  .highlight-col { background: rgba(79, 255, 176, 0.15); color: var(--accent-view); text-align: center; font-weight: bold; width: 60px; }
-  .trend-text { font-family: var(--font-mono); font-size: 10px; color: var(--muted); white-space: nowrap; }
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
 
-  /* トレンド詳細（固定列スタイル） */
-  .sticky-col-1 { position: sticky; left: 0; background: var(--surface); z-index: 5; min-width: 80px; border-right: 1px solid var(--border) !important; }
-  .sticky-col-2 { position: sticky; left: 80px; background: var(--surface); z-index: 5; border-right: 2px solid var(--border) !important; }
+/* ─── HEADER ─── */
+header {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(6,8,15,0.92);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 32px;
+  height: 56px;
+  display: flex; align-items: center; justify-content: space-between;
+}
 
-  .status-badge { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; }
-  .status-🔥 { background: rgba(255, 69, 0, 0.2); color: #ff4500; }
-  .status-🟢 { background: rgba(79, 255, 176, 0.2); color: var(--accent-view); }
-  .status-💤 { background: rgba(74, 74, 106, 0.2); color: var(--muted); }
+.logo {
+  font-family: var(--sans);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  display: flex; align-items: center; gap: 10px;
+}
+.logo-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 12px var(--cyan);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+.logo-text { color: var(--text); }
+.logo-slash { color: var(--text3); margin: 0 2px; }
+.logo-sub { color: var(--cyan); }
 
-  .loading { display:flex; align-items:center; justify-content:center; height:200px; font-family:var(--font-mono); font-size:11px; color:var(--muted); }
+.header-right {
+  display: flex; align-items: center; gap: 24px;
+}
+#last-updated {
+  font-size: 10px;
+  color: var(--text3);
+  letter-spacing: 0.1em;
+}
+.header-badge {
+  font-size: 9px;
+  padding: 3px 8px;
+  border: 1px solid var(--border2);
+  border-radius: 2px;
+  color: var(--text2);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
 
-  @media (max-width:768px) {
-    .kpi-strip { grid-template-columns: repeat(2,1fr); }
-    .grid { grid-template-columns: 1fr; }
-    .panel { border-right: none !important; }
-    header, .kpi, .panel { padding-left:16px; padding-right:16px; }
-  }
+/* ─── LAYOUT ─── */
+.dashboard {
+  padding: 0;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+/* ─── STATUS BAND (3KPI) ─── */
+.status-band {
+  border-bottom: 1px solid var(--border);
+  padding: 28px 32px;
+  display: grid;
+  grid-template-columns: 1fr 1px 1fr 1px 1fr 2px 1fr;
+  align-items: center;
+  gap: 0;
+  animation: fadeUp 0.6s ease both;
+}
+.band-divider {
+  width: 1px;
+  height: 40px;
+  background: var(--border2);
+  justify-self: center;
+}
+.band-divider.thick {
+  width: 2px;
+  background: var(--border2);
+  height: 60px;
+}
+
+.kpi3-item { padding: 0 28px; }
+.kpi3-label {
+  font-size: 9px;
+  color: var(--text3);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.kpi3-row {
+  display: flex; align-items: baseline; gap: 10px;
+}
+.kpi3-val {
+  font-family: var(--sans);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+}
+.kpi3-arrow {
+  font-size: 20px;
+  line-height: 1;
+  font-family: var(--mono);
+}
+.kpi3-arrow.up   { color: var(--green); }
+.kpi3-arrow.down { color: var(--red); }
+.kpi3-arrow.flat { color: var(--text3); }
+.kpi3-sub {
+  font-size: 10px;
+  color: var(--text3);
+  margin-top: 5px;
+}
+
+.status-memo-wrap { padding: 0 28px; }
+.status-memo-label {
+  font-size: 9px;
+  color: var(--text3);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+#status-memo-text {
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cyan);
+  line-height: 1.5;
+  min-height: 40px;
+}
+
+/* ─── KPI STRIP ─── */
+.kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-bottom: 1px solid var(--border);
+  animation: fadeUp 0.6s 0.1s ease both;
+}
+.kpi {
+  padding: 24px 32px;
+  border-right: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+  transition: background 0.2s;
+}
+.kpi:last-child { border-right: none; }
+.kpi::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 32px; right: 32px;
+  height: 2px;
+  border-radius: 1px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.kpi:nth-child(1)::after { background: var(--cyan); }
+.kpi:nth-child(2)::after { background: var(--pink); }
+.kpi:nth-child(3)::after { background: var(--gold); }
+.kpi:nth-child(4)::after { background: var(--violet); }
+.kpi:hover::after { opacity: 1; }
+.kpi:hover { background: var(--surface); }
+
+.kpi-label {
+  font-size: 9px;
+  color: var(--text3);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  display: flex; align-items: center; gap: 6px;
+}
+.kpi-label::before {
+  content: '';
+  width: 5px; height: 5px; border-radius: 50%;
+}
+.kpi:nth-child(1) .kpi-label::before { background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+.kpi:nth-child(2) .kpi-label::before { background: var(--pink); box-shadow: 0 0 6px var(--pink); }
+.kpi:nth-child(3) .kpi-label::before { background: var(--gold); box-shadow: 0 0 6px var(--gold); }
+.kpi:nth-child(4) .kpi-label::before { background: var(--violet); box-shadow: 0 0 6px var(--violet); }
+
+.kpi-value {
+  font-family: var(--sans);
+  font-size: 42px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.kpi-value.v { color: var(--cyan); }
+.kpi-value.l { color: var(--pink); }
+.kpi-value.a { color: var(--gold); }
+.kpi-value.f { color: var(--violet); }
+
+.kpi-diff {
+  margin-top: 8px;
+  font-size: 10px;
+  color: var(--text3);
+  display: flex; align-items: center; gap: 4px;
+}
+.kpi-diff.up   { color: var(--green); }
+.kpi-diff.down { color: var(--red); }
+
+/* ─── GRID ─── */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.panel {
+  padding: 28px 32px;
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  position: relative;
+  animation: fadeUp 0.5s ease both;
+}
+.panel:nth-child(2n) { border-right: none; }
+.panel.full {
+  grid-column: 1 / -1;
+  border-right: none;
+}
+.panel.third {
+  grid-column: span 1;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+.panel-title {
+  font-size: 9px;
+  color: var(--text3);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  display: flex; align-items: center; gap: 8px;
+}
+.panel-title-dot {
+  width: 4px; height: 4px; border-radius: 50%;
+  background: var(--cyan);
+  flex-shrink: 0;
+}
+.panel-badge {
+  font-size: 9px;
+  padding: 2px 8px;
+  border: 1px solid var(--border2);
+  border-radius: 2px;
+  color: var(--text3);
+  letter-spacing: 0.1em;
+}
+
+.chart-wrap { position: relative; height: 280px; }
+.chart-wrap.tall { height: 360px; }
+
+/* ─── RANKING ─── */
+.ranking-list {
+  display: flex; flex-direction: column; gap: 4px;
+  max-height: 380px; overflow-y: auto;
+  padding-right: 4px;
+}
+
+.rank-item {
+  display: grid;
+  grid-template-columns: 28px 1fr 110px;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--r);
+  border: 1px solid transparent;
+  background: var(--surface);
+  transition: all 0.15s ease;
+  cursor: default;
+}
+.rank-item:hover {
+  background: var(--surface2);
+  border-color: var(--border2);
+  transform: translateX(2px);
+}
+
+.rank-num {
+  font-size: 9px;
+  color: var(--text3);
+  text-align: center;
+  font-weight: 600;
+}
+.rank-num.gold   { color: var(--gold); }
+.rank-num.silver { color: #a8b0c8; }
+.rank-num.bronze { color: #c87850; }
+
+.rank-title {
+  font-size: 11px;
+  color: var(--text2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.15s;
+}
+.rank-item:hover .rank-title { color: var(--text); }
+
+.rank-right {
+  display: flex; align-items: center; gap: 8px;
+}
+.rank-bar {
+  flex: 1; height: 2px;
+  background: var(--border2);
+  border-radius: 1px;
+  overflow: hidden;
+}
+.rank-bar-fill {
+  height: 100%;
+  border-radius: 1px;
+  transition: width 1s cubic-bezier(0.16,1,0.3,1);
+}
+.rank-val {
+  font-size: 10px;
+  min-width: 44px;
+  text-align: right;
+  font-weight: 600;
+}
+.view-bar  { background: var(--cyan); }
+.view-val  { color: var(--cyan); }
+.like-bar  { background: var(--pink); }
+.like-val  { color: var(--pink); }
+.worst-bar { background: var(--red); }
+.worst-val { color: var(--red); }
+
+/* ─── TABLE ─── */
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+}
+.data-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 11px;
+}
+.data-table th {
+  padding: 10px 14px;
+  background: var(--surface);
+  color: var(--text3);
+  text-align: left;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border2);
+  white-space: nowrap;
+  position: sticky; top: 0; z-index: 5;
+}
+.data-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text2);
+  transition: background 0.15s;
+}
+.data-table tr:hover td {
+  background: var(--surface2);
+  color: var(--text);
+}
+.data-table tr:last-child td { border-bottom: none; }
+
+.sticky-1 {
+  position: sticky; left: 0;
+  background: var(--bg2); z-index: 3;
+  border-right: 1px solid var(--border2) !important;
+}
+.sticky-2 {
+  position: sticky; left: 80px;
+  background: var(--bg2); z-index: 3;
+  border-right: 2px solid var(--border2) !important;
+  min-width: 220px;
+}
+tr:hover .sticky-1,
+tr:hover .sticky-2 { background: var(--surface2); }
+
+.status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+.badge-hot  { background: rgba(255,77,106,0.15); color: #ff4d6a; border: 1px solid rgba(255,77,106,0.3); }
+.badge-grow { background: rgba(0,229,160,0.12); color: var(--green); border: 1px solid rgba(0,229,160,0.25); }
+.badge-idle { background: rgba(61,68,102,0.3); color: var(--text3); border: 1px solid var(--border); }
+
+.bar-cell-wrap {
+  display: flex; align-items: center; gap: 8px;
+}
+.inline-bar {
+  width: 60px; height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.inline-bar-fill {
+  height: 100%;
+  background: var(--cyan);
+  border-radius: 2px;
+  opacity: 0.6;
+}
+.num-right { text-align: right; font-weight: 600; color: var(--text); }
+.num-accent { color: var(--cyan); }
+.num-muted  { color: var(--text3); }
+
+/* ─── TWO-COL WORST ─── */
+.worst-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+.worst-section-title {
+  font-size: 9px;
+  color: var(--text3);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  display: flex; align-items: center; gap: 6px;
+}
+.worst-section-title::before {
+  content: '';
+  width: 4px; height: 4px; border-radius: 50%;
+  background: var(--red);
+}
+
+/* ─── LOADING ─── */
+.loading {
+  display: flex; align-items: center; justify-content: center;
+  height: 160px;
+  font-size: 10px;
+  color: var(--text3);
+  letter-spacing: 0.1em;
+}
+.loading::after {
+  content: '...';
+  animation: dots 1.2s steps(4, end) infinite;
+}
+@keyframes dots {
+  0%,20% { content: ''; }
+  40% { content: '.'; }
+  60% { content: '..'; }
+  80%,100% { content: '...'; }
+}
+
+/* ─── ANIMATIONS ─── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.panel:nth-child(1)  { animation-delay: 0.05s; }
+.panel:nth-child(2)  { animation-delay: 0.10s; }
+.panel:nth-child(3)  { animation-delay: 0.15s; }
+.panel:nth-child(4)  { animation-delay: 0.20s; }
+.panel:nth-child(5)  { animation-delay: 0.25s; }
+.panel:nth-child(6)  { animation-delay: 0.30s; }
+.panel:nth-child(7)  { animation-delay: 0.35s; }
+.panel:nth-child(8)  { animation-delay: 0.40s; }
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 900px) {
+  .kpi-strip { grid-template-columns: repeat(2,1fr); }
+  .grid { grid-template-columns: 1fr; }
+  .panel { border-right: none !important; }
+  .status-band { grid-template-columns: 1fr; gap: 16px; }
+  .band-divider { display: none; }
+  .worst-grid { grid-template-columns: 1fr; }
+  header, .kpi, .panel, .kpi3-item, .status-memo-wrap { padding-left: 16px; padding-right: 16px; }
+}
 </style>
 </head>
 <body>
 
+<!-- ═══ HEADER ═══ -->
 <header>
-  <div class="logo">note<em>/</em>stats</div>
-  <div id="last-updated">loading...</div>
+  <div class="logo">
+    <div class="logo-dot"></div>
+    <span class="logo-text">note</span>
+    <span class="logo-slash">/</span>
+    <span class="logo-sub">stats</span>
+  </div>
+  <div class="header-right">
+    <div id="last-updated">—</div>
+    <div class="header-badge">live</div>
+  </div>
 </header>
 
-<div class="kpi-strip">
-  <div class="kpi">
-    <div class="kpi-label">Total Views</div>
-    <div class="kpi-value v" id="kpi-views">—</div>
-    <div class="kpi-diff" id="kpi-views-diff">前日比</div>
-  </div>
-  <div class="kpi">
-    <div class="kpi-label">Total Likes</div>
-    <div class="kpi-value l" id="kpi-likes">—</div>
-    <div class="kpi-diff" id="kpi-likes-diff">前日比</div>
-  </div>
-  <div class="kpi">
-    <div class="kpi-label">Articles</div>
-    <div class="kpi-value a" id="kpi-articles">—</div>
-    <div class="kpi-diff">公開記事数</div>
-  </div>
-  <div class="kpi">
-    <div class="kpi-label">Followers</div>
-    <div class="kpi-value f" id="kpi-followers">—</div>
-    <div class="kpi-diff">フォロワー数</div>
-  </div>
-</div>
+<div class="dashboard">
 
-<div class="grid">
-  <div class="panel">
-    <div class="panel-title">ビュー数（折れ線）・スキ数（棒グラフ）日次推移</div>
-    <div class="chart-wrap"><canvas id="chart-daily"></canvas></div>
-  </div>
-  <div class="panel">
-    <div class="panel-title">記事ビューランキング（上位20）</div>
-    <div class="ranking-list" id="ranking-views"><div class="loading">loading...</div></div>
-  </div>
-  <div class="panel">
-    <div class="panel-title">フォロワー数 日次推移</div>
-    <div class="chart-wrap"><canvas id="chart-followers"></canvas></div>
-  </div>
-  <div class="panel">
-    <div class="panel-title">記事スキ数ランキング（上位20）</div>
-    <div class="ranking-list" id="ranking-likes"><div class="loading">loading...</div></div>
-  </div>
+  <!-- ═══ STATUS BAND (3KPI + memo) ═══ -->
+  <div class="status-band">
+    <div class="kpi3-item">
+      <div class="kpi3-label">Reach Power｜リーチ力</div>
+      <div class="kpi3-row">
+        <span class="kpi3-val" id="k3-reach">—</span>
+        <span class="kpi3-arrow" id="k3-reach-arrow"></span>
+      </div>
+      <div class="kpi3-sub">PV ÷ 記事数</div>
+    </div>
+    <div class="band-divider"></div>
 
-  <div class="panel full">
-    <div class="panel-title">資産記事分析（初期バースト後の定着確認）</div>
-    <div class="table-container">
-      <table class="trend-table">
-        <thead>
-          <tr>
-            <th style="width:50px;">#</th>
-            <th>タイトル</th>
-            <th colspan="2">期間増加数</th>
-            <th>稼働日数</th>
-            <th>推移</th>
-          </tr>
-        </thead>
-        <tbody id="asset-body">
-          <tr><td colspan="6" class="loading">資産データをスキャン中...</td></tr>
-        </tbody>
-      </table>
+    <div class="kpi3-item">
+      <div class="kpi3-label">Action Power｜アクション力</div>
+      <div class="kpi3-row">
+        <span class="kpi3-val" id="k3-action">—</span>
+        <span class="kpi3-arrow" id="k3-action-arrow"></span>
+      </div>
+      <div class="kpi3-sub">スキ ÷ 記事数</div>
+    </div>
+    <div class="band-divider"></div>
+
+    <div class="kpi3-item">
+      <div class="kpi3-label">η スキ率</div>
+      <div class="kpi3-row">
+        <span class="kpi3-val" id="k3-eta">—</span>
+        <span class="kpi3-arrow" id="k3-eta-arrow"></span>
+      </div>
+      <div class="kpi3-sub">スキ ÷ PV × 100</div>
+    </div>
+    <div class="band-divider thick"></div>
+
+    <div class="status-memo-wrap">
+      <div class="status-memo-label">📋 Status Memo｜自動診断</div>
+      <div id="status-memo-text">データ読み込み中...</div>
     </div>
   </div>
 
-  <div class="panel full">
-    <div class="panel-title">トレンド動態（詳細数値：横スクロール対応）</div>
-    <div class="table-container">
-      <table class="trend-table">
-        <thead>
-          <tr>
-            <th class="sticky-col-1">状態</th>
-            <th class="sticky-col-2">タイトル</th>
-            <th>スコア</th>
-            <th>-1日</th><th>-2日</th><th>-3日</th><th>-4日</th><th>-5日</th><th>-6日</th><th>-7日</th>
-            <th>累計PV</th>
-          </tr>
-        </thead>
-        <tbody id="trend-body">
-          <tr><td colspan="11" class="loading">解析データを読み込み中...</td></tr>
-        </tbody>
-      </table>
+  <!-- ═══ KPI STRIP ═══ -->
+  <div class="kpi-strip">
+    <div class="kpi">
+      <div class="kpi-label">Total Views</div>
+      <div class="kpi-value v" id="kpi-views">—</div>
+      <div class="kpi-diff" id="kpi-views-diff">前日比</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Total Likes</div>
+      <div class="kpi-value l" id="kpi-likes">—</div>
+      <div class="kpi-diff" id="kpi-likes-diff">前日比</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Articles</div>
+      <div class="kpi-value a" id="kpi-articles">—</div>
+      <div class="kpi-diff">公開記事数</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Followers</div>
+      <div class="kpi-value f" id="kpi-followers">—</div>
+      <div class="kpi-diff">フォロワー数</div>
     </div>
   </div>
 
-  <div class="panel full">
-    <div class="panel-title">4象限マップ（1記事あたりビュー × スキ率）</div>
-    <div class="chart-wrap tall"><canvas id="chart-quad"></canvas></div>
-  </div>
-</div>
+  <!-- ═══ PANELS ═══ -->
+  <div class="grid">
+
+    <!-- 日次推移 -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">
+          <span class="panel-title-dot" style="background:var(--cyan)"></span>
+          ビュー / スキ 日次推移
+        </div>
+        <span class="panel-badge">60D</span>
+      </div>
+      <div class="chart-wrap"><canvas id="chart-daily"></canvas></div>
+    </div>
+
+    <!-- ビューランキング -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">
+          <span class="panel-title-dot" style="background:var(--cyan)"></span>
+          View ランキング TOP 20
+        </div>
+        <span class="panel-badge" style="color:var(--cyan);border-color:var(--cyan-dim)">PV</span>
+      </div>
+      <div class="ranking-list" id="ranking-views"><div class="loading">loading</div></div>
+    </div>
+
+    <!-- フォロワー推移 -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">
+          <span class="panel-title-dot" style="background:var(--violet)"></span>
+          フォロワー 日次推移
+        </div>
+        <span class="panel-badge">ALL</span>
+      </div>
+      <div class="chart-wrap"><canvas id="chart-followers"></canvas></div>
+    </div>
+
+    <!-- スキランキング -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">
+          <span class="panel-title-dot" style="background:var(--pink)"></span>
+          スキ ランキング TOP 20
+        </div>
+        <span class="panel-badge" style="color:var(--pink);border-color:var(--pink-dim)">LIKE</span>
+      </div>
+      <div class="ranking-list" id="ranking-likes"><div class="loading">loading</div></div>
+    </div>
+
+    <!-- ワースト10 -->
+    <div class="panel full">
+      <div class="panel-header">
+        <div class="panel-title">
+          <span class="panel-title-dot" style="background:var(--red)"></span>
+          改善候補 ワースト分析
+        </div>
+        <span class="panel-badge" style="color:var(--red);border-color:rgba(255,77,106,0.2)">WORST 10</span>
+      </div>
+      <div class="worst-grid">
+        <div>
+          <div class="worst-section-title">スキ率 ワースト（読まれてるのに刺さってない）</div>
+          <div class="ranking-list" id="ranking-worst-eta"><div class="loading">loading</div></div>
+        </div>
+        <div>
+          <div class="worst-section-title">View数 ワースト（埋もれている記事）</div>
+          <div class="ranking-list" id="ranking-worst-views"><div class="loading">loading</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4象限 -->
+    <div class="panel full">
+      <div class="panel-header">
+        <div class="panel-title">
+          <span class="panel-title-dot" style="background:var(--violet)"></span>
+          4象限マップ｜PV × スキ率
+        </div>
+        <span class="panel-badge">SCATTER</span>
+      </div>
+      <div class="chart-wrap tall"><canvas id="chart-quad"></canvas></div>
+    </div>
+
+    <!-- 資産記事 -->
+    <div class="panel full">
+      <div class="panel-header">
+        <div class="panel-title">
+          <span class="panel-title-dot" style="background:var(--gold)"></span>
+          資産記事分析｜バースト後の定着確認
+        </div>
+        <span class="panel-badge" style="color:var(--gold);border-color:var(--gold-dim)">ASSET</span>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width:44px">#</th>
+              <th>タイトル</th>
+              <th>期間 PV 増加</th>
+              <th style="width:80px">稼働日数</th>
+              <th>推移</th>
+            </tr>
+          </thead>
+          <tbody id="asset-body">
+            <tr><td colspan="5" class="loading">スキャン中</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- トレンド詳細 -->
+    <div class="panel full">
+      <div class="panel-header">
+        <div class="panel-title">
+          <span class="panel-title-dot" style="background:var(--pink)"></span>
+          トレンド動態｜7日間詳細
+        </div>
+        <span class="panel-badge">← SCROLL →</span>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th class="sticky-1" style="width:80px">状態</th>
+              <th class="sticky-2">タイトル</th>
+              <th>スコア</th>
+              <th>-1日</th><th>-2日</th><th>-3日</th><th>-4日</th><th>-5日</th><th>-6日</th><th>-7日</th>
+              <th>累計PV</th>
+            </tr>
+          </thead>
+          <tbody id="trend-body">
+            <tr><td colspan="11" class="loading">読み込み中</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /grid -->
+</div><!-- /dashboard -->
 
 <script>
 const BASE = 'https://raw.githubusercontent.com/Goo-dev0505/note-stats-public/main/data/';
@@ -229,31 +767,47 @@ async function fetchCSV(name) {
   });
 }
 
-Chart.defaults.color = '#4a4a6a';
-Chart.defaults.font.family = "'IBM Plex Mono', monospace";
+/* ─── Chart.js defaults ─── */
+const GRID_COLOR = 'rgba(255,255,255,0.05)';
+Chart.defaults.color = '#3d4466';
+Chart.defaults.font.family = "'JetBrains Mono', monospace";
 Chart.defaults.font.size = 10;
-const GC = '#1f1f30';
 
-function base() {
-  return {
-    responsive: true, maintainAspectRatio: false,
-    plugins: {
-      legend: { display: true, labels: { boxWidth: 8, padding: 14, color: '#4a4a6a' } },
-      tooltip: { backgroundColor:'#14141f', borderColor:'#1f1f30', borderWidth:1, titleColor:'#dde0f0', bodyColor:'#4a4a6a', padding:10 }
+const baseOpts = () => ({
+  responsive: true,
+  maintainAspectRatio: false,
+  animation: { duration: 1000, easing: 'easeOutQuart' },
+  plugins: {
+    legend: {
+      display: true,
+      labels: { boxWidth: 8, padding: 16, color: '#3d4466', usePointStyle: true }
     },
-    scales: { x: { grid:{ color:GC }, ticks:{ maxTicksLimit:8 } }, y: { grid:{ color:GC } } }
-  };
-}
+    tooltip: {
+      backgroundColor: '#0f1221',
+      borderColor: 'rgba(255,255,255,0.1)',
+      borderWidth: 1,
+      titleColor: '#e8ecf8',
+      bodyColor: '#8891b0',
+      padding: 12,
+      cornerRadius: 6
+    }
+  },
+  scales: {
+    x: { grid: { color: GRID_COLOR }, ticks: { maxTicksLimit: 10 } },
+    y: { grid: { color: GRID_COLOR } }
+  }
+});
 
+/* ─── KPI diff ─── */
 function setDiff(id, val) {
   if (isNaN(val)) return;
   const el = document.getElementById(id);
   const sign = val >= 0 ? '▲' : '▼';
-  el.textContent = sign + Math.abs(val).toFixed(1) + '% 前日比';
+  el.textContent = sign + ' ' + Math.abs(val).toFixed(1) + '% 前日比';
   el.className = 'kpi-diff ' + (val >= 0 ? 'up' : 'down');
 }
 
-// --- 既存の描画ロジック ---
+/* ─── 日次推移 ─── */
 function buildDaily(rows) {
   const r = rows.slice(-60);
   const labels = r.map(d => d['日付'] ? d['日付'].slice(5) : '');
@@ -264,32 +818,55 @@ function buildDaily(rows) {
     data: {
       labels,
       datasets: [
-        { type:'bar', label:'累計スキ', data:likes, backgroundColor:'rgba(255,126,179,0.45)', borderColor:'#ff7eb3', borderWidth:1, yAxisID:'y1' },
-        { type:'line', label:'累計ビュー', data:views, borderColor:'#4fffb0', backgroundColor:'rgba(79,255,176,0.05)', fill:true, tension:0.3, yAxisID:'y' }
+        {
+          type: 'bar', label: 'スキ合計', data: likes,
+          backgroundColor: 'rgba(255,77,141,0.35)',
+          borderColor: 'rgba(255,77,141,0.8)',
+          borderWidth: 1, yAxisID: 'y1', borderRadius: 2
+        },
+        {
+          type: 'line', label: 'ビュー合計', data: views,
+          borderColor: '#00e5ff',
+          backgroundColor: 'rgba(0,229,255,0.04)',
+          fill: true, tension: 0.35,
+          pointRadius: 0, pointHoverRadius: 4,
+          borderWidth: 2, yAxisID: 'y'
+        }
       ]
     },
-    options: { ...base(), scales: { y:{position:'left'}, y1:{position:'right', grid:{display:false}} } }
+    options: {
+      ...baseOpts(),
+      scales: {
+        x: { grid: { color: GRID_COLOR }, ticks: { maxTicksLimit: 10 } },
+        y: { position: 'left', grid: { color: GRID_COLOR } },
+        y1: { position: 'right', grid: { display: false } }
+      }
+    }
   });
 }
 
+/* ─── ランキング ─── */
 function buildRanking(containerId, rows, valueKey, barClass, valClass) {
   if (!rows.length) return;
-  const latest = rows.reduce((a,b) => a.date > b.date ? a : b).date;
-  const sorted = rows.filter(r => r.date === latest).sort((a,b) => Number(b[valueKey]) - Number(a[valueKey])).slice(0,20);
+  const latest = rows.reduce((a, b) => a.date > b.date ? a : b).date;
+  const sorted = rows.filter(r => r.date === latest)
+    .sort((a, b) => Number(b[valueKey]) - Number(a[valueKey])).slice(0, 20);
   const max = Number(sorted[0][valueKey] || 1);
-  const medal = i => i===0?'gold':i===1?'silver':i===2?'bronze':'';
-  document.getElementById(containerId).innerHTML = sorted.map((r,i) => `
+  const medal = i => i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+  document.getElementById(containerId).innerHTML = sorted.map((r, i) => `
     <div class="rank-item">
-      <span class="rank-num ${medal(i)}">${String(i+1).padStart(2,'0')}</span>
+      <span class="rank-num ${medal(i)}">${String(i + 1).padStart(2, '0')}</span>
       <span class="rank-title" title="${r.title}">${r.title}</span>
       <div class="rank-right">
-        <div class="rank-bar"><div class="rank-bar-fill ${barClass}" style="width:${(Number(r[valueKey])/max*100).toFixed(1)}%"></div></div>
+        <div class="rank-bar">
+          <div class="rank-bar-fill ${barClass}" style="width:${(Number(r[valueKey]) / max * 100).toFixed(1)}%"></div>
+        </div>
         <span class="rank-val ${valClass}">${Number(r[valueKey]).toLocaleString()}</span>
       </div>
-    </div>
-  `).join('');
+    </div>`).join('');
 }
 
+/* ─── フォロワー ─── */
 function buildFollowers(summary, followers) {
   const fRows = followers.filter(r => r['フォロワー数']);
   let labels, data;
@@ -303,92 +880,249 @@ function buildFollowers(summary, followers) {
   }
   new Chart(document.getElementById('chart-followers'), {
     type: 'line',
-    data: { labels, datasets: [{ label:'フォロワー数', data, borderColor:'#7eb3ff', backgroundColor:'rgba(126,179,255,0.08)', fill:true, tension:0.3 }] },
-    options: base()
+    data: {
+      labels,
+      datasets: [{
+        label: 'フォロワー数', data,
+        borderColor: '#9d6fff',
+        backgroundColor: 'rgba(157,111,255,0.06)',
+        fill: true, tension: 0.35,
+        pointRadius: 0, pointHoverRadius: 4,
+        borderWidth: 2
+      }]
+    },
+    options: baseOpts()
   });
 }
 
+/* ─── 4象限 ─── */
 function buildQuad(rows) {
-  const data = rows.map(r => ({ x:parseFloat(r['ビュー/記事'])||0, y:parseFloat(r['スキ率(%)'])||0, label:r['日付'] }));
+  const data = rows.map(r => ({
+    x: parseFloat(r['ビュー/記事']) || 0,
+    y: parseFloat(r['スキ率(%)']) || 0,
+    label: r['日付']
+  }));
   new Chart(document.getElementById('chart-quad'), {
     type: 'scatter',
-    data: { datasets: [{ label:'日次動態', data, backgroundColor:'rgba(176,126,255,0.6)', pointRadius:5 }] },
-    options: { ...base(), scales: { x:{title:{display:true, text:'Views/Article'}}, y:{title:{display:true, text:'Like Rate (%)'}} } }
+    data: {
+      datasets: [{
+        label: '日次動態',
+        data,
+        backgroundColor: 'rgba(157,111,255,0.5)',
+        pointRadius: 5,
+        pointHoverRadius: 7
+      }]
+    },
+    options: {
+      ...baseOpts(),
+      scales: {
+        x: {
+          grid: { color: GRID_COLOR },
+          title: { display: true, text: 'Views / Article', color: '#3d4466' }
+        },
+        y: {
+          grid: { color: GRID_COLOR },
+          title: { display: true, text: 'Like Rate (%)', color: '#3d4466' }
+        }
+      }
+    }
   });
 }
 
-// --- 【重要】解析テーブル用ビルダー ---
+/* ─── 資産記事 ─── */
 function buildAssetTable(rows) {
   const tbody = document.getElementById('asset-body');
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6">No asset data found.</td></tr>'; return; }
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="5" style="color:var(--text3);padding:20px">No asset data</td></tr>'; return; }
   const maxGain = Math.max(...rows.map(r => Number(r['期間増加PV'] || 0)), 1);
   tbody.innerHTML = rows.slice(0, 15).map((r, i) => {
     const gain = Number(r['期間増加PV'] || 0);
-    const barWidth = (gain / maxGain * 100).toFixed(1);
-    const trend = r['推移PV'] ? r['推移PV'].replace(/→/g, '→') : '---';
+    const barW = (gain / maxGain * 100).toFixed(1);
+    const trend = r['推移PV'] || '---';
     return `
       <tr>
-        <td style="color:var(--muted); text-align:center;">${rows.length - i}</td>
-        <td class="rank-title" style="max-width:300px;">${r.title}</td>
-        <td class="bar-cell"><div class="bar-fill" style="width:${barWidth}%"></div></td>
-        <td style="text-align:right; font-weight:bold; width:60px;">${gain.toLocaleString()}</td>
-        <td class="highlight-col">${r['稼働日数']}</td>
-        <td class="trend-text">${trend}</td>
-      </tr>
-    `;
+        <td class="num-muted" style="text-align:center">${i + 1}</td>
+        <td style="max-width:320px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text2)">${r.title}</td>
+        <td>
+          <div class="bar-cell-wrap">
+            <div class="inline-bar"><div class="inline-bar-fill" style="width:${barW}%"></div></div>
+            <span class="num-accent" style="font-weight:600">${gain.toLocaleString()}</span>
+          </div>
+        </td>
+        <td class="num-right" style="color:var(--gold)">${r['稼働日数']}</td>
+        <td style="font-size:10px;color:var(--text3);white-space:nowrap">${trend}</td>
+      </tr>`;
   }).join('');
 }
 
+/* ─── トレンド詳細 ─── */
 function buildTrendDetailed(rows) {
   const tbody = document.getElementById('trend-body');
   if (!rows.length) return;
+
   tbody.innerHTML = rows.slice(0, 20).map(r => {
-    const statusEmoji = r['状態'] ? r['状態'].split(' ')[0] : '💤';
-    const dailyCells = [1,2,3,4,5,6,7].map(i => {
+    const state = r['状態'] || '';
+    let badgeClass = 'badge-idle';
+    if (state.includes('🔥')) badgeClass = 'badge-hot';
+    else if (state.includes('🟢')) badgeClass = 'badge-grow';
+
+    const dailyCells = [1, 2, 3, 4, 5, 6, 7].map(i => {
       const v = Number(r[`-${i}日PV`] || 0);
-      return `<td style="text-align:right; color:${v>0?'var(--text)':'var(--muted)'}">${v}</td>`;
+      return `<td class="${v > 0 ? 'num-right' : 'num-muted'}" style="text-align:right">${v || '—'}</td>`;
     }).join('');
+
     return `
       <tr>
-        <td class="sticky-col-1"><span class="status-badge status-${statusEmoji}">${r['状態']}</span></td>
-        <td class="sticky-col-2 rank-title" style="max-width:250px;">${r['title']}</td>
-        <td style="text-align:center; font-weight:bold; color:var(--accent-view)">${r['トレンドスコア']}</td>
+        <td class="sticky-1"><span class="status-badge ${badgeClass}">${state}</span></td>
+        <td class="sticky-2" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text2)">${r['title']}</td>
+        <td class="num-accent" style="text-align:center;font-weight:700">${r['トレンドスコア']}</td>
         ${dailyCells}
-        <td style="text-align:right; font-weight:600;">${Number(r['累計PV']).toLocaleString()}</td>
-      </tr>
-    `;
+        <td class="num-right">${Number(r['累計PV']).toLocaleString()}</td>
+      </tr>`;
   }).join('');
 }
 
-// --- 初期化 ---
+/* ─── 3KPI + 状態メモ ─── */
+function build3KPI(summary) {
+  if (summary.length < 2) return;
+  const today = summary[summary.length - 1];
+  const yesterday = summary[summary.length - 2];
+  const ac = Number(today['記事数']) || 1;
+  const acY = Number(yesterday['記事数']) || 1;
+
+  const reach  = Number(today['ビュー合計']) / ac;
+  const reachY = Number(yesterday['ビュー合計']) / acY;
+  const action  = Number(today['スキ合計']) / ac;
+  const actionY = Number(yesterday['スキ合計']) / acY;
+  const eta  = Number(today['スキ合計']) / (Number(today['ビュー合計']) || 1) * 100;
+  const etaY = Number(yesterday['スキ合計']) / (Number(yesterday['ビュー合計']) || 1) * 100;
+
+  function arrow(now, prev) {
+    const d = now - prev;
+    if (d > prev * 0.01) return { s: '↑', c: 'up' };
+    if (d < -prev * 0.01) return { s: '↓', c: 'down' };
+    return { s: '→', c: 'flat' };
+  }
+
+  const aR = arrow(reach, reachY);
+  const aA = arrow(action, actionY);
+  const aE = arrow(eta, etaY);
+
+  document.getElementById('k3-reach').textContent = reach.toFixed(1);
+  document.getElementById('k3-action').textContent = action.toFixed(2);
+  document.getElementById('k3-eta').textContent = eta.toFixed(2) + '%';
+
+  [['reach', aR], ['action', aA], ['eta', aE]].forEach(([id, a]) => {
+    const el = document.getElementById(`k3-${id}-arrow`);
+    el.textContent = a.s;
+    el.className = `kpi3-arrow ${a.c}`;
+  });
+
+  const key = `${aR.c}_${aA.c}_${aE.c}`;
+  const memos = {
+    'up_up_up':      '🔥 全指標上昇。コンテンツ・タイトル・スキ率すべて好調',
+    'up_up_flat':    '📈 リーチもアクションも増加。スキ率は維持で安定成長',
+    'up_up_down':    '⚠️ 露出とスキは増えたがスキ率は低下。量で稼いでいる状態',
+    'up_flat_up':    '✅ リーチ増・スキ率改善。質の高い流入が増えている',
+    'up_flat_flat':  '📊 リーチだけ増加。スキ率は変わらず。タイトル効果の可能性',
+    'up_flat_down':  '⚠️ 露出は増えたが刺さってない。タイトル勝ちの可能性',
+    'up_down_up':    '🤔 PV増・スキ減・スキ率上昇。データ確認推奨',
+    'up_down_flat':  '📉 リーチ増だがスキ横ばい。内容が刺さっていない',
+    'up_down_down':  '❌ 露出は増えたが全く刺さってない。内容またはターゲットの見直しを',
+    'flat_up_up':    '✨ PV横ばいでスキとスキ率が上昇。コアなファンに届いている',
+    'flat_up_flat':  '👍 アクション力が上がっている。スキしやすい記事が増えた可能性',
+    'flat_up_down':  '🔄 スキは増えたがスキ率は低下。PVも増えた可能性',
+    'flat_flat_up':  '💡 全体横ばいだがスキ率改善。静かに質が上がっている',
+    'flat_flat_flat':'😐 全指標横ばい。変化なし。新しいアクションを検討',
+    'flat_flat_down':'😶 スキ率だけ低下。最近の記事の質を確認',
+    'flat_down_up':  '🤔 スキ減・スキ率上昇は矛盾。データ確認推奨',
+    'flat_down_flat':'📉 アクション力低下。スキしにくい記事が続いている',
+    'flat_down_down':'⚠️ アクション・スキ率ともに低下。内容の見直しタイミング',
+    'down_up_up':    '🌱 PV減でもスキとスキ率が上昇。少数精鋭に届いている',
+    'down_up_flat':  '🔄 PV減だがスキは増加。ファン向け記事が増えた可能性',
+    'down_up_down':  '📉 PV減による相対効果の可能性。実態確認を',
+    'down_flat_up':  '💤 PV減・スキ率改善。深いファンには刺さっている',
+    'down_flat_flat':'📉 リーチのみ低下。スキ率は維持。コンテンツ質は悪くない',
+    'down_flat_down':'⚠️ リーチ低下・スキ率も低下。発信ペースや内容を見直し',
+    'down_down_up':  '💤 PV減による相対効果の可能性',
+    'down_down_flat':'😔 リーチ・アクション低下。停滞期の可能性',
+    'down_down_down':'🚨 全指標低下。内容・頻度・タイトルを総見直し',
+  };
+  document.getElementById('status-memo-text').textContent = memos[key] || '状態を解析中...';
+}
+
+/* ─── ワースト10 ─── */
+function buildWorstRanking(rows) {
+  if (!rows.length) return;
+  const latest = rows.reduce((a, b) => a.date > b.date ? a : b).date;
+  const all = rows.filter(r => r.date === latest && Number(r['read_count']) > 0);
+
+  // スキ率ワースト（50PV以上）
+  const etaWorst = all
+    .filter(r => Number(r['read_count']) >= 50)
+    .map(r => ({ ...r, eta: Number(r['like_count']) / Number(r['read_count']) * 100 }))
+    .sort((a, b) => a.eta - b.eta)
+    .slice(0, 10);
+  const etaMax = Math.max(...etaWorst.map(r => r.eta), 1);
+
+  document.getElementById('ranking-worst-eta').innerHTML = etaWorst.map((r, i) => `
+    <div class="rank-item">
+      <span class="rank-num">${String(i + 1).padStart(2, '0')}</span>
+      <span class="rank-title" title="${r.title}">${r.title}</span>
+      <div class="rank-right">
+        <div class="rank-bar"><div class="rank-bar-fill worst-bar" style="width:${(r.eta / etaMax * 100).toFixed(1)}%"></div></div>
+        <span class="rank-val worst-val">${r.eta.toFixed(1)}%</span>
+      </div>
+    </div>`).join('');
+
+  // Viewワースト
+  const viewWorst = [...all].sort((a, b) => Number(a['read_count']) - Number(b['read_count'])).slice(0, 10);
+  const viewMax = Math.max(...viewWorst.map(r => Number(r['read_count'])), 1);
+
+  document.getElementById('ranking-worst-views').innerHTML = viewWorst.map((r, i) => `
+    <div class="rank-item">
+      <span class="rank-num">${String(i + 1).padStart(2, '0')}</span>
+      <span class="rank-title" title="${r.title}">${r.title}</span>
+      <div class="rank-right">
+        <div class="rank-bar"><div class="rank-bar-fill worst-bar" style="width:${(Number(r['read_count']) / viewMax * 100).toFixed(1)}%"></div></div>
+        <span class="rank-val worst-val">${Number(r['read_count']).toLocaleString()}</span>
+      </div>
+    </div>`).join('');
+}
+
+/* ─── INIT ─── */
 async function init() {
   try {
     const [summary, articles, followers, trend, assets] = await Promise.all([
-      fetchCSV('daily_summary'), fetchCSV('articles'), fetchCSV('followers'),
-      fetchCSV('trend_analysis'), fetchCSV('asset_articles')
+      fetchCSV('daily_summary'),
+      fetchCSV('articles'),
+      fetchCSV('followers'),
+      fetchCSV('trend_analysis'),
+      fetchCSV('asset_articles')
     ]);
 
-    const latest = summary[summary.length-1];
-    document.getElementById('kpi-views').textContent = Number(latest['ビュー合計']).toLocaleString();
-    document.getElementById('kpi-likes').textContent = Number(latest['スキ合計']).toLocaleString();
+    const latest = summary[summary.length - 1];
+    document.getElementById('kpi-views').textContent    = Number(latest['ビュー合計']).toLocaleString();
+    document.getElementById('kpi-likes').textContent    = Number(latest['スキ合計']).toLocaleString();
     document.getElementById('kpi-articles').textContent = Number(latest['記事数']).toLocaleString();
     document.getElementById('kpi-followers').textContent = latest['フォロワー数'] || '—';
-    document.getElementById('last-updated').textContent = `updated ${latest['日付']} ${latest['更新時刻']||''}`;
-    
+    document.getElementById('last-updated').textContent  = `updated ${latest['日付']}`;
+
     setDiff('kpi-views-diff', parseFloat(latest['ビュー前日比(%)']));
     setDiff('kpi-likes-diff', parseFloat(latest['スキ前日比(%)']));
-    
+
+    build3KPI(summary);
     buildDaily(summary);
     buildRanking('ranking-views', articles, 'read_count', 'view-bar', 'view-val');
     buildFollowers(summary, followers);
     buildRanking('ranking-likes', articles, 'like_count', 'like-bar', 'like-val');
+    buildWorstRanking(articles);
     buildQuad(summary);
     buildAssetTable(assets);
     buildTrendDetailed(trend);
 
-  } catch(e) {
+  } catch (e) {
     console.error(e);
-    document.getElementById('last-updated').textContent = 'エラー: ' + e.message;
+    document.getElementById('last-updated').textContent = 'error: ' + e.message;
   }
 }
 
