@@ -396,7 +396,7 @@ header {
 .data-table th {
   padding: 10px 14px;
   background: var(--surface);
-  color: var(--text3);
+  color: var(--text2);
   text-align: left;
   font-size: 11px;
   letter-spacing: 0.08em;
@@ -449,17 +449,17 @@ tr:hover .sticky-2 { background: var(--surface2); }
   display: flex; align-items: center; gap: 8px;
 }
 .inline-bar {
-  width: 60px; height: 3px;
-  background: var(--border);
-  border-radius: 2px;
+  width: 80px; height: 5px;
+  background: var(--border2);
+  border-radius: 3px;
   overflow: hidden;
   flex-shrink: 0;
 }
 .inline-bar-fill {
   height: 100%;
   background: var(--cyan);
-  border-radius: 2px;
-  opacity: 0.6;
+  border-radius: 3px;
+  opacity: 1;
 }
 .num-right { text-align: right; font-weight: 600; color: var(--text); }
 .num-accent { color: var(--cyan); }
@@ -991,10 +991,10 @@ function buildAssetTable(rows) {
         <td>
           <div class="bar-cell-wrap">
             <div class="inline-bar"><div class="inline-bar-fill" style="width:${barW}%"></div></div>
-            <span class="num-accent" style="font-weight:600">${gain.toLocaleString()}</span>
+            <span class="num-accent" style="font-weight:700;font-size:16px">${gain.toLocaleString()}</span>
           </div>
         </td>
-        <td class="num-right" style="color:var(--gold)">${r['稼働日数']}</td>
+        <td class="num-right" style="color:var(--gold);font-size:16px;font-weight:700;text-align:center">${r['稼働日数']}</td>
         <td style="font-size:10px;color:var(--text3);white-space:nowrap">${trend}</td>
       </tr>`;
   }).join('');
