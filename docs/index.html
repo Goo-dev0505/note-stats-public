@@ -27,9 +27,9 @@
   --green:     #00e5a0;
   --red:       #ff4d6a;
 
-  --text:      #e8ecf8;
-  --text2:     #8891b0;
-  --text3:     #3d4466;
+  --text:      #f0f4ff;
+  --text2:     #b0bcd8;
+  --text3:     #6b7599;
 
   --mono: 'JetBrains Mono', monospace;
   --sans: 'Syne', sans-serif;
@@ -96,8 +96,8 @@ header {
   display: flex; align-items: center; gap: 24px;
 }
 #last-updated {
-  font-size: 10px;
-  color: var(--text3);
+  font-size: 12px;
+  color: var(--text2);
   letter-spacing: 0.1em;
 }
 .header-badge {
@@ -141,9 +141,9 @@ header {
 
 .kpi3-item { padding: 0 28px; }
 .kpi3-label {
-  font-size: 9px;
-  color: var(--text3);
-  letter-spacing: 0.2em;
+  font-size: 11px;
+  color: var(--text2);
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   margin-bottom: 10px;
 }
@@ -152,7 +152,7 @@ header {
 }
 .kpi3-val {
   font-family: var(--sans);
-  font-size: 28px;
+  font-size: 34px;
   font-weight: 700;
   color: var(--text);
   line-height: 1;
@@ -166,22 +166,22 @@ header {
 .kpi3-arrow.down { color: var(--red); }
 .kpi3-arrow.flat { color: var(--text3); }
 .kpi3-sub {
-  font-size: 10px;
-  color: var(--text3);
+  font-size: 12px;
+  color: var(--text2);
   margin-top: 5px;
 }
 
 .status-memo-wrap { padding: 0 28px; }
 .status-memo-label {
-  font-size: 9px;
-  color: var(--text3);
-  letter-spacing: 0.2em;
+  font-size: 11px;
+  color: var(--text2);
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   margin-bottom: 10px;
 }
 #status-memo-text {
   font-family: var(--sans);
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--cyan);
   line-height: 1.5;
@@ -220,9 +220,9 @@ header {
 .kpi:hover { background: var(--surface); }
 
 .kpi-label {
-  font-size: 9px;
-  color: var(--text3);
-  letter-spacing: 0.2em;
+  font-size: 11px;
+  color: var(--text2);
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   margin-bottom: 10px;
   display: flex; align-items: center; gap: 6px;
@@ -238,7 +238,7 @@ header {
 
 .kpi-value {
   font-family: var(--sans);
-  font-size: 42px;
+  font-size: 48px;
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.02em;
@@ -250,7 +250,7 @@ header {
 
 .kpi-diff {
   margin-top: 8px;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--text3);
   display: flex; align-items: center; gap: 4px;
 }
@@ -286,9 +286,9 @@ header {
   margin-bottom: 22px;
 }
 .panel-title {
-  font-size: 9px;
-  color: var(--text3);
-  letter-spacing: 0.2em;
+  font-size: 11px;
+  color: var(--text2);
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   display: flex; align-items: center; gap: 8px;
 }
@@ -298,7 +298,7 @@ header {
   flex-shrink: 0;
 }
 .panel-badge {
-  font-size: 9px;
+  font-size: 10px;
   padding: 2px 8px;
   border: 1px solid var(--border2);
   border-radius: 2px;
@@ -335,7 +335,7 @@ header {
 }
 
 .rank-num {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--text3);
   text-align: center;
   font-weight: 600;
@@ -345,7 +345,7 @@ header {
 .rank-num.bronze { color: #c87850; }
 
 .rank-title {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text2);
   white-space: nowrap;
   overflow: hidden;
@@ -369,7 +369,7 @@ header {
   transition: width 1s cubic-bezier(0.16,1,0.3,1);
 }
 .rank-val {
-  font-size: 10px;
+  font-size: 12px;
   min-width: 44px;
   text-align: right;
   font-weight: 600;
@@ -398,8 +398,8 @@ header {
   background: var(--surface);
   color: var(--text3);
   text-align: left;
-  font-size: 9px;
-  letter-spacing: 0.15em;
+  font-size: 11px;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   border-bottom: 1px solid var(--border2);
   white-space: nowrap;
@@ -409,6 +409,7 @@ header {
   padding: 10px 14px;
   border-bottom: 1px solid var(--border);
   color: var(--text2);
+  font-size: 13px;
   transition: background 0.15s;
 }
 .data-table tr:hover td {
@@ -816,7 +817,7 @@ async function fetchCSV(name) {
 const GRID_COLOR = 'rgba(255,255,255,0.05)';
 Chart.defaults.color = '#3d4466';
 Chart.defaults.font.family = "'JetBrains Mono', monospace";
-Chart.defaults.font.size = 10;
+Chart.defaults.font.size = 11;
 
 const baseOpts = () => ({
   responsive: true,
