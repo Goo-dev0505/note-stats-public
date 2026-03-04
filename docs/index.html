@@ -483,6 +483,21 @@ tr:hover .sticky-2 { background: var(--surface2); }
   width: 4px; height: 4px; border-radius: 50%;
   background: var(--red);
 }
+.best-section-title {
+  font-size: 9px;
+  color: var(--text3);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  display: flex; align-items: center; gap: 6px;
+}
+.best-section-title::before {
+  content: '';
+  width: 4px; height: 4px; border-radius: 50%;
+  background: var(--green);
+}
+.best-bar { background: var(--green); }
+.best-val { color: var(--green); }
 
 /* ─── LOADING ─── */
 .loading {
@@ -669,7 +684,8 @@ tr:hover .sticky-2 { background: var(--surface2); }
         </div>
         <span class="panel-badge" style="color:var(--red);border-color:rgba(255,77,106,0.2)">WORST 10</span>
       </div>
-      <div class="worst-grid">
+      <!-- ワースト -->
+      <div class="worst-grid" style="margin-bottom:28px">
         <div>
           <div class="worst-section-title">スキ率 ワースト（読まれてるのに刺さってない）</div>
           <div class="ranking-list" id="ranking-worst-eta"><div class="loading">loading</div></div>
@@ -677,6 +693,23 @@ tr:hover .sticky-2 { background: var(--surface2); }
         <div>
           <div class="worst-section-title">View数 ワースト（埋もれている記事）</div>
           <div class="ranking-list" id="ranking-worst-views"><div class="loading">loading</div></div>
+        </div>
+      </div>
+
+      <!-- 区切り -->
+      <div style="border-top:1px solid var(--border);margin-bottom:28px;position:relative">
+        <span style="position:absolute;top:-9px;left:50%;transform:translateX(-50%);background:var(--bg2);padding:0 16px;font-size:9px;color:var(--text3);letter-spacing:0.25em">VS</span>
+      </div>
+
+      <!-- ベスト -->
+      <div class="worst-grid">
+        <div>
+          <div class="best-section-title">スキ率 ベスト（読まれて、かつ刺さった）</div>
+          <div class="ranking-list" id="ranking-best-eta"><div class="loading">loading</div></div>
+        </div>
+        <div>
+          <div class="best-section-title">View数 ベスト（最も読まれた記事）</div>
+          <div class="ranking-list" id="ranking-best-views"><div class="loading">loading</div></div>
         </div>
       </div>
     </div>
@@ -1105,6 +1138,50 @@ function buildWorstRanking(rows) {
     </div>`).join('');
 }
 
+
+/* ─── ベスト10 ─── */
+function buildBestRanking(rows) {
+  if (!rows.length) return;
+  const latest = rows.reduce((a, b) => a.date > b.date ? a : b).date;
+  const all = rows.filter(r =>
+    r.date === latest &&
+    Number(r['read_count']) > 0 &&
+    !EXCLUDED_TITLES.includes(r.title)
+  );
+
+  // スキ率ベスト（50PV以上）
+  const etaBest = all
+    .filter(r => Number(r['read_count']) >= 50)
+    .map(r => ({ ...r, eta: Number(r['like_count']) / Number(r['read_count']) * 100 }))
+    .sort((a, b) => b.eta - a.eta)
+    .slice(0, 10);
+  const etaMax = Math.max(...etaBest.map(r => r.eta), 1);
+
+  const medal = i => i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+  document.getElementById('ranking-best-eta').innerHTML = etaBest.map((r, i) => `
+    <div class="rank-item">
+      <span class="rank-num ${medal(i)}">${String(i + 1).padStart(2, '0')}</span>
+      <span class="rank-title" title="${r.title}">${r.title}</span>
+      <div class="rank-right">
+        <div class="rank-bar"><div class="rank-bar-fill best-bar" style="width:${(r.eta / etaMax * 100).toFixed(1)}%"></div></div>
+        <span class="rank-val best-val">${r.eta.toFixed(1)}%</span>
+      </div>
+    </div>`).join('');
+
+  // Viewベスト
+  const viewBest = [...all].sort((a, b) => Number(b['read_count']) - Number(a['read_count'])).slice(0, 10);
+  const viewMax = Math.max(...viewBest.map(r => Number(r['read_count'])), 1);
+
+  document.getElementById('ranking-best-views').innerHTML = viewBest.map((r, i) => `
+    <div class="rank-item">
+      <span class="rank-num ${medal(i)}">${String(i + 1).padStart(2, '0')}</span>
+      <span class="rank-title" title="${r.title}">${r.title}</span>
+      <div class="rank-right">
+        <div class="rank-bar"><div class="rank-bar-fill best-bar" style="width:${(Number(r['read_count']) / viewMax * 100).toFixed(1)}%"></div></div>
+        <span class="rank-val best-val">${Number(r['read_count']).toLocaleString()}</span>
+      </div>
+    </div>`).join('');
+}
 /* ─── INIT ─── */
 async function init() {
   try {
@@ -1132,6 +1209,7 @@ async function init() {
     buildFollowers(summary, followers);
     buildRanking('ranking-likes', articles, 'like_count', 'like-bar', 'like-val');
     buildWorstRanking(articles);
+    buildBestRanking(articles);
     buildQuad(summary);
     buildAssetTable(assets);
     buildTrendDetailed(trend);
