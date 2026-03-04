@@ -751,6 +751,18 @@ tr:hover .sticky-2 { background: var(--surface2); }
 </div><!-- /dashboard -->
 
 <script>
+// ─── 除外記事リスト ───
+const EXCLUDED_TITLES = [
+  'ナイキ エア ヴェイパーマックス 360',
+  '自作PC#2',
+  'メモ',
+  'スターバックス記事#1',
+  'みんなが貪欲になっているときこそ恐怖心を抱き、みんなが恐怖心を抱いているとき…',
+  'はたらくこと',
+  '気になるレシピ#1',
+  'This is US',
+];
+
 const BASE = 'https://raw.githubusercontent.com/Goo-dev0505/note-stats-public/main/data/';
 
 async function fetchCSV(name) {
@@ -1054,7 +1066,11 @@ function build3KPI(summary) {
 function buildWorstRanking(rows) {
   if (!rows.length) return;
   const latest = rows.reduce((a, b) => a.date > b.date ? a : b).date;
-  const all = rows.filter(r => r.date === latest && Number(r['read_count']) > 0);
+  const all = rows.filter(r =>
+    r.date === latest &&
+    Number(r['read_count']) > 0 &&
+    !EXCLUDED_TITLES.includes(r.title)
+  );
 
   // スキ率ワースト（50PV以上）
   const etaWorst = all
