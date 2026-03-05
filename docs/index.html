@@ -1199,7 +1199,7 @@ async function init() {
     document.getElementById('kpi-likes').textContent    = Number(latest['スキ合計']).toLocaleString();
     document.getElementById('kpi-articles').textContent = Number(latest['記事数']).toLocaleString();
     document.getElementById('kpi-followers').textContent = latest['フォロワー数'] || '—';
-    document.getElementById('last-updated').textContent  = `updated ${latest['日付']}`;
+    document.getElementById('last-updated').textContent = `updated ${latest['日付']} ${latest['更新時刻'] || ''}`;
 
     setDiff('kpi-views-diff', parseFloat(latest['ビュー前日比(%)']));
     setDiff('kpi-likes-diff', parseFloat(latest['スキ前日比(%)']));
