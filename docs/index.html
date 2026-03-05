@@ -725,33 +725,37 @@ tr:hover .sticky-2 { background: var(--surface2); }
         <span class="panel-badge">SCATTER</span>
       </div>
       <!-- スライダー -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;padding:16px 20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r)">
         <div>
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-            <span style="font-size:10px;color:var(--text3);letter-spacing:0.1em">X軸 (Views/Article)</span>
-            <span style="font-size:12px;color:var(--cyan);font-weight:600" id="quad-x-label">auto</span>
+          <div style="display:flex;justify-content:space-between;margin-bottom:10px">
+            <span style="font-size:10px;color:var(--text3);letter-spacing:0.1em;text-transform:uppercase">X軸｜Views / Article</span>
+            <span style="font-size:12px;color:var(--cyan);font-weight:700;font-family:var(--mono)" id="quad-x-label">—</span>
           </div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:9px;color:var(--text3);white-space:nowrap">下限</span>
-            <input type="range" id="quad-x-min-slider" min="0" max="490" step="10" value="0"
-              style="flex:1;accent-color:rgba(0,229,255,0.5);cursor:pointer">
-            <span style="font-size:9px;color:var(--text3);white-space:nowrap">上限</span>
-            <input type="range" id="quad-x-slider" min="10" max="500" step="10" value="200"
-              style="flex:1;accent-color:var(--cyan);cursor:pointer">
+          <div style="display:grid;grid-template-columns:28px 1fr;align-items:center;gap:8px;margin-bottom:6px">
+            <span style="font-size:9px;color:var(--text3);text-align:right">下限</span>
+            <input type="range" id="quad-x-min-slider" min="0" max="490" step="5" value="0"
+              style="width:100%;accent-color:rgba(0,229,255,0.6);cursor:pointer;height:4px">
+          </div>
+          <div style="display:grid;grid-template-columns:28px 1fr;align-items:center;gap:8px">
+            <span style="font-size:9px;color:var(--text3);text-align:right">上限</span>
+            <input type="range" id="quad-x-slider" min="10" max="500" step="5" value="200"
+              style="width:100%;accent-color:var(--cyan);cursor:pointer;height:4px">
           </div>
         </div>
         <div>
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-            <span style="font-size:10px;color:var(--text3);letter-spacing:0.1em">Y軸 (スキ率 %)</span>
-            <span style="font-size:12px;color:var(--pink);font-weight:600" id="quad-y-label">auto</span>
+          <div style="display:flex;justify-content:space-between;margin-bottom:10px">
+            <span style="font-size:10px;color:var(--text3);letter-spacing:0.1em;text-transform:uppercase">Y軸｜スキ率 %</span>
+            <span style="font-size:12px;color:var(--pink);font-weight:700;font-family:var(--mono)" id="quad-y-label">—</span>
           </div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:9px;color:var(--text3);white-space:nowrap">下限</span>
+          <div style="display:grid;grid-template-columns:28px 1fr;align-items:center;gap:8px;margin-bottom:6px">
+            <span style="font-size:9px;color:var(--text3);text-align:right">下限</span>
             <input type="range" id="quad-y-min-slider" min="0" max="49" step="0.5" value="0"
-              style="flex:1;accent-color:rgba(255,77,141,0.5);cursor:pointer">
-            <span style="font-size:9px;color:var(--text3);white-space:nowrap">上限</span>
+              style="width:100%;accent-color:rgba(255,77,141,0.6);cursor:pointer;height:4px">
+          </div>
+          <div style="display:grid;grid-template-columns:28px 1fr;align-items:center;gap:8px">
+            <span style="font-size:9px;color:var(--text3);text-align:right">上限</span>
             <input type="range" id="quad-y-slider" min="1" max="50" step="0.5" value="20"
-              style="flex:1;accent-color:var(--pink);cursor:pointer">
+              style="width:100%;accent-color:var(--pink);cursor:pointer;height:4px">
           </div>
         </div>
       </div>
@@ -974,73 +978,82 @@ function buildFollowers(summary, followers) {
 
 /* ─── 4象限 ─── */
 function buildQuad(rows) {
-  const validRows = rows.filter(r => parseFloat(r['ビュー/記事']) > 0);
-  const allData = validRows.map(r => ({
-    x: parseFloat(r['ビュー/記事']) || 0,
-    y: parseFloat(r['スキ率(%)']) || 0,
-    label: r['日付']
-  }));
+  // articlesから最新日付のデータを取得し、記事単位の散布図を作成
+  const latest = rows.reduce((a, b) => a.date > b.date ? a : b).date;
+  const allData = rows
+    .filter(r => r.date === latest && Number(r['read_count']) > 0)
+    .map(r => {
+      const pv = Number(r['read_count']);
+      const like = Number(r['like_count']);
+      const eta = pv > 0 ? (like / pv * 100) : 0;
+      return { x: pv, y: eta, label: r.title };
+    });
 
-  // 平均値（全データで計算）
+  // 平均値（全記事で計算）
   const avgX = allData.reduce((s, d) => s + d.x, 0) / allData.length;
   const avgY = allData.reduce((s, d) => s + d.y, 0) / allData.length;
 
-  // スライダーの初期値をデータに合わせてセット
-  const autoMaxX = Math.ceil(Math.max(...allData.map(d => d.x)) * 1.15 / 10) * 10;
-  const autoMaxY = Math.ceil(Math.max(...allData.map(d => d.y)) * 1.15 * 2) / 2;
+  // 自動レンジ設定
+  const autoMaxX = Math.ceil(Math.max(...allData.map(d => d.x)) * 1.1 / 50) * 50;
+  const autoMaxY = Math.ceil(Math.max(...allData.map(d => d.y)) * 1.1);
 
-  const xSlider = document.getElementById('quad-x-slider');
-  const ySlider = document.getElementById('quad-y-slider');
-  xSlider.max = Math.max(autoMaxX, 100);
-  xSlider.value = autoMaxX;
-  ySlider.max = Math.max(autoMaxY, 10);
-  ySlider.value = autoMaxY;
-  document.getElementById('quad-x-label').textContent = '0 – ' + autoMaxX;
-  document.getElementById('quad-y-label').textContent = '0 – ' + autoMaxY.toFixed(1) + '%';
+  const xSlider    = document.getElementById('quad-x-slider');
+  const ySlider    = document.getElementById('quad-y-slider');
+  const xMinSlider = document.getElementById('quad-x-min-slider');
+  const yMinSlider = document.getElementById('quad-y-min-slider');
+
+  xSlider.max    = autoMaxX; xSlider.value    = autoMaxX;
+  xMinSlider.max = autoMaxX - 5; xMinSlider.value = 0;
+  ySlider.max    = autoMaxY; ySlider.value    = autoMaxY;
+  yMinSlider.max = autoMaxY - 0.5; yMinSlider.value = 0;
+
+  document.getElementById('quad-x-label').textContent = `0 – ${autoMaxX}`;
+  document.getElementById('quad-y-label').textContent = `0 – ${autoMaxY}%`;
 
   let quadChart = null;
 
-  function renderChart(minX = 0, maxX, minY = 0, maxY) {
+  function renderChart(minX, maxX, minY, maxY) {
     const data = allData.filter(d => d.x >= minX && d.x <= maxX && d.y >= minY && d.y <= maxY);
+
+    const avgLineX = Math.min(avgX, maxX);
+    const avgLineY = Math.min(avgY, maxY);
 
     const datasets = [
       {
-        label: '日次動態',
+        label: '記事',
         data,
-        backgroundColor: 'rgba(157,111,255,0.55)',
-        pointRadius: 5,
-        pointHoverRadius: 8,
+        backgroundColor: 'rgba(157,111,255,0.6)',
+        pointRadius: 6,
+        pointHoverRadius: 9,
         order: 3
       },
       {
-        label: `avg PV/記事: ${avgX.toFixed(1)}`,
+        label: `avg PV: ${avgX.toFixed(0)}`,
         type: 'line',
-        data: [{ x: Math.min(avgX, maxX), y: 0 }, { x: Math.min(avgX, maxX), y: maxY }],
-        borderColor: 'rgba(0,229,255,0.6)',
+        data: [{ x: avgLineX, y: minY }, { x: avgLineX, y: maxY }],
+        borderColor: 'rgba(0,229,255,0.65)',
         borderWidth: 2,
         borderDash: [6, 4],
-        pointRadius: 0,
-        fill: false,
-        order: 1
+        pointRadius: 0, fill: false, order: 1
       },
       {
-        label: `avg スキ率: ${avgY.toFixed(2)}%`,
+        label: `avg スキ率: ${avgY.toFixed(1)}%`,
         type: 'line',
-        data: [{ x: 0, y: Math.min(avgY, maxY) }, { x: maxX, y: Math.min(avgY, maxY) }],
-        borderColor: 'rgba(255,77,141,0.6)',
+        data: [{ x: minX, y: avgLineY }, { x: maxX, y: avgLineY }],
+        borderColor: 'rgba(255,77,141,0.65)',
         borderWidth: 2,
         borderDash: [6, 4],
-        pointRadius: 0,
-        fill: false,
-        order: 2
+        pointRadius: 0, fill: false, order: 2
       }
     ];
 
     if (quadChart) {
       quadChart.data.datasets[0].data = data;
-      quadChart.data.datasets[1].data = [{ x: Math.min(avgX, maxX), y: 0 }, { x: Math.min(avgX, maxX), y: maxY }];
-      quadChart.data.datasets[2].data = [{ x: 0, y: Math.min(avgY, maxY) }, { x: maxX, y: Math.min(avgY, maxY) }];
+      quadChart.data.datasets[1].data = [{ x: avgLineX, y: minY }, { x: avgLineX, y: maxY }];
+      quadChart.data.datasets[2].data = [{ x: minX, y: avgLineY }, { x: maxX, y: avgLineY }];
+      quadChart.options.scales.x.min = minX;
       quadChart.options.scales.x.max = maxX;
+      quadChart.options.scales.y.min = minY;
       quadChart.options.scales.y.max = maxY;
       quadChart.update('active');
       return;
@@ -1056,9 +1069,7 @@ function buildQuad(rows) {
           legend: {
             display: true,
             labels: {
-              boxWidth: 24, padding: 16,
-              color: '#6b7599',
-              usePointStyle: false,
+              boxWidth: 24, padding: 16, color: '#6b7599',
               filter: item => item.text.startsWith('avg')
             }
           },
@@ -1068,8 +1079,8 @@ function buildQuad(rows) {
               label: ctx => {
                 if (ctx.datasetIndex === 0) {
                   return [
-                    ` PV/記事: ${ctx.parsed.x.toFixed(1)}`,
-                    ` スキ率: ${ctx.parsed.y.toFixed(2)}%`
+                    ` ${ctx.raw.label}`,
+                    ` PV: ${ctx.parsed.x.toLocaleString()}  スキ率: ${ctx.parsed.y.toFixed(1)}%`
                   ];
                 }
                 return null;
@@ -1078,42 +1089,29 @@ function buildQuad(rows) {
           }
         },
         scales: {
-          x: {
-            min: 0, max: maxX,
-            grid: { color: GRID_COLOR },
-            title: { display: true, text: 'Views / Article', color: '#6b7599' }
-          },
-          y: {
-            min: 0, max: maxY,
-            grid: { color: GRID_COLOR },
-            title: { display: true, text: 'Like Rate (%)', color: '#6b7599' }
-          }
+          x: { min: minX, max: maxX, grid: { color: GRID_COLOR }, title: { display: true, text: 'Total Views (PV)', color: '#6b7599' } },
+          y: { min: minY, max: maxY, grid: { color: GRID_COLOR }, title: { display: true, text: 'Like Rate (%)', color: '#6b7599' } }
         }
       }
     });
   }
 
-  // 初回描画
   renderChart(0, autoMaxX, 0, autoMaxY);
 
-  // スライダーイベント
-  const xMinSlider = document.getElementById('quad-x-min-slider');
-  const yMinSlider = document.getElementById('quad-y-min-slider');
-
-  function updateSliderLabel() {
+  function onSlide() {
     const minX = Number(xMinSlider.value);
     const maxX = Number(xSlider.value);
     const minY = Number(yMinSlider.value);
     const maxY = Number(ySlider.value);
-    document.getElementById('quad-x-label').textContent = minX + ' – ' + maxX;
-    document.getElementById('quad-y-label').textContent = minY + ' – ' + maxY + '%';
+    document.getElementById('quad-x-label').textContent = `${minX} – ${maxX}`;
+    document.getElementById('quad-y-label').textContent = `${minY} – ${maxY}%`;
     renderChart(minX, maxX, minY, maxY);
   }
 
-  xSlider.addEventListener('input', updateSliderLabel);
-  xMinSlider.addEventListener('input', updateSliderLabel);
-  ySlider.addEventListener('input', updateSliderLabel);
-  yMinSlider.addEventListener('input', updateSliderLabel);
+  xSlider.addEventListener('input', onSlide);
+  xMinSlider.addEventListener('input', onSlide);
+  ySlider.addEventListener('input', onSlide);
+  yMinSlider.addEventListener('input', onSlide);
 }
 
 /* ─── 資産記事 ─── */
@@ -1352,7 +1350,7 @@ async function init() {
     buildRanking('ranking-likes', articles, 'like_count', 'like-bar', 'like-val');
     buildWorstRanking(articles);
     buildBestRanking(articles);
-    buildQuad(summary);
+    buildQuad(articles);
     buildAssetTable(assets);
     buildTrendDetailed(trend);
 
