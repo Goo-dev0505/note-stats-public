@@ -943,32 +943,95 @@ function buildFollowers(summary, followers) {
 
 /* ─── 4象限 ─── */
 function buildQuad(rows) {
-  const data = rows.map(r => ({
+  const validRows = rows.filter(r => parseFloat(r['ビュー/記事']) > 0);
+  const data = validRows.map(r => ({
     x: parseFloat(r['ビュー/記事']) || 0,
     y: parseFloat(r['スキ率(%)']) || 0,
     label: r['日付']
   }));
+
+  // 平均値を計算
+  const avgX = data.reduce((s, d) => s + d.x, 0) / data.length;
+  const avgY = data.reduce((s, d) => s + d.y, 0) / data.length;
+
+  // X軸・Y軸の範囲
+  const maxX = Math.max(...data.map(d => d.x)) * 1.1;
+  const maxY = Math.max(...data.map(d => d.y)) * 1.1;
+
+  // 平均線を「線データセット」として追加
   new Chart(document.getElementById('chart-quad'), {
     type: 'scatter',
     data: {
-      datasets: [{
-        label: '日次動態',
-        data,
-        backgroundColor: 'rgba(157,111,255,0.5)',
-        pointRadius: 5,
-        pointHoverRadius: 7
-      }]
+      datasets: [
+        {
+          label: '日次動態',
+          data,
+          backgroundColor: 'rgba(157,111,255,0.55)',
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          order: 3
+        },
+        {
+          // 縦線（X=avgX）
+          label: `avg PV/記事: ${avgX.toFixed(1)}`,
+          type: 'line',
+          data: [{ x: avgX, y: 0 }, { x: avgX, y: maxY }],
+          borderColor: 'rgba(0,229,255,0.5)',
+          borderWidth: 1.5,
+          borderDash: [6, 4],
+          pointRadius: 0,
+          fill: false,
+          order: 1
+        },
+        {
+          // 横線（Y=avgY）
+          label: `avg スキ率: ${avgY.toFixed(2)}%`,
+          type: 'line',
+          data: [{ x: 0, y: avgY }, { x: maxX, y: avgY }],
+          borderColor: 'rgba(255,77,141,0.5)',
+          borderWidth: 1.5,
+          borderDash: [6, 4],
+          pointRadius: 0,
+          fill: false,
+          order: 2
+        }
+      ]
     },
     options: {
       ...baseOpts(),
+      plugins: {
+        ...baseOpts().plugins,
+        legend: {
+          display: true,
+          labels: {
+            boxWidth: 20, padding: 16,
+            color: '#6b7599',
+            usePointStyle: false,
+            filter: item => item.text.startsWith('avg')
+          }
+        },
+        tooltip: {
+          ...baseOpts().plugins.tooltip,
+          callbacks: {
+            label: ctx => {
+              if (ctx.datasetIndex === 0) {
+                return ` PV/記事: ${ctx.parsed.x.toFixed(1)}  スキ率: ${ctx.parsed.y.toFixed(2)}%`;
+              }
+              return null;
+            }
+          }
+        }
+      },
       scales: {
         x: {
+          min: 0, max: maxX,
           grid: { color: GRID_COLOR },
-          title: { display: true, text: 'Views / Article', color: '#3d4466' }
+          title: { display: true, text: 'Views / Article', color: '#6b7599' }
         },
         y: {
+          min: 0, max: maxY,
           grid: { color: GRID_COLOR },
-          title: { display: true, text: 'Like Rate (%)', color: '#3d4466' }
+          title: { display: true, text: 'Like Rate (%)', color: '#6b7599' }
         }
       }
     }
