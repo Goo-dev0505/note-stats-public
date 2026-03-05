@@ -896,7 +896,7 @@ function buildDaily(rows) {
 function buildRanking(containerId, rows, valueKey, barClass, valClass) {
   if (!rows.length) return;
   const latest = rows.reduce((a, b) => a.date > b.date ? a : b).date;
-  const sorted = rows.filter(r => r.date === latest)
+  const sorted = rows.filter(r => r.date === latest && !EXCLUDED_TITLES.includes(r.title))
     .sort((a, b) => Number(b[valueKey]) - Number(a[valueKey])).slice(0, 20);
   const max = Number(sorted[0][valueKey] || 1);
   const medal = i => i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
