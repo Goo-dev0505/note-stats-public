@@ -724,6 +724,25 @@ tr:hover .sticky-2 { background: var(--surface2); }
         </div>
         <span class="panel-badge">SCATTER</span>
       </div>
+      <!-- スライダー -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <span style="font-size:10px;color:var(--text3);letter-spacing:0.1em">X軸上限 (Views/Article)</span>
+            <span style="font-size:12px;color:var(--cyan);font-weight:600" id="quad-x-label">auto</span>
+          </div>
+          <input type="range" id="quad-x-slider" min="10" max="500" step="10" value="200"
+            style="width:100%;accent-color:var(--cyan);cursor:pointer">
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <span style="font-size:10px;color:var(--text3);letter-spacing:0.1em">Y軸上限 (スキ率 %)</span>
+            <span style="font-size:12px;color:var(--pink);font-weight:600" id="quad-y-label">auto</span>
+          </div>
+          <input type="range" id="quad-y-slider" min="1" max="50" step="0.5" value="20"
+            style="width:100%;accent-color:var(--pink);cursor:pointer">
+        </div>
+      </div>
       <div class="chart-wrap tall"><canvas id="chart-quad"></canvas></div>
     </div>
 
@@ -944,97 +963,139 @@ function buildFollowers(summary, followers) {
 /* ─── 4象限 ─── */
 function buildQuad(rows) {
   const validRows = rows.filter(r => parseFloat(r['ビュー/記事']) > 0);
-  const data = validRows.map(r => ({
+  const allData = validRows.map(r => ({
     x: parseFloat(r['ビュー/記事']) || 0,
     y: parseFloat(r['スキ率(%)']) || 0,
     label: r['日付']
   }));
 
-  // 平均値を計算
-  const avgX = data.reduce((s, d) => s + d.x, 0) / data.length;
-  const avgY = data.reduce((s, d) => s + d.y, 0) / data.length;
+  // 平均値（全データで計算）
+  const avgX = allData.reduce((s, d) => s + d.x, 0) / allData.length;
+  const avgY = allData.reduce((s, d) => s + d.y, 0) / allData.length;
 
-  // X軸・Y軸の範囲
-  const maxX = Math.max(...data.map(d => d.x)) * 1.1;
-  const maxY = Math.max(...data.map(d => d.y)) * 1.1;
+  // スライダーの初期値をデータに合わせてセット
+  const autoMaxX = Math.ceil(Math.max(...allData.map(d => d.x)) * 1.15 / 10) * 10;
+  const autoMaxY = Math.ceil(Math.max(...allData.map(d => d.y)) * 1.15 * 2) / 2;
 
-  // 平均線を「線データセット」として追加
-  new Chart(document.getElementById('chart-quad'), {
-    type: 'scatter',
-    data: {
-      datasets: [
-        {
-          label: '日次動態',
-          data,
-          backgroundColor: 'rgba(157,111,255,0.55)',
-          pointRadius: 5,
-          pointHoverRadius: 7,
-          order: 3
-        },
-        {
-          // 縦線（X=avgX）
-          label: `avg PV/記事: ${avgX.toFixed(1)}`,
-          type: 'line',
-          data: [{ x: avgX, y: 0 }, { x: avgX, y: maxY }],
-          borderColor: 'rgba(0,229,255,0.5)',
-          borderWidth: 1.5,
-          borderDash: [6, 4],
-          pointRadius: 0,
-          fill: false,
-          order: 1
-        },
-        {
-          // 横線（Y=avgY）
-          label: `avg スキ率: ${avgY.toFixed(2)}%`,
-          type: 'line',
-          data: [{ x: 0, y: avgY }, { x: maxX, y: avgY }],
-          borderColor: 'rgba(255,77,141,0.5)',
-          borderWidth: 1.5,
-          borderDash: [6, 4],
-          pointRadius: 0,
-          fill: false,
-          order: 2
-        }
-      ]
-    },
-    options: {
-      ...baseOpts(),
-      plugins: {
-        ...baseOpts().plugins,
-        legend: {
-          display: true,
-          labels: {
-            boxWidth: 20, padding: 16,
-            color: '#6b7599',
-            usePointStyle: false,
-            filter: item => item.text.startsWith('avg')
-          }
-        },
-        tooltip: {
-          ...baseOpts().plugins.tooltip,
-          callbacks: {
-            label: ctx => {
-              if (ctx.datasetIndex === 0) {
-                return ` PV/記事: ${ctx.parsed.x.toFixed(1)}  スキ率: ${ctx.parsed.y.toFixed(2)}%`;
+  const xSlider = document.getElementById('quad-x-slider');
+  const ySlider = document.getElementById('quad-y-slider');
+  xSlider.max = Math.max(autoMaxX, 100);
+  xSlider.value = autoMaxX;
+  ySlider.max = Math.max(autoMaxY, 10);
+  ySlider.value = autoMaxY;
+  document.getElementById('quad-x-label').textContent = autoMaxX;
+  document.getElementById('quad-y-label').textContent = autoMaxY.toFixed(1) + '%';
+
+  let quadChart = null;
+
+  function renderChart(maxX, maxY) {
+    const data = allData.filter(d => d.x <= maxX && d.y <= maxY);
+
+    const datasets = [
+      {
+        label: '日次動態',
+        data,
+        backgroundColor: 'rgba(157,111,255,0.55)',
+        pointRadius: 5,
+        pointHoverRadius: 8,
+        order: 3
+      },
+      {
+        label: `avg PV/記事: ${avgX.toFixed(1)}`,
+        type: 'line',
+        data: [{ x: Math.min(avgX, maxX), y: 0 }, { x: Math.min(avgX, maxX), y: maxY }],
+        borderColor: 'rgba(0,229,255,0.6)',
+        borderWidth: 2,
+        borderDash: [6, 4],
+        pointRadius: 0,
+        fill: false,
+        order: 1
+      },
+      {
+        label: `avg スキ率: ${avgY.toFixed(2)}%`,
+        type: 'line',
+        data: [{ x: 0, y: Math.min(avgY, maxY) }, { x: maxX, y: Math.min(avgY, maxY) }],
+        borderColor: 'rgba(255,77,141,0.6)',
+        borderWidth: 2,
+        borderDash: [6, 4],
+        pointRadius: 0,
+        fill: false,
+        order: 2
+      }
+    ];
+
+    if (quadChart) {
+      quadChart.data.datasets[0].data = data;
+      quadChart.data.datasets[1].data = [{ x: Math.min(avgX, maxX), y: 0 }, { x: Math.min(avgX, maxX), y: maxY }];
+      quadChart.data.datasets[2].data = [{ x: 0, y: Math.min(avgY, maxY) }, { x: maxX, y: Math.min(avgY, maxY) }];
+      quadChart.options.scales.x.max = maxX;
+      quadChart.options.scales.y.max = maxY;
+      quadChart.update('active');
+      return;
+    }
+
+    quadChart = new Chart(document.getElementById('chart-quad'), {
+      type: 'scatter',
+      data: { datasets },
+      options: {
+        ...baseOpts(),
+        plugins: {
+          ...baseOpts().plugins,
+          legend: {
+            display: true,
+            labels: {
+              boxWidth: 24, padding: 16,
+              color: '#6b7599',
+              usePointStyle: false,
+              filter: item => item.text.startsWith('avg')
+            }
+          },
+          tooltip: {
+            ...baseOpts().plugins.tooltip,
+            callbacks: {
+              label: ctx => {
+                if (ctx.datasetIndex === 0) {
+                  return [
+                    ` PV/記事: ${ctx.parsed.x.toFixed(1)}`,
+                    ` スキ率: ${ctx.parsed.y.toFixed(2)}%`
+                  ];
+                }
+                return null;
               }
-              return null;
             }
           }
-        }
-      },
-      scales: {
-        x: {
-          min: 0, max: maxX,
-          grid: { color: GRID_COLOR },
-          title: { display: true, text: 'Views / Article', color: '#6b7599' }
         },
-        y: {
-          min: 0, max: maxY,
-          grid: { color: GRID_COLOR },
-          title: { display: true, text: 'Like Rate (%)', color: '#6b7599' }
+        scales: {
+          x: {
+            min: 0, max: maxX,
+            grid: { color: GRID_COLOR },
+            title: { display: true, text: 'Views / Article', color: '#6b7599' }
+          },
+          y: {
+            min: 0, max: maxY,
+            grid: { color: GRID_COLOR },
+            title: { display: true, text: 'Like Rate (%)', color: '#6b7599' }
+          }
         }
       }
-    }
+    });
+  }
+
+  // 初回描画
+  renderChart(autoMaxX, autoMaxY);
+
+  // スライダーイベント
+  xSlider.addEventListener('input', () => {
+    const maxX = Number(xSlider.value);
+    const maxY = Number(ySlider.value);
+    document.getElementById('quad-x-label').textContent = maxX;
+    renderChart(maxX, maxY);
+  });
+  ySlider.addEventListener('input', () => {
+    const maxX = Number(xSlider.value);
+    const maxY = Number(ySlider.value);
+    document.getElementById('quad-y-label').textContent = maxY + '%';
+    renderChart(maxX, maxY);
   });
 }
 
