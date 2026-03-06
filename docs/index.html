@@ -752,9 +752,9 @@ header {
             <tr>
               <th class="sticky-1" style="width:80px">状態</th>
               <th class="sticky-2">タイトル</th>
+              <th>累計PV</th>
               <th>スコア</th>
               <th>-1日</th><th>-2日</th><th>-3日</th><th>-4日</th><th>-5日</th><th>-6日</th><th>-7日</th>
-              <th>累計PV</th>
             </tr>
           </thead>
           <tbody id="trend-body">
@@ -1048,9 +1048,9 @@ function buildTrendDetailed(rows) {
       <tr>
         <td class="sticky-1"><span class="status-badge ${badgeClass}">${state}</span></td>
         <td class="sticky-2" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text2)">${r['title']}</td>
+        <td class="num-right">${Number(r['累計PV']).toLocaleString()}</td>
         <td class="num-accent" style="text-align:center;font-weight:700">${r['トレンドスコア']}</td>
         ${dailyCells}
-        <td class="num-right">${Number(r['累計PV']).toLocaleString()}</td>
       </tr>`;
   }).join('');
 }
