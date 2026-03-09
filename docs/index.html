@@ -722,6 +722,26 @@ header {
 }
 .period-chart-wrap { position: relative; height: 320px; }
 
+/* 横スクロール対応チャートコンテナ */
+.period-chart-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: var(--surface);
+  cursor: grab;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+.period-chart-scroll::-webkit-scrollbar { height: 4px; }
+.period-chart-scroll::-webkit-scrollbar-track { background: transparent; }
+.period-chart-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+.period-chart-scroll:active { cursor: grabbing; }
+.period-chart-inner {
+  height: 320px;
+  /* 幅はJS側で週数に応じて動的セット */
+}
+
 @media (max-width: 900px) {
   .kpi-strip { grid-template-columns: repeat(2,1fr); }
   .grid { grid-template-columns: 1fr; }
@@ -1002,9 +1022,23 @@ header {
           </div>
         </div>
         <div class="period-chart-section">
-          <div class="period-chart-label">週別 PV 増加推移</div>
-          <div class="period-chart-wrap">
-            <canvas id="chart-weekly-trend"></canvas>
+          <div class="period-chart-label">
+            週別 PV 増加推移
+            <span style="color:var(--text3);font-size:9px;letter-spacing:0.1em;margin-left:8px">← SCROLL →</span>
+          </div>
+          <div class="period-chart-scroll">
+            <div class="period-chart-inner" id="weekly-chart-inner">
+              <canvas id="chart-weekly-trend"></canvas>
+            </div>
+          </div>
+          <div class="period-chart-label" style="margin-top:16px">
+            週別 スキ 増加推移
+            <span style="color:var(--text3);font-size:9px;letter-spacing:0.1em;margin-left:8px">← SCROLL →</span>
+          </div>
+          <div class="period-chart-scroll">
+            <div class="period-chart-inner" id="weekly-chart-inner-like">
+              <canvas id="chart-weekly-trend-like"></canvas>
+            </div>
           </div>
         </div>
       </div>
@@ -1383,7 +1417,11 @@ function buildWeeklySummary(rows) {
   // トレンドチャート（全週の合計PV）
   const weekTotals = weeks.map(w => {
     const filtered = rows.filter(r => r['週'] === w);
-    return { week: w, pv: filtered.reduce((s,r) => s + Number(r['期間増加PV']||0), 0) };
+    return {
+      week: w,
+      pv:   filtered.reduce((s,r) => s + Number(r['期間増加PV']||0), 0),
+      like: filtered.reduce((s,r) => s + Number(r['期間増加スキ']||0), 0),
+    };
   });
   buildWeeklyTrendChart(weekTotals);
 
@@ -1422,10 +1460,24 @@ function setWeeklyMetric(m) {
 
 function buildWeeklyTrendChart(weekTotals) {
   if (weeklyChartInst) { weeklyChartInst.destroy(); weeklyChartInst = null; }
-  const labels = weekTotals.map(w => w.week.replace('2025-','').replace('2026-',''));
+
+  // 年をまたぐ場合に備え、年が変わるタイミングだけ年を表示
+  const labels = weekTotals.map((w, i) => {
+    const [year, week] = w.week.split('-');
+    const prevYear = i > 0 ? weekTotals[i-1].week.split('-')[0] : null;
+    // 最初の週 or 年が変わる週は「'25\nW46」形式で表示
+    if (i === 0 || year !== prevYear) return `'${year.slice(2)}\n${week}`;
+    return week;
+  });
   const data   = weekTotals.map(w => w.pv);
   const maxVal = Math.max(...data);
-  const colors = data.map(v => v === maxVal ? 'rgba(0,229,255,0.85)' : 'rgba(0,229,255,0.35)');
+  const colors = data.map(v => v === maxVal ? 'rgba(0,229,255,0.9)' : 'rgba(0,229,255,0.35)');
+
+  // 週数に応じてcanvas幅を動的に設定（1週あたり52px、最低600px）
+  const BAR_W = 52;
+  const chartW = Math.max(weekTotals.length * BAR_W, 600);
+  const inner = document.getElementById('weekly-chart-inner');
+  if (inner) inner.style.width = chartW + 'px';
 
   weeklyChartInst = new Chart(document.getElementById('chart-weekly-trend'), {
     type: 'bar',
@@ -1435,23 +1487,134 @@ function buildWeeklyTrendChart(weekTotals) {
         label: '週間PV増加',
         data,
         backgroundColor: colors,
-        borderColor: colors.map(c => c.replace('0.35','0.8').replace('0.85','1')),
+        borderColor: colors.map(c => c.replace('0.35','0.8').replace('0.9','1')),
         borderWidth: 1,
         borderRadius: 3,
+        barPercentage: 0.7,
       }]
     },
     options: {
-      ...baseOpts(),
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 800, easing: 'easeOutQuart' },
       plugins: {
-        ...baseOpts().plugins,
         legend: { display: false },
         tooltip: {
-          ...baseOpts().plugins.tooltip,
+          backgroundColor: '#0f1221',
+          borderColor: 'rgba(255,255,255,0.1)',
+          borderWidth: 1,
+          titleColor: '#e8ecf8',
+          bodyColor: '#8891b0',
+          padding: 12,
+          cornerRadius: 6,
           callbacks: { label: ctx => ` ${ctx.raw.toLocaleString()} PV` }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          ticks: {
+            color: ctx => {
+              // 年表示ラベル（'25 や '26）は明るく強調
+              const label = ctx.tick && ctx.tick.label;
+              if (Array.isArray(label) && label[0] && label[0].startsWith("'")) return 'rgba(0,229,255,0.9)';
+              if (typeof label === 'string' && label.startsWith("'")) return 'rgba(0,229,255,0.9)';
+              return 'rgba(255,255,255,0.75)';
+            },
+            font: ctx => {
+              const label = ctx.tick && ctx.tick.label;
+              const isYearLabel = Array.isArray(label) ? label[0]?.startsWith("'") : label?.startsWith("'");
+              return { size: isYearLabel ? 10 : 11, weight: isYearLabel ? '700' : '400' };
+            },
+            maxRotation: 0,
+          }
+        },
+        y: {
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          ticks: { color: 'rgba(255,255,255,0.85)' }
         }
       }
     }
   });
+
+  // 最新週（右端）に自動スクロール
+  const scrollEl = inner && inner.parentElement;
+  if (scrollEl) {
+    setTimeout(() => { scrollEl.scrollLeft = scrollEl.scrollWidth; }, 100);
+  }
+
+  // ─── スキチャート ───
+  if (window._weeklyLikeInst) { window._weeklyLikeInst.destroy(); window._weeklyLikeInst = null; }
+
+  const likeData   = weekTotals.map(w => w.like);
+  const likeMax    = Math.max(...likeData);
+  const likeColors = likeData.map(v => v === likeMax ? 'rgba(255,77,141,0.85)' : 'rgba(255,77,141,0.35)');
+
+  const innerLike = document.getElementById('weekly-chart-inner-like');
+  if (innerLike) innerLike.style.width = chartW + 'px';
+
+  window._weeklyLikeInst = new Chart(document.getElementById('chart-weekly-trend-like'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: '週間スキ増加',
+        data: likeData,
+        backgroundColor: likeColors,
+        borderColor: likeColors.map(c => c.replace('0.35','0.8').replace('0.85','1')),
+        borderWidth: 1,
+        borderRadius: 3,
+        barPercentage: 0.7,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 800, easing: 'easeOutQuart' },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0f1221',
+          borderColor: 'rgba(255,255,255,0.1)',
+          borderWidth: 1,
+          titleColor: '#e8ecf8',
+          bodyColor: '#8891b0',
+          padding: 12,
+          cornerRadius: 6,
+          callbacks: { label: ctx => ` ${ctx.raw.toLocaleString()} スキ` }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          ticks: {
+            color: ctx => {
+              const label = ctx.tick && ctx.tick.label;
+              if (Array.isArray(label) && label[0]?.startsWith("'")) return 'rgba(255,77,141,0.9)';
+              if (typeof label === 'string' && label.startsWith("'")) return 'rgba(255,77,141,0.9)';
+              return 'rgba(255,255,255,0.75)';
+            },
+            font: ctx => {
+              const label = ctx.tick && ctx.tick.label;
+              const isYearLabel = Array.isArray(label) ? label[0]?.startsWith("'") : label?.startsWith("'");
+              return { size: isYearLabel ? 10 : 11, weight: isYearLabel ? '700' : '400' };
+            },
+            maxRotation: 0,
+          }
+        },
+        y: {
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          ticks: { color: 'rgba(255,255,255,0.85)' }
+        }
+      }
+    }
+  });
+
+  // スキチャートも右端へスクロール
+  const scrollLike = innerLike && innerLike.parentElement;
+  if (scrollLike) {
+    setTimeout(() => { scrollLike.scrollLeft = scrollLike.scrollWidth; }, 100);
+  }
 }
 
 /* ─── 月次 ─── */
