@@ -14,7 +14,6 @@
   --surface2:  #141729;
   --border:    rgba(255,255,255,0.07);
   --border2:   rgba(255,255,255,0.12);
-
   --cyan:      #00e5ff;
   --cyan-dim:  rgba(0,229,255,0.12);
   --cyan-glow: rgba(0,229,255,0.25);
@@ -26,471 +25,137 @@
   --violet-dim:rgba(157,111,255,0.12);
   --green:     #00e5a0;
   --red:       #ff4d6a;
-
   --text:      #f0f4ff;
   --text2:     #b0bcd8;
   --text3:     #6b7599;
-
   --mono: 'JetBrains Mono', monospace;
   --sans: 'Syne', sans-serif;
-
   --r: 6px;
 }
-
 * { margin: 0; padding: 0; box-sizing: border-box; }
-
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--mono);
-  min-height: 100vh;
-  overflow-x: hidden;
-}
-
+body { background: var(--bg); color: var(--text); font-family: var(--mono); min-height: 100vh; overflow-x: hidden; }
 body::before {
-  content: '';
-  position: fixed; inset: 0;
+  content: ''; position: fixed; inset: 0;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
   pointer-events: none; z-index: 999;
 }
-
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
-
 header {
   position: sticky; top: 0; z-index: 100;
-  background: rgba(6,8,15,0.92);
-  backdrop-filter: blur(20px);
+  background: rgba(6,8,15,0.92); backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--border);
-  padding: 0 32px;
-  height: 56px;
+  padding: 0 32px; height: 56px;
   display: flex; align-items: center; justify-content: space-between;
 }
-
-.logo {
-  font-family: var(--sans);
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  display: flex; align-items: center; gap: 10px;
-}
-.logo-dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--cyan);
-  box-shadow: 0 0 12px var(--cyan);
-  animation: pulse 2s ease-in-out infinite;
-}
-@keyframes pulse {
-  0%,100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.8); }
-}
+.logo { font-family: var(--sans); font-size: 15px; font-weight: 800; letter-spacing: 0.05em; display: flex; align-items: center; gap: 10px; }
+.logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 12px var(--cyan); animation: pulse 2s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.8); } }
 .logo-text { color: var(--text); }
 .logo-slash { color: var(--text3); margin: 0 2px; }
 .logo-sub { color: var(--cyan); }
-
-.header-right {
-  display: flex; align-items: center; gap: 24px;
-}
-#last-updated {
-  font-size: 12px;
-  color: var(--text2);
-  letter-spacing: 0.1em;
-}
-.header-badge {
-  font-size: 9px;
-  padding: 3px 8px;
-  border: 1px solid var(--border2);
-  border-radius: 2px;
-  color: var(--text2);
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-}
-
-.dashboard {
-  padding: 0;
-  max-width: 1600px;
-  margin: 0 auto;
-}
-
+.header-right { display: flex; align-items: center; gap: 24px; }
+#last-updated { font-size: 12px; color: var(--text2); letter-spacing: 0.1em; }
+.header-badge { font-size: 9px; padding: 3px 8px; border: 1px solid var(--border2); border-radius: 2px; color: var(--text2); letter-spacing: 0.15em; text-transform: uppercase; }
+.dashboard { padding: 0; max-width: 1600px; margin: 0 auto; }
 .status-band {
-  border-bottom: 1px solid var(--border);
-  padding: 28px 32px;
-  display: grid;
-  grid-template-columns: 1fr 1px 1fr 1px 1fr 2px 1fr;
-  align-items: center;
-  gap: 0;
-  animation: fadeUp 0.6s ease both;
+  border-bottom: 1px solid var(--border); padding: 28px 32px;
+  display: grid; grid-template-columns: 1fr 1px 1fr 1px 1fr 2px 1fr;
+  align-items: center; gap: 0; animation: fadeUp 0.6s ease both;
 }
-.band-divider {
-  width: 1px;
-  height: 40px;
-  background: var(--border2);
-  justify-self: center;
-}
-.band-divider.thick {
-  width: 2px;
-  background: var(--border2);
-  height: 60px;
-}
-
+.band-divider { width: 1px; height: 40px; background: var(--border2); justify-self: center; }
+.band-divider.thick { width: 2px; background: var(--border2); height: 60px; }
 .kpi3-item { padding: 0 28px; }
-.kpi3-label {
-  font-size: 15px;
-  color: var(--text2);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  margin-bottom: 10px;
-}
-.kpi3-row {
-  display: flex; align-items: baseline; gap: 10px;
-}
-.kpi3-val {
-  font-family: var(--sans);
-  font-size: 34px;
-  font-weight: 700;
-  color: var(--text);
-  line-height: 1;
-}
-.kpi3-arrow {
-  font-size: 20px;
-  line-height: 1;
-  font-family: var(--mono);
-}
+.kpi3-label { font-size: 15px; color: var(--text2); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 10px; }
+.kpi3-row { display: flex; align-items: baseline; gap: 10px; }
+.kpi3-val { font-family: var(--sans); font-size: 34px; font-weight: 700; color: var(--text); line-height: 1; }
+.kpi3-arrow { font-size: 20px; line-height: 1; font-family: var(--mono); }
 .kpi3-arrow.up   { color: var(--green); }
 .kpi3-arrow.down { color: var(--red); }
 .kpi3-arrow.flat { color: var(--text3); }
-.kpi3-sub {
-  font-size: 12px;
-  color: var(--text2);
-  margin-top: 5px;
-}
-
+.kpi3-sub { font-size: 12px; color: var(--text2); margin-top: 5px; }
 .status-memo-wrap { padding: 0 28px; }
-.status-memo-label {
-  font-size: 18px;
-  color: var(--text2);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  margin-bottom: 10px;
-}
-#status-memo-text {
-  font-family: var(--sans);
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--cyan);
-  line-height: 1.5;
-  min-height: 40px;
-}
-
-.kpi-strip {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  border-bottom: 1px solid var(--border);
-  animation: fadeUp 0.6s 0.1s ease both;
-}
-.kpi {
-  padding: 24px 32px;
-  border-right: 1px solid var(--border);
-  position: relative;
-  overflow: hidden;
-  transition: background 0.2s;
-}
+.status-memo-label { font-size: 18px; color: var(--text2); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 10px; }
+#status-memo-text { font-family: var(--sans); font-size: 15px; font-weight: 600; color: var(--cyan); line-height: 1.5; min-height: 40px; }
+.kpi-strip { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid var(--border); animation: fadeUp 0.6s 0.1s ease both; }
+.kpi { padding: 24px 32px; border-right: 1px solid var(--border); position: relative; overflow: hidden; transition: background 0.2s; }
 .kpi:last-child { border-right: none; }
-.kpi::after {
-  content: '';
-  position: absolute;
-  bottom: 0; left: 32px; right: 32px;
-  height: 2px;
-  border-radius: 1px;
-  opacity: 0;
-  transition: opacity 0.3s;
-}
+.kpi::after { content: ''; position: absolute; bottom: 0; left: 32px; right: 32px; height: 2px; border-radius: 1px; opacity: 0; transition: opacity 0.3s; }
 .kpi:nth-child(1)::after { background: var(--cyan); }
 .kpi:nth-child(2)::after { background: var(--pink); }
 .kpi:nth-child(3)::after { background: var(--gold); }
 .kpi:nth-child(4)::after { background: var(--violet); }
 .kpi:hover::after { opacity: 1; }
 .kpi:hover { background: var(--surface); }
-
-.kpi-label {
-  font-size: 18px;
-  color: var(--text2);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  margin-bottom: 10px;
-  display: flex; align-items: center; gap: 6px;
-}
-.kpi-label::before {
-  content: '';
-  width: 5px; height: 5px; border-radius: 50%;
-}
+.kpi-label { font-size: 18px; color: var(--text2); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+.kpi-label::before { content: ''; width: 5px; height: 5px; border-radius: 50%; }
 .kpi:nth-child(1) .kpi-label::before { background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
 .kpi:nth-child(2) .kpi-label::before { background: var(--pink); box-shadow: 0 0 6px var(--pink); }
 .kpi:nth-child(3) .kpi-label::before { background: var(--gold); box-shadow: 0 0 6px var(--gold); }
 .kpi:nth-child(4) .kpi-label::before { background: var(--violet); box-shadow: 0 0 6px var(--violet); }
-
-.kpi-value {
-  font-family: var(--sans);
-  font-size: 48px;
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: -0.02em;
-}
+.kpi-value { font-family: var(--sans); font-size: 48px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; }
 .kpi-value.v { color: var(--cyan); }
 .kpi-value.l { color: var(--pink); }
 .kpi-value.a { color: var(--gold); }
 .kpi-value.f { color: var(--violet); }
-
-.kpi-diff {
-  margin-top: 8px;
-  font-size: 12px;
-  color: var(--text3);
-  display: flex; align-items: center; gap: 4px;
-}
+.kpi-diff { margin-top: 8px; font-size: 12px; color: var(--text3); display: flex; align-items: center; gap: 4px; }
 .kpi-diff.up   { color: var(--green); }
 .kpi-diff.down { color: var(--red); }
-
-.grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-}
-
-.panel {
-  padding: 28px 32px;
-  border-bottom: 1px solid var(--border);
-  border-right: 1px solid var(--border);
-  position: relative;
-  animation: fadeUp 0.5s ease both;
-}
+.grid { display: grid; grid-template-columns: 1fr 1fr; }
+.panel { padding: 28px 32px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); position: relative; animation: fadeUp 0.5s ease both; }
 .panel:nth-child(2n) { border-right: none; }
-.panel.full {
-  grid-column: 1 / -1;
-  border-right: none;
-}
-
-.panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 22px;
-}
-.panel-title {
-  font-size: 18px;
-  color: var(--text2);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  display: flex; align-items: center; gap: 8px;
-}
-.panel-title-dot {
-  width: 4px; height: 4px; border-radius: 50%;
-  background: var(--cyan);
-  flex-shrink: 0;
-}
-.panel-badge {
-  font-size: 10px;
-  padding: 2px 8px;
-  border: 1px solid var(--border2);
-  border-radius: 2px;
-  color: var(--text3);
-  letter-spacing: 0.1em;
-}
-
+.panel.full { grid-column: 1 / -1; border-right: none; }
+.panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+.panel-title { font-size: 18px; color: var(--text2); letter-spacing: 0.1em; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+.panel-title-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--cyan); flex-shrink: 0; }
+.panel-badge { font-size: 10px; padding: 2px 8px; border: 1px solid var(--border2); border-radius: 2px; color: var(--text3); letter-spacing: 0.1em; }
 .chart-wrap { position: relative; height: 280px; }
 .chart-wrap.tall { height: 360px; }
-
-.ranking-list {
-  display: flex; flex-direction: column; gap: 4px;
-  max-height: 380px; overflow-y: auto;
-  padding-right: 4px;
-}
-
-.rank-item {
-  display: grid;
-  grid-template-columns: 28px 1fr 110px;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 12px;
-  border-radius: var(--r);
-  border: 1px solid transparent;
-  background: var(--surface);
-  transition: all 0.15s ease;
-  cursor: default;
-}
-.rank-item:hover {
-  background: var(--surface2);
-  border-color: var(--border2);
-  transform: translateX(2px);
-}
-
-.rank-num {
-  font-size: 11px;
-  color: var(--text3);
-  text-align: center;
-  font-weight: 600;
-}
+.ranking-list { display: flex; flex-direction: column; gap: 4px; max-height: 380px; overflow-y: auto; padding-right: 4px; }
+.rank-item { display: grid; grid-template-columns: 28px 1fr 110px; align-items: center; gap: 10px; padding: 9px 12px; border-radius: var(--r); border: 1px solid transparent; background: var(--surface); transition: all 0.15s ease; cursor: default; }
+.rank-item:hover { background: var(--surface2); border-color: var(--border2); transform: translateX(2px); }
+.rank-num { font-size: 11px; color: var(--text3); text-align: center; font-weight: 600; }
 .rank-num.gold   { color: var(--gold); }
 .rank-num.silver { color: #a8b0c8; }
 .rank-num.bronze { color: #c87850; }
-
-.rank-title {
-  font-size: 16px;
-  color: var(--text2);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  transition: color 0.15s;
-}
+.rank-title { font-size: 16px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color 0.15s; }
 .rank-item:hover .rank-title { color: var(--text); }
-
-.rank-right {
-  display: flex; align-items: center; gap: 8px;
-}
-.rank-bar {
-  flex: 1; height: 2px;
-  background: var(--border2);
-  border-radius: 1px;
-  overflow: hidden;
-}
-.rank-bar-fill {
-  height: 100%;
-  border-radius: 1px;
-  transition: width 1s cubic-bezier(0.16,1,0.3,1);
-}
-.rank-val {
-  font-size: 12px;
-  min-width: 44px;
-  text-align: right;
-  font-weight: 600;
-}
+.rank-right { display: flex; align-items: center; gap: 8px; }
+.rank-bar { flex: 1; height: 2px; background: var(--border2); border-radius: 1px; overflow: hidden; }
+.rank-bar-fill { height: 100%; border-radius: 1px; transition: width 1s cubic-bezier(0.16,1,0.3,1); }
+.rank-val { font-size: 12px; min-width: 44px; text-align: right; font-weight: 600; }
 .view-bar  { background: var(--cyan); }
 .view-val  { color: var(--cyan); }
 .like-bar  { background: var(--pink); }
 .like-val  { color: var(--pink); }
 .worst-bar { background: var(--red); }
 .worst-val { color: var(--red); }
-
-.table-wrap {
-  overflow-x: auto;
-  border: 1px solid var(--border);
-  border-radius: var(--r);
-}
-.data-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  font-size: 12px;
-}
-
-.data-table th {
-  padding: 10px 14px;
-  background: var(--surface);
-  color: var(--text2);
-  text-align: left;
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  border-bottom: 1px solid var(--border2);
-  white-space: nowrap;
-  position: sticky; top: 0; z-index: 5;
-}
-
-.data-table td {
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--border);
-  color: var(--text2);
-  font-size: 14px;
-  transition: background 0.15s;
-}
-
-.status-badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 3px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  white-space: nowrap;
-}
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--r); }
+.data-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12px; }
+.data-table th { padding: 10px 14px; background: var(--surface); color: var(--text2); text-align: left; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; border-bottom: 1px solid var(--border2); white-space: nowrap; position: sticky; top: 0; z-index: 5; }
+.data-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text2); font-size: 14px; transition: background 0.15s; }
+.status-badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; white-space: nowrap; }
 .badge-hot  { background: rgba(255,77,106,0.15); color: #ff4d6a; border: 1px solid rgba(255,77,106,0.3); }
 .badge-grow { background: rgba(0,229,160,0.12); color: var(--green); border: 1px solid rgba(0,229,160,0.25); }
 .badge-idle { background: rgba(61,68,102,0.3); color: var(--text3); border: 1px solid var(--border); }
-
-.bar-cell-wrap {
-  display: flex; align-items: center; gap: 8px;
-}
-.inline-bar {
-  width: 80px; height: 5px;
-  background: var(--border2);
-  border-radius: 3px;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-.inline-bar-fill {
-  height: 100%;
-  background: var(--cyan);
-  border-radius: 3px;
-}
+.bar-cell-wrap { display: flex; align-items: center; gap: 8px; }
+.inline-bar { width: 80px; height: 5px; background: var(--border2); border-radius: 3px; overflow: hidden; flex-shrink: 0; }
+.inline-bar-fill { height: 100%; background: var(--cyan); border-radius: 3px; }
 .num-right { text-align: right; font-weight: 600; color: var(--text); }
 .num-accent { color: var(--cyan); }
 .num-muted  { color: var(--text3); }
-
-.worst-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 32px;
-}
-.worst-section-title {
-  font-size: 15px;
-  color: var(--text3);
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  margin-bottom: 12px;
-  display: flex; align-items: center; gap: 6px;
-}
-.worst-section-title::before {
-  content: '';
-  width: 4px; height: 4px; border-radius: 50%;
-  background: var(--red);
-}
-.best-section-title {
-  font-size: 15px;
-  color: var(--text3);
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  margin-bottom: 12px;
-  display: flex; align-items: center; gap: 6px;
-}
-.best-section-title::before {
-  content: '';
-  width: 4px; height: 4px; border-radius: 50%;
-  background: var(--green);
-}
+.worst-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+.worst-section-title { font-size: 15px; color: var(--text3); letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+.worst-section-title::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: var(--red); }
+.best-section-title { font-size: 15px; color: var(--text3); letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+.best-section-title::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: var(--green); }
 .best-bar { background: var(--green); }
 .best-val { color: var(--green); }
-
-.loading {
-  display: flex; align-items: center; justify-content: center;
-  height: 160px;
-  font-size: 10px;
-  color: var(--text3);
-  letter-spacing: 0.1em;
-}
-.loading::after {
-  content: '...';
-  animation: dots 1.2s steps(4, end) infinite;
-}
-@keyframes dots {
-  0%,20% { content: ''; }
-  40% { content: '.'; }
-  60% { content: '..'; }
-  80%,100% { content: '...'; }
-}
-
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
+.loading { display: flex; align-items: center; justify-content: center; height: 160px; font-size: 10px; color: var(--text3); letter-spacing: 0.1em; }
+.loading::after { content: '...'; animation: dots 1.2s steps(4, end) infinite; }
+@keyframes dots { 0%,20% { content: ''; } 40% { content: '.'; } 60% { content: '..'; } 80%,100% { content: '...'; } }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
 .panel:nth-child(1)  { animation-delay: 0.05s; }
 .panel:nth-child(2)  { animation-delay: 0.10s; }
 .panel:nth-child(3)  { animation-delay: 0.15s; }
@@ -500,256 +165,90 @@ header {
 .panel:nth-child(7)  { animation-delay: 0.35s; }
 .panel:nth-child(8)  { animation-delay: 0.40s; }
 
-/* ════════════════════════════════════════
-   PERIOD SUMMARY (週次・月次) - NEW
-════════════════════════════════════════ */
-
-/* セクション見出し帯 */
-.section-divider {
-  grid-column: 1 / -1;
-  border-bottom: 1px solid var(--border);
-  border-right: none;
-  padding: 20px 32px 16px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  background: linear-gradient(90deg, rgba(0,229,255,0.03) 0%, transparent 60%);
-}
-.section-divider.monthly {
-  background: linear-gradient(90deg, rgba(255,201,71,0.03) 0%, transparent 60%);
-}
-.section-divider-line {
-  flex: 1;
-  height: 1px;
-  background: linear-gradient(90deg, var(--border2), transparent);
-}
-.section-divider-label {
-  font-family: var(--sans);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
-  color: var(--cyan);
-  display: flex; align-items: center; gap: 8px;
-}
+/* ════ PERIOD SUMMARY ════ */
+.section-divider { grid-column: 1 / -1; border-bottom: 1px solid var(--border); border-right: none; padding: 20px 32px 16px; display: flex; align-items: center; gap: 14px; background: linear-gradient(90deg, rgba(0,229,255,0.03) 0%, transparent 60%); }
+.section-divider.monthly { background: linear-gradient(90deg, rgba(255,201,71,0.03) 0%, transparent 60%); }
+.section-divider-line { flex: 1; height: 1px; background: linear-gradient(90deg, var(--border2), transparent); }
+.section-divider-label { font-family: var(--sans); font-size: 11px; font-weight: 700; letter-spacing: 0.25em; text-transform: uppercase; color: var(--cyan); display: flex; align-items: center; gap: 8px; }
 .section-divider-label.monthly { color: var(--gold); }
-.section-divider-label::before {
-  content: '';
-  width: 20px; height: 1px;
-  background: var(--cyan);
-}
+.section-divider-label::before { content: ''; width: 20px; height: 1px; background: var(--cyan); }
 .section-divider-label.monthly::before { background: var(--gold); }
-
-/* タブ */
-.period-tabs-wrap {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 24px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-  scrollbar-width: none;
-}
+.period-tabs-wrap { display: flex; align-items: center; gap: 6px; margin-bottom: 24px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
 .period-tabs-wrap::-webkit-scrollbar { display: none; }
-
-.period-tab {
-  flex-shrink: 0;
-  padding: 5px 14px;
-  border: 1px solid var(--border2);
-  border-radius: 3px;
-  background: transparent;
-  color: var(--text3);
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  white-space: nowrap;
-}
-.period-tab:hover {
-  background: var(--surface2);
-  color: var(--text2);
-}
-.period-tab.active {
-  background: var(--cyan-dim);
-  color: var(--cyan);
-  border-color: rgba(0,229,255,0.35);
-}
-.period-tab.active.monthly {
-  background: var(--gold-dim);
-  color: var(--gold);
-  border-color: rgba(255,201,71,0.35);
-}
-
-/* メタ情報 */
-.period-meta {
-  font-size: 11px;
-  color: var(--text3);
-  letter-spacing: 0.08em;
-  margin-bottom: 16px;
-  padding: 8px 12px;
-  background: var(--surface);
-  border-radius: var(--r);
-  border: 1px solid var(--border);
-  display: flex; align-items: center; gap: 16px;
-}
+.period-tab { flex-shrink: 0; padding: 5px 14px; border: 1px solid var(--border2); border-radius: 3px; background: transparent; color: var(--text3); font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; cursor: pointer; transition: all 0.15s ease; white-space: nowrap; }
+.period-tab:hover { background: var(--surface2); color: var(--text2); }
+.period-tab.active { background: var(--cyan-dim); color: var(--cyan); border-color: rgba(0,229,255,0.35); }
+.period-tab.active.monthly { background: var(--gold-dim); color: var(--gold); border-color: rgba(255,201,71,0.35); }
+.period-meta { font-size: 11px; color: var(--text3); letter-spacing: 0.08em; margin-bottom: 16px; padding: 8px 12px; background: var(--surface); border-radius: var(--r); border: 1px solid var(--border); display: flex; align-items: center; gap: 16px; }
 .period-meta-item { display: flex; align-items: center; gap: 6px; }
 .period-meta-val { color: var(--text2); font-weight: 600; }
 .period-meta-val.cyan  { color: var(--cyan); }
 .period-meta-val.gold  { color: var(--gold); }
 .period-meta-val.pink  { color: var(--pink); }
-
-/* ランキング + チャートの2カラム */
-.period-body {
-  display: grid;
-  grid-template-columns: 1fr 1.5fr;
-  gap: 28px;
-  align-items: start;
-}
-@media (max-width: 1100px) {
-  .period-body { grid-template-columns: 1fr; }
-}
-
-/* ランキングリスト */
-.period-rank-list {
-  display: flex; flex-direction: column; gap: 5px;
-}
-
-.period-rank-item {
-  display: grid;
-  grid-template-columns: 22px 1fr auto;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  background: var(--surface);
-  border: 1px solid transparent;
-  border-radius: var(--r);
-  transition: all 0.15s;
-  cursor: default;
-}
-.period-rank-item:hover {
-  background: var(--surface2);
-  border-color: var(--border2);
-  transform: translateX(3px);
-}
-.period-rank-num {
-  font-size: 10px;
-  color: var(--text3);
-  font-weight: 700;
-  text-align: center;
-  font-family: var(--mono);
-}
+.period-body { display: grid; grid-template-columns: 1fr 1.5fr; gap: 28px; align-items: start; }
+@media (max-width: 1100px) { .period-body { grid-template-columns: 1fr; } }
+.period-rank-list { display: flex; flex-direction: column; gap: 5px; }
+.period-rank-item { display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 10px; padding: 10px 12px; background: var(--surface); border: 1px solid transparent; border-radius: var(--r); transition: all 0.15s; cursor: default; }
+.period-rank-item:hover { background: var(--surface2); border-color: var(--border2); transform: translateX(3px); }
+.period-rank-num { font-size: 10px; color: var(--text3); font-weight: 700; text-align: center; font-family: var(--mono); }
 .period-rank-num.gold   { color: var(--gold); }
 .period-rank-num.silver { color: #a0aac0; }
 .period-rank-num.bronze { color: #c08060; }
-
 .period-rank-info { min-width: 0; }
-.period-rank-title {
-  font-size: 12px;
-  color: var(--text2);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-bottom: 5px;
-  line-height: 1.3;
-  transition: color 0.15s;
-}
+.period-rank-title { font-size: 12px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 5px; line-height: 1.3; transition: color 0.15s; }
 .period-rank-item:hover .period-rank-title { color: var(--text); }
-
-.period-bar-row {
-  display: flex; align-items: center; gap: 6px;
-}
-.period-bar {
-  flex: 1; height: 2px;
-  background: var(--border2);
-  border-radius: 2px;
-  overflow: hidden;
-}
-.period-bar-fill {
-  height: 100%;
-  border-radius: 2px;
-  transition: width 0.9s cubic-bezier(0.16,1,0.3,1);
-}
+.period-bar-row { display: flex; align-items: center; gap: 6px; }
+.period-bar { flex: 1; height: 2px; background: var(--border2); border-radius: 2px; overflow: hidden; }
+.period-bar-fill { height: 100%; border-radius: 2px; transition: width 0.9s cubic-bezier(0.16,1,0.3,1); }
 .cyan-fill  { background: var(--cyan); }
 .gold-fill  { background: var(--gold); }
 .pink-fill  { background: var(--pink); }
-
-.period-rank-stat {
-  display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
-  min-width: 60px;
-}
-.stat-pv {
-  font-size: 14px; font-weight: 700; line-height: 1;
-}
+.period-rank-stat { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; min-width: 60px; }
+.stat-pv { font-size: 14px; font-weight: 700; line-height: 1; }
 .stat-pv.cyan { color: var(--cyan); }
 .stat-pv.gold { color: var(--gold); }
-.stat-like {
-  font-size: 10px;
-  color: var(--pink);
-  line-height: 1;
-}
-
-/* 指標切り替えボタン */
-.metric-toggle {
-  display: flex; gap: 6px;
-  margin-bottom: 14px;
-}
-.metric-btn {
-  padding: 4px 12px;
-  border: 1px solid var(--border2);
-  border-radius: 3px;
-  background: transparent;
-  color: var(--text3);
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  cursor: pointer;
-  transition: all 0.15s;
-}
+.stat-like { font-size: 10px; color: var(--pink); line-height: 1; }
+.metric-toggle { display: flex; gap: 6px; margin-bottom: 14px; }
+.metric-btn { padding: 4px 12px; border: 1px solid var(--border2); border-radius: 3px; background: transparent; color: var(--text3); font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; cursor: pointer; transition: all 0.15s; }
 .metric-btn:hover { color: var(--text2); background: var(--surface2); }
 .metric-btn.on-pv   { background: var(--cyan-dim);  color: var(--cyan);  border-color: rgba(0,229,255,0.3); }
 .metric-btn.on-like { background: var(--pink-dim);  color: var(--pink);  border-color: rgba(255,77,141,0.3); }
 .metric-btn.on-pv.monthly   { background: var(--gold-dim);  color: var(--gold);  border-color: rgba(255,201,71,0.3); }
-
-/* チャートエリア */
 .period-chart-section { display: flex; flex-direction: column; gap: 0; }
-.period-chart-label {
-  font-size: 10px;
-  color: var(--text3);
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  margin-bottom: 10px;
-}
+.period-chart-label { font-size: 10px; color: var(--text3); letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 10px; }
 .period-chart-wrap { position: relative; height: 320px; }
-
-/* 横スクロール対応チャートコンテナ */
-.period-chart-scroll {
-  overflow-x: auto;
-  overflow-y: hidden;
-  border: 1px solid var(--border);
-  border-radius: var(--r);
-  background: var(--surface);
-  cursor: grab;
-  scrollbar-width: thin;
-  scrollbar-color: var(--border2) transparent;
-}
+.period-chart-scroll { overflow-x: auto; overflow-y: hidden; border: 1px solid var(--border); border-radius: var(--r); background: var(--surface); cursor: grab; scrollbar-width: thin; scrollbar-color: var(--border2) transparent; }
 .period-chart-scroll::-webkit-scrollbar { height: 4px; }
 .period-chart-scroll::-webkit-scrollbar-track { background: transparent; }
 .period-chart-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
 .period-chart-scroll:active { cursor: grabbing; }
-.chart-drag-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 10;
-  cursor: grab;
-  background: transparent;
-}
+.chart-drag-overlay { position: absolute; inset: 0; z-index: 10; cursor: grab; background: transparent; }
 .chart-drag-overlay:active { cursor: grabbing; }
-.period-chart-inner { position: relative; }
-.period-chart-inner {
-  height: 320px;
-  /* 幅はJS側で週数に応じて動的セット */
+.period-chart-inner { position: relative; height: 320px; }
+
+/* ════ ASSET INTELLIGENCE ════ */
+.ai-divider { background: linear-gradient(90deg, rgba(0,229,160,0.04) 0%, transparent 60%) !important; }
+.ai-label   { color: var(--green) !important; }
+.ai-label::before { background: var(--green) !important; }
+.ai-line    { background: linear-gradient(90deg, rgba(0,229,160,0.3), transparent) !important; }
+.ai-score-formula {
+  font-size: 9px; color: var(--text3); letter-spacing: 0.06em;
+  font-family: var(--mono); padding: 2px 8px;
+  border: 1px solid var(--border); border-radius: 2px; white-space: nowrap;
 }
+.ai-legend { margin-bottom: 16px; }
+.ai-legend-item { font-size: 10px; letter-spacing: 0.08em; }
+.ai-legend-item.green { color: var(--green); }
+.ai-legend-item.gold  { color: var(--gold); }
+.ai-matrix-legend { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+.ai-quad-badge { font-size: 10px; padding: 3px 10px; border-radius: 3px; font-weight: 700; letter-spacing: 0.05em; border: 1px solid transparent; }
+.qq-both { background: rgba(157,111,255,0.15); color: var(--violet); border-color: rgba(157,111,255,0.3); }
+.qq-v1   { background: rgba(0,229,160,0.12);  color: var(--green);  border-color: rgba(0,229,160,0.25); }
+.qq-v2   { background: rgba(255,201,71,0.12); color: var(--gold);   border-color: rgba(255,201,71,0.25); }
+.qq-none { background: rgba(61,68,102,0.2);   color: var(--text3);  border-color: var(--border); }
+.ai-age-tag { font-size: 9px; color: var(--text3); margin-left: 4px; vertical-align: middle; }
+.ai-sub-row { display: flex; gap: 10px; margin-top: 3px; font-size: 9px; color: var(--text3); }
+.ai-sub-row span { white-space: nowrap; }
 
 @media (max-width: 900px) {
   .kpi-strip { grid-template-columns: repeat(2,1fr); }
@@ -783,28 +282,19 @@ header {
   <div class="status-band">
     <div class="kpi3-item">
       <div class="kpi3-label">Reach Power｜リーチ力</div>
-      <div class="kpi3-row">
-        <span class="kpi3-val" id="k3-reach">—</span>
-        <span class="kpi3-arrow" id="k3-reach-arrow"></span>
-      </div>
+      <div class="kpi3-row"><span class="kpi3-val" id="k3-reach">—</span><span class="kpi3-arrow" id="k3-reach-arrow"></span></div>
       <div class="kpi3-sub">PV ÷ 記事数</div>
     </div>
     <div class="band-divider"></div>
     <div class="kpi3-item">
       <div class="kpi3-label">Action Power｜アクション力</div>
-      <div class="kpi3-row">
-        <span class="kpi3-val" id="k3-action">—</span>
-        <span class="kpi3-arrow" id="k3-action-arrow"></span>
-      </div>
+      <div class="kpi3-row"><span class="kpi3-val" id="k3-action">—</span><span class="kpi3-arrow" id="k3-action-arrow"></span></div>
       <div class="kpi3-sub">スキ ÷ 記事数</div>
     </div>
     <div class="band-divider"></div>
     <div class="kpi3-item">
       <div class="kpi3-label">η スキ率</div>
-      <div class="kpi3-row">
-        <span class="kpi3-val" id="k3-eta">—</span>
-        <span class="kpi3-arrow" id="k3-eta-arrow"></span>
-      </div>
+      <div class="kpi3-row"><span class="kpi3-val" id="k3-eta">—</span><span class="kpi3-arrow" id="k3-eta-arrow"></span></div>
       <div class="kpi3-sub">スキ ÷ PV × 100</div>
     </div>
     <div class="band-divider thick"></div>
@@ -815,132 +305,192 @@ header {
   </div>
 
   <div class="kpi-strip">
-    <div class="kpi">
-      <div class="kpi-label">Total Views</div>
-      <div class="kpi-value v" id="kpi-views">—</div>
-      <div class="kpi-diff" id="kpi-views-diff">前日比</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Total Likes</div>
-      <div class="kpi-value l" id="kpi-likes">—</div>
-      <div class="kpi-diff" id="kpi-likes-diff">前日比</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Articles</div>
-      <div class="kpi-value a" id="kpi-articles">—</div>
-      <div class="kpi-diff">公開記事数</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Followers</div>
-      <div class="kpi-value f" id="kpi-followers">—</div>
-      <div class="kpi-diff">フォロワー数</div>
-    </div>
+    <div class="kpi"><div class="kpi-label">Total Views</div><div class="kpi-value v" id="kpi-views">—</div><div class="kpi-diff" id="kpi-views-diff">前日比</div></div>
+    <div class="kpi"><div class="kpi-label">Total Likes</div><div class="kpi-value l" id="kpi-likes">—</div><div class="kpi-diff" id="kpi-likes-diff">前日比</div></div>
+    <div class="kpi"><div class="kpi-label">Articles</div><div class="kpi-value a" id="kpi-articles">—</div><div class="kpi-diff">公開記事数</div></div>
+    <div class="kpi"><div class="kpi-label">Followers</div><div class="kpi-value f" id="kpi-followers">—</div><div class="kpi-diff">フォロワー数</div></div>
   </div>
 
   <div class="grid">
 
-    <!-- 日次推移 -->
     <div class="panel">
-      <div class="panel-header">
-        <div class="panel-title">
-          <span class="panel-title-dot" style="background:var(--cyan)"></span>
-          ビュー / スキ 日次推移
-        </div>
-        <span class="panel-badge">60D</span>
-      </div>
+      <div class="panel-header"><div class="panel-title"><span class="panel-title-dot" style="background:var(--cyan)"></span>ビュー / スキ 日次推移</div><span class="panel-badge">60D</span></div>
       <div class="chart-wrap"><canvas id="chart-daily"></canvas></div>
     </div>
 
-    <!-- ビューランキング -->
     <div class="panel">
-      <div class="panel-header">
-        <div class="panel-title">
-          <span class="panel-title-dot" style="background:var(--cyan)"></span>
-          View ランキング TOP 20
-        </div>
-        <span class="panel-badge" style="color:var(--cyan);border-color:var(--cyan-dim)">PV</span>
-      </div>
+      <div class="panel-header"><div class="panel-title"><span class="panel-title-dot" style="background:var(--cyan)"></span>View ランキング TOP 20</div><span class="panel-badge" style="color:var(--cyan);border-color:var(--cyan-dim)">PV</span></div>
       <div class="ranking-list" id="ranking-views"><div class="loading">loading</div></div>
     </div>
 
-    <!-- フォロワー推移 -->
     <div class="panel">
-      <div class="panel-header">
-        <div class="panel-title">
-          <span class="panel-title-dot" style="background:var(--violet)"></span>
-          フォロワー 日次推移
-        </div>
-        <span class="panel-badge">ALL</span>
-      </div>
+      <div class="panel-header"><div class="panel-title"><span class="panel-title-dot" style="background:var(--violet)"></span>フォロワー 日次推移</div><span class="panel-badge">ALL</span></div>
       <div class="chart-wrap"><canvas id="chart-followers"></canvas></div>
     </div>
 
-    <!-- スキランキング -->
     <div class="panel">
-      <div class="panel-header">
-        <div class="panel-title">
-          <span class="panel-title-dot" style="background:var(--pink)"></span>
-          スキ ランキング TOP 20
-        </div>
-        <span class="panel-badge" style="color:var(--pink);border-color:var(--pink-dim)">LIKE</span>
-      </div>
+      <div class="panel-header"><div class="panel-title"><span class="panel-title-dot" style="background:var(--pink)"></span>スキ ランキング TOP 20</div><span class="panel-badge" style="color:var(--pink);border-color:var(--pink-dim)">LIKE</span></div>
       <div class="ranking-list" id="ranking-likes"><div class="loading">loading</div></div>
     </div>
 
-    <!-- ワースト / ベスト -->
     <div class="panel full">
-      <div class="panel-header">
-        <div class="panel-title">
-          <span class="panel-title-dot" style="background:var(--red)"></span>
-          改善候補 ワースト分析
-        </div>
-        <span class="panel-badge" style="color:var(--red);border-color:rgba(255,77,106,0.2)">WORST 10</span>
-      </div>
+      <div class="panel-header"><div class="panel-title"><span class="panel-title-dot" style="background:var(--red)"></span>改善候補 ワースト分析</div><span class="panel-badge" style="color:var(--red);border-color:rgba(255,77,106,0.2)">WORST 10</span></div>
       <div class="worst-grid" style="margin-bottom:28px">
-        <div>
-          <div class="worst-section-title">スキ率 ワースト（読まれてるのに刺さってない）</div>
-          <div class="ranking-list" id="ranking-worst-eta"><div class="loading">loading</div></div>
-        </div>
-        <div>
-          <div class="worst-section-title">View数 ワースト（埋もれている記事）</div>
-          <div class="ranking-list" id="ranking-worst-views"><div class="loading">loading</div></div>
-        </div>
+        <div><div class="worst-section-title">スキ率 ワースト（読まれてるのに刺さってない）</div><div class="ranking-list" id="ranking-worst-eta"><div class="loading">loading</div></div></div>
+        <div><div class="worst-section-title">View数 ワースト（埋もれている記事）</div><div class="ranking-list" id="ranking-worst-views"><div class="loading">loading</div></div></div>
       </div>
-      <div style="border-top:1px solid var(--border);margin-bottom:28px;position:relative">
-        <span style="position:absolute;top:-9px;left:50%;transform:translateX(-50%);background:var(--bg2);padding:0 16px;font-size:9px;color:var(--text3);letter-spacing:0.25em">VS</span>
-      </div>
+      <div style="border-top:1px solid var(--border);margin-bottom:28px;position:relative"><span style="position:absolute;top:-9px;left:50%;transform:translateX(-50%);background:var(--bg2);padding:0 16px;font-size:9px;color:var(--text3);letter-spacing:0.25em">VS</span></div>
       <div class="worst-grid">
-        <div>
-          <div class="best-section-title">スキ率 ベスト（読まれて、かつ刺さった）</div>
-          <div class="ranking-list" id="ranking-best-eta"><div class="loading">loading</div></div>
-        </div>
-        <div>
-          <div class="best-section-title">View数 ベスト（最も読まれた記事）</div>
-          <div class="ranking-list" id="ranking-best-views"><div class="loading">loading</div></div>
-        </div>
+        <div><div class="best-section-title">スキ率 ベスト（読まれて、かつ刺さった）</div><div class="ranking-list" id="ranking-best-eta"><div class="loading">loading</div></div></div>
+        <div><div class="best-section-title">View数 ベスト（最も読まれた記事）</div><div class="ranking-list" id="ranking-best-views"><div class="loading">loading</div></div></div>
       </div>
     </div>
 
-    <!-- 4象限 -->
     <div class="panel full">
-      <div class="panel-header">
-        <div class="panel-title">
-          <span class="panel-title-dot" style="background:var(--violet)"></span>
-          4象限マップ｜PV × スキ率
-        </div>
-        <span class="panel-badge">SCATTER</span>
-      </div>
+      <div class="panel-header"><div class="panel-title"><span class="panel-title-dot" style="background:var(--violet)"></span>4象限マップ｜PV × スキ率</div><span class="panel-badge">SCATTER</span></div>
       <div class="chart-wrap tall"><canvas id="chart-quad"></canvas></div>
     </div>
 
-    <!-- 資産記事 -->
     <div class="panel full">
+      <div class="panel-header"><div class="panel-title"><span class="panel-title-dot" style="background:var(--gold)"></span>資産記事分析｜バースト後の定着確認</div><span class="panel-badge" style="color:var(--gold);border-color:var(--gold-dim)">ASSET</span></div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th style="width:44px">#</th><th>タイトル</th><th>期間 PV 増加</th><th style="width:80px">稼働日数</th><th>推移</th></tr></thead>
+          <tbody id="asset-body"><tr><td colspan="5" class="loading">スキャン中</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel full">
+      <div class="panel-header"><div class="panel-title"><span class="panel-title-dot" style="background:var(--pink)"></span>トレンド動態｜7日間詳細</div><span class="panel-badge">← SCROLL →</span></div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th style="width:80px">状態</th><th>タイトル</th><th>累計PV</th><th>スコア</th><th>-1日</th><th>-2日</th><th>-3日</th><th>-4日</th><th>-5日</th><th>-6日</th><th>-7日</th></tr></thead>
+          <tbody id="trend-body"><tr><td colspan="11" class="loading">読み込み中</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══ 週次 ══ -->
+    <div class="panel full section-divider">
+      <span class="section-divider-label">Weekly Summary｜週次分析</span>
+      <div class="section-divider-line"></div>
+      <span class="panel-badge" style="color:var(--cyan);border-color:rgba(0,229,255,0.2)">WEEKLY</span>
+    </div>
+
+    <div class="panel full" id="weekly-panel">
+      <div class="panel-header"><div class="panel-title"><span class="panel-title-dot" style="background:var(--cyan)"></span>週別 記事パフォーマンス</div><span class="panel-badge" id="weekly-period-badge" style="color:var(--cyan);border-color:var(--cyan-dim)">—</span></div>
+      <div class="period-tabs-wrap" id="weekly-tabs"><div class="loading" style="height:32px">loading</div></div>
+      <div class="period-meta" id="weekly-meta">
+        <div class="period-meta-item">期間 <span class="period-meta-val" id="weekly-range">—</span></div>
+        <div class="period-meta-item">総PV増加 <span class="period-meta-val cyan" id="weekly-total-pv">—</span></div>
+        <div class="period-meta-item">総スキ増加 <span class="period-meta-val pink" id="weekly-total-like">—</span></div>
+        <div class="period-meta-item">ランクイン記事 <span class="period-meta-val" id="weekly-article-count">—</span></div>
+      </div>
+      <div class="period-body">
+        <div>
+          <div class="metric-toggle">
+            <button class="metric-btn on-pv" id="weekly-btn-pv" onclick="setWeeklyMetric('pv')">PV</button>
+            <button class="metric-btn" id="weekly-btn-like" onclick="setWeeklyMetric('like')">スキ</button>
+          </div>
+          <div class="period-rank-list" id="weekly-ranking"><div class="loading">loading</div></div>
+        </div>
+        <div class="period-chart-section">
+          <div class="period-chart-label">週別 PV 増加推移 <span style="color:var(--text3);font-size:9px;letter-spacing:0.1em;margin-left:8px">← SCROLL →</span></div>
+          <div class="period-chart-scroll"><div class="period-chart-inner" id="weekly-chart-inner"><canvas id="chart-weekly-trend"></canvas><div class="chart-drag-overlay" id="weekly-drag-overlay"></div></div></div>
+          <div class="period-chart-label" style="margin-top:16px">週別 スキ 増加推移 <span style="color:var(--text3);font-size:9px;letter-spacing:0.1em;margin-left:8px">← SCROLL →</span></div>
+          <div class="period-chart-scroll"><div class="period-chart-inner" id="weekly-chart-inner-like"><canvas id="chart-weekly-trend-like"></canvas><div class="chart-drag-overlay" id="weekly-drag-overlay-like"></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ 月次 ══ -->
+    <div class="panel full section-divider monthly">
+      <span class="section-divider-label monthly">Monthly Summary｜月次分析</span>
+      <div class="section-divider-line"></div>
+      <span class="panel-badge" style="color:var(--gold);border-color:rgba(255,201,71,0.2)">MONTHLY</span>
+    </div>
+
+    <div class="panel full" id="monthly-panel">
+      <div class="panel-header"><div class="panel-title"><span class="panel-title-dot" style="background:var(--gold)"></span>月別 記事パフォーマンス</div><span class="panel-badge" id="monthly-period-badge" style="color:var(--gold);border-color:var(--gold-dim)">—</span></div>
+      <div class="period-tabs-wrap" id="monthly-tabs"><div class="loading" style="height:32px">loading</div></div>
+      <div class="period-meta" id="monthly-meta">
+        <div class="period-meta-item">期間 <span class="period-meta-val" id="monthly-range">—</span></div>
+        <div class="period-meta-item">総PV増加 <span class="period-meta-val gold" id="monthly-total-pv">—</span></div>
+        <div class="period-meta-item">総スキ増加 <span class="period-meta-val pink" id="monthly-total-like">—</span></div>
+        <div class="period-meta-item">ランクイン記事 <span class="period-meta-val" id="monthly-article-count">—</span></div>
+      </div>
+      <div class="period-body">
+        <div>
+          <div class="metric-toggle">
+            <button class="metric-btn on-pv monthly" id="monthly-btn-pv" onclick="setMonthlyMetric('pv')">PV</button>
+            <button class="metric-btn" id="monthly-btn-like" onclick="setMonthlyMetric('like')">スキ</button>
+          </div>
+          <div class="period-rank-list" id="monthly-ranking"><div class="loading">loading</div></div>
+        </div>
+        <div class="period-chart-section">
+          <div class="period-chart-label">月別 PV 増加推移 <span style="color:var(--text3);font-size:9px;letter-spacing:0.1em;margin-left:8px">← SCROLL →</span></div>
+          <div class="period-chart-scroll"><div class="period-chart-inner" id="monthly-chart-inner"><canvas id="chart-monthly-trend"></canvas><div class="chart-drag-overlay" id="monthly-drag-overlay"></div></div></div>
+          <div class="period-chart-label" style="margin-top:16px">月別 スキ 増加推移 <span style="color:var(--text3);font-size:9px;letter-spacing:0.1em;margin-left:8px">← SCROLL →</span></div>
+          <div class="period-chart-scroll"><div class="period-chart-inner" id="monthly-chart-inner-like"><canvas id="chart-monthly-trend-like"></canvas><div class="chart-drag-overlay" id="monthly-drag-overlay-like"></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+         ▼ NEW: 資産発掘エンジン セクション区切り
+    ══════════════════════════════════════════════ -->
+    <div class="panel full section-divider ai-divider">
+      <span class="section-divider-label ai-label">Asset Intelligence｜資産発掘エンジン</span>
+      <div class="section-divider-line ai-line"></div>
+      <span class="panel-badge" style="color:var(--green);border-color:rgba(0,229,160,0.2)">AI SCORE</span>
+    </div>
+
+    <!-- v1 (左) / v2 (右) -->
+    <div class="panel" id="asset-v1-panel">
+      <div class="panel-header">
+        <div class="panel-title">
+          <span class="panel-title-dot" style="background:var(--green)"></span>
+          v1｜稼働の質スコア
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="ai-score-formula">平均PV × 稼働日数 × 安定性</span>
+          <span class="panel-badge" style="color:var(--green);border-color:rgba(0,229,160,0.2)">TOP 10</span>
+        </div>
+      </div>
+      <div class="ai-legend"><span class="ai-legend-item green">■ 直近コンスタントに読まれている記事</span></div>
+      <div class="period-rank-list" id="ai-v1-ranking"><div class="loading">loading</div></div>
+    </div>
+
+    <div class="panel" id="asset-v2-panel">
       <div class="panel-header">
         <div class="panel-title">
           <span class="panel-title-dot" style="background:var(--gold)"></span>
-          資産記事分析｜バースト後の定着確認
+          v2｜累積資産＋利回りスコア
         </div>
-        <span class="panel-badge" style="color:var(--gold);border-color:var(--gold-dim)">ASSET</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="ai-score-formula">log(累計PV)×10 + 平均PV×安定性</span>
+          <span class="panel-badge" style="color:var(--gold);border-color:rgba(255,201,71,0.2)">TOP 10</span>
+        </div>
+      </div>
+      <div class="ai-legend"><span class="ai-legend-item gold">■ 積み上げた資産価値が高い長寿記事</span></div>
+      <div class="period-rank-list" id="ai-v2-ranking"><div class="loading">loading</div></div>
+    </div>
+
+    <!-- クロス比較テーブル (全幅) -->
+    <div class="panel full" id="asset-compare-panel">
+      <div class="panel-header">
+        <div class="panel-title">
+          <span class="panel-title-dot" style="background:var(--violet)"></span>
+          v1 × v2 クロス分析｜両指標で高いのが「真の資産記事」
+        </div>
+        <span class="panel-badge" style="color:var(--violet);border-color:var(--violet-dim)">COMPARE</span>
+      </div>
+      <div class="ai-matrix-legend">
+        <span class="ai-quad-badge qq-both">💎 両方上位</span>
+        <span class="ai-quad-badge qq-v1">🔥 直近急上昇</span>
+        <span class="ai-quad-badge qq-v2">🏛️ 長期資産</span>
+        <span class="ai-quad-badge qq-none">💤 休眠</span>
       </div>
       <div class="table-wrap">
         <table class="data-table">
@@ -948,178 +498,15 @@ header {
             <tr>
               <th style="width:44px">#</th>
               <th>タイトル</th>
-              <th>期間 PV 増加</th>
-              <th style="width:80px">稼働日数</th>
-              <th>推移</th>
+              <th style="width:70px;text-align:center">経過日数</th>
+              <th style="width:90px;text-align:center">累計PV</th>
+              <th style="width:130px">v1スコア</th>
+              <th style="width:130px">v2スコア</th>
+              <th style="width:90px;text-align:center">判定</th>
             </tr>
           </thead>
-          <tbody id="asset-body">
-            <tr><td colspan="5" class="loading">スキャン中</td></tr>
-          </tbody>
+          <tbody id="ai-compare-body"><tr><td colspan="7" class="loading">解析中</td></tr></tbody>
         </table>
-      </div>
-    </div>
-
-    <!-- トレンド詳細 -->
-    <div class="panel full">
-      <div class="panel-header">
-        <div class="panel-title">
-          <span class="panel-title-dot" style="background:var(--pink)"></span>
-          トレンド動態｜7日間詳細
-        </div>
-        <span class="panel-badge">← SCROLL →</span>
-      </div>
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th style="width:80px">状態</th>
-              <th>タイトル</th>
-              <th>累計PV</th>
-              <th>スコア</th>
-              <th>-1日</th><th>-2日</th><th>-3日</th><th>-4日</th><th>-5日</th><th>-6日</th><th>-7日</th>
-            </tr>
-          </thead>
-          <tbody id="trend-body">
-            <tr><td colspan="11" class="loading">読み込み中</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- ══════════════════════════════
-         週次サマリー セクション区切り
-    ══════════════════════════════ -->
-    <div class="panel full section-divider">
-      <span class="section-divider-label">Weekly Summary｜週次分析</span>
-      <div class="section-divider-line"></div>
-      <span class="panel-badge" style="color:var(--cyan);border-color:rgba(0,229,255,0.2)">WEEKLY</span>
-    </div>
-
-    <!-- 週次サマリー メインパネル -->
-    <div class="panel full" id="weekly-panel">
-      <div class="panel-header">
-        <div class="panel-title">
-          <span class="panel-title-dot" style="background:var(--cyan)"></span>
-          週別 記事パフォーマンス
-        </div>
-        <span class="panel-badge" id="weekly-period-badge" style="color:var(--cyan);border-color:var(--cyan-dim)">—</span>
-      </div>
-
-      <!-- 週タブ -->
-      <div class="period-tabs-wrap" id="weekly-tabs">
-        <div class="loading" style="height:32px">loading</div>
-      </div>
-
-      <!-- メタ情報 -->
-      <div class="period-meta" id="weekly-meta">
-        <div class="period-meta-item">期間 <span class="period-meta-val" id="weekly-range">—</span></div>
-        <div class="period-meta-item">総PV増加 <span class="period-meta-val cyan" id="weekly-total-pv">—</span></div>
-        <div class="period-meta-item">総スキ増加 <span class="period-meta-val pink" id="weekly-total-like">—</span></div>
-        <div class="period-meta-item">ランクイン記事 <span class="period-meta-val" id="weekly-article-count">—</span></div>
-      </div>
-
-      <!-- ランキング + チャート -->
-      <div class="period-body">
-        <div>
-          <div class="metric-toggle">
-            <button class="metric-btn on-pv" id="weekly-btn-pv" onclick="setWeeklyMetric('pv')">PV</button>
-            <button class="metric-btn" id="weekly-btn-like" onclick="setWeeklyMetric('like')">スキ</button>
-          </div>
-          <div class="period-rank-list" id="weekly-ranking">
-            <div class="loading">loading</div>
-          </div>
-        </div>
-        <div class="period-chart-section">
-          <div class="period-chart-label">
-            週別 PV 増加推移
-            <span style="color:var(--text3);font-size:9px;letter-spacing:0.1em;margin-left:8px">← SCROLL →</span>
-          </div>
-          <div class="period-chart-scroll">
-            <div class="period-chart-inner" id="weekly-chart-inner">
-              <canvas id="chart-weekly-trend"></canvas>
-              <div class="chart-drag-overlay" id="weekly-drag-overlay"></div>
-            </div>
-          </div>
-          <div class="period-chart-label" style="margin-top:16px">
-            週別 スキ 増加推移
-            <span style="color:var(--text3);font-size:9px;letter-spacing:0.1em;margin-left:8px">← SCROLL →</span>
-          </div>
-          <div class="period-chart-scroll">
-            <div class="period-chart-inner" id="weekly-chart-inner-like">
-              <canvas id="chart-weekly-trend-like"></canvas>
-              <div class="chart-drag-overlay" id="weekly-drag-overlay-like"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══════════════════════════════
-         月次サマリー セクション区切り
-    ══════════════════════════════ -->
-    <div class="panel full section-divider monthly">
-      <span class="section-divider-label monthly">Monthly Summary｜月次分析</span>
-      <div class="section-divider-line"></div>
-      <span class="panel-badge" style="color:var(--gold);border-color:rgba(255,201,71,0.2)">MONTHLY</span>
-    </div>
-
-    <!-- 月次サマリー メインパネル -->
-    <div class="panel full" id="monthly-panel">
-      <div class="panel-header">
-        <div class="panel-title">
-          <span class="panel-title-dot" style="background:var(--gold)"></span>
-          月別 記事パフォーマンス
-        </div>
-        <span class="panel-badge" id="monthly-period-badge" style="color:var(--gold);border-color:var(--gold-dim)">—</span>
-      </div>
-
-      <!-- 月タブ -->
-      <div class="period-tabs-wrap" id="monthly-tabs">
-        <div class="loading" style="height:32px">loading</div>
-      </div>
-
-      <!-- メタ情報 -->
-      <div class="period-meta" id="monthly-meta">
-        <div class="period-meta-item">期間 <span class="period-meta-val" id="monthly-range">—</span></div>
-        <div class="period-meta-item">総PV増加 <span class="period-meta-val gold" id="monthly-total-pv">—</span></div>
-        <div class="period-meta-item">総スキ増加 <span class="period-meta-val pink" id="monthly-total-like">—</span></div>
-        <div class="period-meta-item">ランクイン記事 <span class="period-meta-val" id="monthly-article-count">—</span></div>
-      </div>
-
-      <!-- ランキング + チャート -->
-      <div class="period-body">
-        <div>
-          <div class="metric-toggle">
-            <button class="metric-btn on-pv monthly" id="monthly-btn-pv" onclick="setMonthlyMetric('pv')">PV</button>
-            <button class="metric-btn" id="monthly-btn-like" onclick="setMonthlyMetric('like')">スキ</button>
-          </div>
-          <div class="period-rank-list" id="monthly-ranking">
-            <div class="loading">loading</div>
-          </div>
-        </div>
-        <div class="period-chart-section">
-          <div class="period-chart-label">
-            月別 PV 増加推移
-            <span style="color:var(--text3);font-size:9px;letter-spacing:0.1em;margin-left:8px">← SCROLL →</span>
-          </div>
-          <div class="period-chart-scroll">
-            <div class="period-chart-inner" id="monthly-chart-inner">
-              <canvas id="chart-monthly-trend"></canvas>
-              <div class="chart-drag-overlay" id="monthly-drag-overlay"></div>
-            </div>
-          </div>
-          <div class="period-chart-label" style="margin-top:16px">
-            月別 スキ 増加推移
-            <span style="color:var(--text3);font-size:9px;letter-spacing:0.1em;margin-left:8px">← SCROLL →</span>
-          </div>
-          <div class="period-chart-scroll">
-            <div class="period-chart-inner" id="monthly-chart-inner-like">
-              <canvas id="chart-monthly-trend-like"></canvas>
-              <div class="chart-drag-overlay" id="monthly-drag-overlay-like"></div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -1132,7 +519,6 @@ const EXCLUDED_TITLES = [
   'みんなが貪欲になっているときこそ恐怖心を抱き、みんなが恐怖心を抱いているとき…',
   'はたらくこと','気になるレシピ#1','This is US','"50',
 ];
-// タイトル除外チェック（完全一致 or 前方一致で対応）
 function isExcluded(title) {
   if (!title) return true;
   return EXCLUDED_TITLES.some(ex => title === ex || title.startsWith(ex));
@@ -1140,24 +526,15 @@ function isExcluded(title) {
 
 const BASE = 'https://raw.githubusercontent.com/Goo-dev0505/note-stats-public/main/data/';
 
-// クォート（"..."）内のカンマを正しく扱うCSVパーサー
 function parseCSVLine(line) {
-  const vals = [];
-  let cur = '', inQ = false;
+  const vals = []; let cur = '', inQ = false;
   for (let i = 0; i < line.length; i++) {
     const c = line[i];
-    if (c === '"') {
-      // "" は " のエスケープ
-      if (inQ && line[i+1] === '"') { cur += '"'; i++; }
-      else inQ = !inQ;
-    } else if (c === ',' && !inQ) {
-      vals.push(cur.trim()); cur = '';
-    } else {
-      cur += c;
-    }
+    if (c === '"') { if (inQ && line[i+1] === '"') { cur += '"'; i++; } else inQ = !inQ; }
+    else if (c === ',' && !inQ) { vals.push(cur.trim()); cur = ''; }
+    else { cur += c; }
   }
-  vals.push(cur.trim());
-  return vals;
+  vals.push(cur.trim()); return vals;
 }
 
 async function fetchCSV(name) {
@@ -1166,14 +543,10 @@ async function fetchCSV(name) {
   const text = await res.text();
   const lines = text.trim().split('\n');
   const headers = parseCSVLine(lines[0]);
-  return lines.slice(1)
-    .filter(l => l.trim())
-    .map(line => {
-      const vals = parseCSVLine(line);
-      const obj = {};
-      headers.forEach((h, i) => obj[h] = vals[i] || '');
-      return obj;
-    });
+  return lines.slice(1).filter(l => l.trim()).map(line => {
+    const vals = parseCSVLine(line); const obj = {};
+    headers.forEach((h, i) => obj[h] = vals[i] || ''); return obj;
+  });
 }
 
 const GRID_COLOR = 'rgba(255,255,255,0.05)';
@@ -1182,23 +555,11 @@ Chart.defaults.font.family = "'JetBrains Mono', monospace";
 Chart.defaults.font.size = 11;
 
 const baseOpts = () => ({
-  responsive: true,
-  maintainAspectRatio: false,
+  responsive: true, maintainAspectRatio: false,
   animation: { duration: 1000, easing: 'easeOutQuart' },
   plugins: {
-    legend: {
-      display: true,
-      labels: { boxWidth: 8, padding: 16, color: 'rgba(255,255,255,0.85)', usePointStyle: true }
-    },
-    tooltip: {
-      backgroundColor: '#0f1221',
-      borderColor: 'rgba(255,255,255,0.1)',
-      borderWidth: 1,
-      titleColor: '#e8ecf8',
-      bodyColor: '#8891b0',
-      padding: 12,
-      cornerRadius: 6
-    }
+    legend: { display: true, labels: { boxWidth: 8, padding: 16, color: 'rgba(255,255,255,0.85)', usePointStyle: true } },
+    tooltip: { backgroundColor: '#0f1221', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1, titleColor: '#e8ecf8', bodyColor: '#8891b0', padding: 12, cornerRadius: 6 }
   },
   scales: {
     x: { grid: { color: GRID_COLOR }, ticks: { maxTicksLimit: 10, color: 'rgba(255,255,255,0.85)' } },
@@ -1221,21 +582,15 @@ function buildDaily(rows) {
   const likes = r.map(d => Number(d['スキ合計']));
   new Chart(document.getElementById('chart-daily'), {
     type: 'bar',
-    data: {
-      labels,
-      datasets: [
-        { type: 'bar', label: 'スキ合計', data: likes, backgroundColor: 'rgba(255,77,141,0.35)', borderColor: 'rgba(255,77,141,0.8)', borderWidth: 1, yAxisID: 'y1', borderRadius: 2 },
-        { type: 'line', label: 'ビュー合計', data: views, borderColor: '#00e5ff', backgroundColor: 'rgba(0,229,255,0.04)', fill: true, tension: 0.35, pointRadius: 0, pointHoverRadius: 4, borderWidth: 2, yAxisID: 'y' }
-      ]
-    },
-    options: {
-      ...baseOpts(),
-      scales: {
-        x: { grid: { color: GRID_COLOR }, ticks: { maxTicksLimit: 10, color: 'rgba(255,255,255,0.85)' } },
-        y: { position: 'left', grid: { color: GRID_COLOR }, ticks: { color: 'rgba(255,255,255,0.85)' } },
-        y1: { position: 'right', grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.85)' } }
-      }
-    }
+    data: { labels, datasets: [
+      { type: 'bar', label: 'スキ合計', data: likes, backgroundColor: 'rgba(255,77,141,0.35)', borderColor: 'rgba(255,77,141,0.8)', borderWidth: 1, yAxisID: 'y1', borderRadius: 2 },
+      { type: 'line', label: 'ビュー合計', data: views, borderColor: '#00e5ff', backgroundColor: 'rgba(0,229,255,0.04)', fill: true, tension: 0.35, pointRadius: 0, pointHoverRadius: 4, borderWidth: 2, yAxisID: 'y' }
+    ]},
+    options: { ...baseOpts(), scales: {
+      x: { grid: { color: GRID_COLOR }, ticks: { maxTicksLimit: 10, color: 'rgba(255,255,255,0.85)' } },
+      y: { position: 'left', grid: { color: GRID_COLOR }, ticks: { color: 'rgba(255,255,255,0.85)' } },
+      y1: { position: 'right', grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.85)' } }
+    }}
   });
 }
 
@@ -1260,20 +615,11 @@ function buildRanking(containerId, rows, valueKey, barClass, valClass) {
 function buildFollowers(summary, followers) {
   const fRows = followers.filter(r => r['フォロワー数']);
   let labels, data;
-  if (fRows.length > 1) {
-    labels = fRows.map(r => r['日付'] ? r['日付'].slice(5) : '');
-    data = fRows.map(r => Number(r['フォロワー数']));
-  } else {
-    const s = summary.filter(r => r['フォロワー数']);
-    labels = s.map(r => r['日付'] ? r['日付'].slice(5) : '');
-    data = s.map(r => Number(r['フォロワー数']));
-  }
+  if (fRows.length > 1) { labels = fRows.map(r => r['日付'] ? r['日付'].slice(5) : ''); data = fRows.map(r => Number(r['フォロワー数'])); }
+  else { const s = summary.filter(r => r['フォロワー数']); labels = s.map(r => r['日付'] ? r['日付'].slice(5) : ''); data = s.map(r => Number(r['フォロワー数'])); }
   new Chart(document.getElementById('chart-followers'), {
     type: 'line',
-    data: {
-      labels,
-      datasets: [{ label: 'フォロワー数', data, borderColor: '#9d6fff', backgroundColor: 'rgba(157,111,255,0.06)', fill: true, tension: 0.35, pointRadius: 0, pointHoverRadius: 4, borderWidth: 2 }]
-    },
+    data: { labels, datasets: [{ label: 'フォロワー数', data, borderColor: '#9d6fff', backgroundColor: 'rgba(157,111,255,0.06)', fill: true, tension: 0.35, pointRadius: 0, pointHoverRadius: 4, borderWidth: 2 }] },
     options: baseOpts()
   });
 }
@@ -1283,13 +629,10 @@ function buildQuad(rows) {
   new Chart(document.getElementById('chart-quad'), {
     type: 'scatter',
     data: { datasets: [{ label: '日次動態', data, backgroundColor: 'rgba(157,111,255,0.5)', pointRadius: 5, pointHoverRadius: 7 }] },
-    options: {
-      ...baseOpts(),
-      scales: {
-        x: { grid: { color: GRID_COLOR }, ticks: { maxTicksLimit: 10, color: 'rgba(255,255,255,0.85)' }, title: { display: true, text: 'Views / Article', color: 'rgba(255,255,255,0.85)' } },
-        y: { grid: { color: GRID_COLOR }, ticks: { color: 'rgba(255,255,255,0.85)' }, title: { display: true, text: 'Like Rate (%)', color: 'rgba(255,255,255,0.85)' } }
-      }
-    }
+    options: { ...baseOpts(), scales: {
+      x: { grid: { color: GRID_COLOR }, ticks: { maxTicksLimit: 10, color: 'rgba(255,255,255,0.85)' }, title: { display: true, text: 'Views / Article', color: 'rgba(255,255,255,0.85)' } },
+      y: { grid: { color: GRID_COLOR }, ticks: { color: 'rgba(255,255,255,0.85)' }, title: { display: true, text: 'Like Rate (%)', color: 'rgba(255,255,255,0.85)' } }
+    }}
   });
 }
 
@@ -1333,47 +676,20 @@ function buildTrendDetailed(rows) {
 
 function build3KPI(summary) {
   if (summary.length < 2) return;
-  const today = summary[summary.length - 1];
-  const yesterday = summary[summary.length - 2];
-  const ac = Number(today['記事数']) || 1;
-  const acY = Number(yesterday['記事数']) || 1;
-  const reach  = Number(today['ビュー合計']) / ac;
-  const reachY = Number(yesterday['ビュー合計']) / acY;
-  const action  = Number(today['スキ合計']) / ac;
-  const actionY = Number(yesterday['スキ合計']) / acY;
-  const eta  = Number(today['スキ合計']) / (Number(today['ビュー合計']) || 1) * 100;
+  const today = summary[summary.length - 1]; const yesterday = summary[summary.length - 2];
+  const ac = Number(today['記事数']) || 1; const acY = Number(yesterday['記事数']) || 1;
+  const reach = Number(today['ビュー合計']) / ac; const reachY = Number(yesterday['ビュー合計']) / acY;
+  const action = Number(today['スキ合計']) / ac; const actionY = Number(yesterday['スキ合計']) / acY;
+  const eta = Number(today['スキ合計']) / (Number(today['ビュー合計']) || 1) * 100;
   const etaY = Number(yesterday['スキ合計']) / (Number(yesterday['ビュー合計']) || 1) * 100;
-  function arrow(now, prev) {
-    const d = now - prev;
-    if (d > prev * 0.01) return { s: '↑', c: 'up' };
-    if (d < -prev * 0.01) return { s: '↓', c: 'down' };
-    return { s: '→', c: 'flat' };
-  }
+  function arrow(now, prev) { const d = now - prev; if (d > prev * 0.01) return { s: '↑', c: 'up' }; if (d < -prev * 0.01) return { s: '↓', c: 'down' }; return { s: '→', c: 'flat' }; }
   const aR = arrow(reach, reachY), aA = arrow(action, actionY), aE = arrow(eta, etaY);
   document.getElementById('k3-reach').textContent = reach.toFixed(1);
   document.getElementById('k3-action').textContent = action.toFixed(2);
   document.getElementById('k3-eta').textContent = eta.toFixed(2) + '%';
-  [['reach', aR], ['action', aA], ['eta', aE]].forEach(([id, a]) => {
-    const el = document.getElementById(`k3-${id}-arrow`);
-    el.textContent = a.s; el.className = `kpi3-arrow ${a.c}`;
-  });
+  [['reach', aR], ['action', aA], ['eta', aE]].forEach(([id, a]) => { const el = document.getElementById(`k3-${id}-arrow`); el.textContent = a.s; el.className = `kpi3-arrow ${a.c}`; });
   const key = `${aR.c}_${aA.c}_${aE.c}`;
-  const memos = {
-    'up_up_up':'🔥 全指標上昇。コンテンツ・タイトル・スキ率すべて好調','up_up_flat':'📈 リーチもアクションも増加。スキ率は維持で安定成長',
-    'up_up_down':'⚠️ 露出とスキは増えたがスキ率は低下。量で稼いでいる状態','up_flat_up':'✅ リーチ増・スキ率改善。質の高い流入が増えている',
-    'up_flat_flat':'📊 リーチだけ増加。スキ率は変わらず。タイトル効果の可能性','up_flat_down':'⚠️ 露出は増えたが刺さってない。タイトル勝ちの可能性',
-    'up_down_up':'🤔 PV増・スキ減・スキ率上昇。データ確認推奨','up_down_flat':'📉 リーチ増だがスキ横ばい。内容が刺さっていない',
-    'up_down_down':'❌ 露出は増えたが全く刺さってない。内容またはターゲットの見直しを','flat_up_up':'✨ PV横ばいでスキとスキ率が上昇。コアなファンに届いている',
-    'flat_up_flat':'👍 アクション力が上がっている。スキしやすい記事が増えた可能性','flat_up_down':'🔄 スキは増えたがスキ率は低下。PVも増えた可能性',
-    'flat_flat_up':'💡 全体横ばいだがスキ率改善。静かに質が上がっている','flat_flat_flat':'😐 全指標横ばい。変化なし。新しいアクションを検討',
-    'flat_flat_down':'😶 スキ率だけ低下。最近の記事の質を確認','flat_down_up':'🤔 スキ減・スキ率上昇は矛盾。データ確認推奨',
-    'flat_down_flat':'📉 アクション力低下。スキしにくい記事が続いている','flat_down_down':'⚠️ アクション・スキ率ともに低下。内容の見直しタイミング',
-    'down_up_up':'🌱 PV減でもスキとスキ率が上昇。少数精鋭に届いている','down_up_flat':'🔄 PV減だがスキは増加。ファン向け記事が増えた可能性',
-    'down_up_down':'📉 PV減による相対効果の可能性。実態確認を','down_flat_up':'💤 PV減・スキ率改善。深いファンには刺さっている',
-    'down_flat_flat':'📉 リーチのみ低下。スキ率は維持。コンテンツ質は悪くない','down_flat_down':'⚠️ リーチ低下・スキ率も低下。発信ペースや内容を見直し',
-    'down_down_up':'💤 PV減による相対効果の可能性','down_down_flat':'😔 リーチ・アクション低下。停滞期の可能性',
-    'down_down_down':'🚨 全指標低下。内容・頻度・タイトルを総見直し',
-  };
+  const memos = { 'up_up_up':'🔥 全指標上昇。コンテンツ・タイトル・スキ率すべて好調','up_up_flat':'📈 リーチもアクションも増加。スキ率は維持で安定成長','up_up_down':'⚠️ 露出とスキは増えたがスキ率は低下。量で稼いでいる状態','up_flat_up':'✅ リーチ増・スキ率改善。質の高い流入が増えている','up_flat_flat':'📊 リーチだけ増加。スキ率は変わらず。タイトル効果の可能性','up_flat_down':'⚠️ 露出は増えたが刺さってない。タイトル勝ちの可能性','up_down_up':'🤔 PV増・スキ減・スキ率上昇。データ確認推奨','up_down_flat':'📉 リーチ増だがスキ横ばい。内容が刺さっていない','up_down_down':'❌ 露出は増えたが全く刺さってない。内容またはターゲットの見直しを','flat_up_up':'✨ PV横ばいでスキとスキ率が上昇。コアなファンに届いている','flat_up_flat':'👍 アクション力が上がっている。スキしやすい記事が増えた可能性','flat_up_down':'🔄 スキは増えたがスキ率は低下。PVも増えた可能性','flat_flat_up':'💡 全体横ばいだがスキ率改善。静かに質が上がっている','flat_flat_flat':'😐 全指標横ばい。変化なし。新しいアクションを検討','flat_flat_down':'😶 スキ率だけ低下。最近の記事の質を確認','flat_down_up':'🤔 スキ減・スキ率上昇は矛盾。データ確認推奨','flat_down_flat':'📉 アクション力低下。スキしにくい記事が続いている','flat_down_down':'⚠️ アクション・スキ率ともに低下。内容の見直しタイミング','down_up_up':'🌱 PV減でもスキとスキ率が上昇。少数精鋭に届いている','down_up_flat':'🔄 PV減だがスキは増加。ファン向け記事が増えた可能性','down_up_down':'📉 PV減による相対効果の可能性。実態確認を','down_flat_up':'💤 PV減・スキ率改善。深いファンには刺さっている','down_flat_flat':'📉 リーチのみ低下。スキ率は維持。コンテンツ質は悪くない','down_flat_down':'⚠️ リーチ低下・スキ率も低下。発信ペースや内容を見直し','down_down_up':'💤 PV減による相対効果の可能性','down_down_flat':'😔 リーチ・アクション低下。停滞期の可能性','down_down_down':'🚨 全指標低下。内容・頻度・タイトルを総見直し' };
   document.getElementById('status-memo-text').textContent = memos[key] || '状態を解析中...';
 }
 
@@ -1381,100 +697,53 @@ function buildWorstRanking(rows) {
   if (!rows.length) return;
   const latest = rows.reduce((a, b) => a.date > b.date ? a : b).date;
   const all = rows.filter(r => r.date === latest && Number(r['read_count']) > 0 && !isExcluded(r.title));
-  const etaWorst = all.filter(r => Number(r['read_count']) >= 50)
-    .map(r => ({ ...r, eta: Number(r['like_count']) / Number(r['read_count']) * 100 }))
-    .sort((a, b) => a.eta - b.eta).slice(0, 10);
+  const etaWorst = all.filter(r => Number(r['read_count']) >= 50).map(r => ({ ...r, eta: Number(r['like_count']) / Number(r['read_count']) * 100 })).sort((a, b) => a.eta - b.eta).slice(0, 10);
   const etaMax = Math.max(...etaWorst.map(r => r.eta), 1);
-  document.getElementById('ranking-worst-eta').innerHTML = etaWorst.map((r, i) => `
-    <div class="rank-item"><span class="rank-num">${String(i+1).padStart(2,'0')}</span>
-    <span class="rank-title" title="${r.title}">${r.title}</span>
-    <div class="rank-right"><div class="rank-bar"><div class="rank-bar-fill worst-bar" style="width:${(r.eta/etaMax*100).toFixed(1)}%"></div></div>
-    <span class="rank-val worst-val">${r.eta.toFixed(1)}%</span></div></div>`).join('');
+  document.getElementById('ranking-worst-eta').innerHTML = etaWorst.map((r, i) => `<div class="rank-item"><span class="rank-num">${String(i+1).padStart(2,'0')}</span><span class="rank-title" title="${r.title}">${r.title}</span><div class="rank-right"><div class="rank-bar"><div class="rank-bar-fill worst-bar" style="width:${(r.eta/etaMax*100).toFixed(1)}%"></div></div><span class="rank-val worst-val">${r.eta.toFixed(1)}%</span></div></div>`).join('');
   const viewWorst = [...all].sort((a,b) => Number(a['read_count'])-Number(b['read_count'])).slice(0,10);
   const viewMax = Math.max(...viewWorst.map(r => Number(r['read_count'])),1);
-  document.getElementById('ranking-worst-views').innerHTML = viewWorst.map((r,i) => `
-    <div class="rank-item"><span class="rank-num">${String(i+1).padStart(2,'0')}</span>
-    <span class="rank-title" title="${r.title}">${r.title}</span>
-    <div class="rank-right"><div class="rank-bar"><div class="rank-bar-fill worst-bar" style="width:${(Number(r['read_count'])/viewMax*100).toFixed(1)}%"></div></div>
-    <span class="rank-val worst-val">${Number(r['read_count']).toLocaleString()}</span></div></div>`).join('');
+  document.getElementById('ranking-worst-views').innerHTML = viewWorst.map((r,i) => `<div class="rank-item"><span class="rank-num">${String(i+1).padStart(2,'0')}</span><span class="rank-title" title="${r.title}">${r.title}</span><div class="rank-right"><div class="rank-bar"><div class="rank-bar-fill worst-bar" style="width:${(Number(r['read_count'])/viewMax*100).toFixed(1)}%"></div></div><span class="rank-val worst-val">${Number(r['read_count']).toLocaleString()}</span></div></div>`).join('');
 }
 
 function buildBestRanking(rows) {
   if (!rows.length) return;
   const latest = rows.reduce((a,b) => a.date > b.date ? a : b).date;
   const all = rows.filter(r => r.date === latest && Number(r['read_count']) > 0 && !isExcluded(r.title));
-  const etaBest = all.filter(r => Number(r['read_count']) >= 50)
-    .map(r => ({ ...r, eta: Number(r['like_count'])/Number(r['read_count'])*100 }))
-    .sort((a,b) => b.eta-a.eta).slice(0,10);
+  const etaBest = all.filter(r => Number(r['read_count']) >= 50).map(r => ({ ...r, eta: Number(r['like_count'])/Number(r['read_count'])*100 })).sort((a,b) => b.eta-a.eta).slice(0,10);
   const etaMax = Math.max(...etaBest.map(r => r.eta),1);
   const medal = i => i===0?'gold':i===1?'silver':i===2?'bronze':'';
-  document.getElementById('ranking-best-eta').innerHTML = etaBest.map((r,i) => `
-    <div class="rank-item"><span class="rank-num ${medal(i)}">${String(i+1).padStart(2,'0')}</span>
-    <span class="rank-title" title="${r.title}">${r.title}</span>
-    <div class="rank-right"><div class="rank-bar"><div class="rank-bar-fill best-bar" style="width:${(r.eta/etaMax*100).toFixed(1)}%"></div></div>
-    <span class="rank-val best-val">${r.eta.toFixed(1)}%</span></div></div>`).join('');
+  document.getElementById('ranking-best-eta').innerHTML = etaBest.map((r,i) => `<div class="rank-item"><span class="rank-num ${medal(i)}">${String(i+1).padStart(2,'0')}</span><span class="rank-title" title="${r.title}">${r.title}</span><div class="rank-right"><div class="rank-bar"><div class="rank-bar-fill best-bar" style="width:${(r.eta/etaMax*100).toFixed(1)}%"></div></div><span class="rank-val best-val">${r.eta.toFixed(1)}%</span></div></div>`).join('');
   const viewBest = [...all].sort((a,b) => Number(b['read_count'])-Number(a['read_count'])).slice(0,10);
   const viewMax = Math.max(...viewBest.map(r => Number(r['read_count'])),1);
-  document.getElementById('ranking-best-views').innerHTML = viewBest.map((r,i) => `
-    <div class="rank-item"><span class="rank-num ${medal(i)}">${String(i+1).padStart(2,'0')}</span>
-    <span class="rank-title" title="${r.title}">${r.title}</span>
-    <div class="rank-right"><div class="rank-bar"><div class="rank-bar-fill best-bar" style="width:${(Number(r['read_count'])/viewMax*100).toFixed(1)}%"></div></div>
-    <span class="rank-val best-val">${Number(r['read_count']).toLocaleString()}</span></div></div>`).join('');
+  document.getElementById('ranking-best-views').innerHTML = viewBest.map((r,i) => `<div class="rank-item"><span class="rank-num ${medal(i)}">${String(i+1).padStart(2,'0')}</span><span class="rank-title" title="${r.title}">${r.title}</span><div class="rank-right"><div class="rank-bar"><div class="rank-bar-fill best-bar" style="width:${(Number(r['read_count'])/viewMax*100).toFixed(1)}%"></div></div><span class="rank-val best-val">${Number(r['read_count']).toLocaleString()}</span></div></div>`).join('');
 }
 
-/* ════════════════════════════════════════
-   週次・月次 サマリー
-════════════════════════════════════════ */
-
-let weeklyData = [], monthlyData = [];
-let currentWeek = '', currentMonth = '';
+/* ════ 週次・月次 ════ */
+let weeklyData = [], monthlyData = [], currentWeek = '', currentMonth = '';
 let weeklyMetric = 'pv', monthlyMetric = 'pv';
 let weeklyChartInst = null, monthlyChartInst = null;
 
-/* ─── 週次 ─── */
 function buildWeeklySummary(rows) {
   weeklyData = rows;
   const weeks = [...new Set(rows.map(r => r['週']))].sort();
   if (!weeks.length) return;
-
-  // タブ生成
-  const tabsEl = document.getElementById('weekly-tabs');
-  tabsEl.innerHTML = weeks.map(w => `<button class="period-tab" data-week="${w}" onclick="selectWeek('${w}')">${w}</button>`).join('');
-
-  // トレンドチャート（全週の合計PV）
-  const weekTotals = weeks.map(w => {
-    const filtered = rows.filter(r => r['週'] === w);
-    return {
-      week: w,
-      pv:   filtered.reduce((s,r) => s + Number(r['期間増加PV']||0), 0),
-      like: filtered.reduce((s,r) => s + Number(r['期間増加スキ']||0), 0),
-    };
-  });
+  document.getElementById('weekly-tabs').innerHTML = weeks.map(w => `<button class="period-tab" data-week="${w}" onclick="selectWeek('${w}')">${w}</button>`).join('');
+  const weekTotals = weeks.map(w => { const f = rows.filter(r => r['週'] === w); return { week: w, pv: f.reduce((s,r) => s+Number(r['期間増加PV']||0),0), like: f.reduce((s,r) => s+Number(r['期間増加スキ']||0),0) }; });
   buildWeeklyTrendChart(weekTotals);
-
-  // 最新週を選択
   selectWeek(weeks[weeks.length - 1]);
 }
 
 function selectWeek(week) {
   currentWeek = week;
-  // タブ状態
-  document.querySelectorAll('#weekly-tabs .period-tab').forEach(t => {
-    t.classList.toggle('active', t.dataset.week === week);
-  });
+  document.querySelectorAll('#weekly-tabs .period-tab').forEach(t => t.classList.toggle('active', t.dataset.week === week));
   const rows = weeklyData.filter(r => r['週'] === week);
   if (!rows.length) return;
-
-  // バッジ
   document.getElementById('weekly-period-badge').textContent = week;
-
-  // メタ更新
-  const sample = rows[0];
-  document.getElementById('weekly-range').textContent = `${sample['週開始日']} 〜 ${sample['週終了日']}`;
+  const s = rows[0];
+  document.getElementById('weekly-range').textContent = `${s['週開始日']} 〜 ${s['週終了日']}`;
   document.getElementById('weekly-total-pv').textContent = rows.reduce((s,r) => s+Number(r['期間増加PV']||0),0).toLocaleString();
   document.getElementById('weekly-total-like').textContent = rows.reduce((s,r) => s+Number(r['期間増加スキ']||0),0).toLocaleString();
   document.getElementById('weekly-article-count').textContent = rows.length + ' 記事';
-
   renderPeriodRanking('weekly-ranking', rows, weeklyMetric, 'cyan');
 }
 
@@ -1487,204 +756,42 @@ function setWeeklyMetric(m) {
 
 function buildWeeklyTrendChart(weekTotals) {
   if (weeklyChartInst) { weeklyChartInst.destroy(); weeklyChartInst = null; }
-
-  // 年をまたぐ場合に備え、年が変わるタイミングだけ年を表示
-  const labels = weekTotals.map((w, i) => {
-    const [year, week] = w.week.split('-');
-    const prevYear = i > 0 ? weekTotals[i-1].week.split('-')[0] : null;
-    // 最初の週 or 年が変わる週は「'25\nW46」形式で表示
-    if (i === 0 || year !== prevYear) return `'${year.slice(2)}\n${week}`;
-    return week;
-  });
-  const data   = weekTotals.map(w => w.pv);
-  const maxVal = Math.max(...data);
+  const labels = weekTotals.map((w, i) => { const [year, week] = w.week.split('-'); const prevYear = i > 0 ? weekTotals[i-1].week.split('-')[0] : null; if (i === 0 || year !== prevYear) return `'${year.slice(2)}\n${week}`; return week; });
+  const data = weekTotals.map(w => w.pv); const maxVal = Math.max(...data);
   const colors = data.map(v => v === maxVal ? 'rgba(0,229,255,0.9)' : 'rgba(0,229,255,0.35)');
-
-  // 週数に応じてcanvas幅を動的に設定（1週あたり52px、最低600px）
-  const BAR_W = 52;
-  const chartW = Math.max(weekTotals.length * BAR_W, 600);
-  const inner = document.getElementById('weekly-chart-inner');
-  if (inner) inner.style.width = chartW + 'px';
-
-  weeklyChartInst = new Chart(document.getElementById('chart-weekly-trend'), {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [{
-        label: '週間PV増加',
-        data,
-        backgroundColor: colors,
-        borderColor: colors.map(c => c.replace('0.35','0.8').replace('0.9','1')),
-        borderWidth: 1,
-        borderRadius: 3,
-        barPercentage: 0.7,
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: { duration: 800, easing: 'easeOutQuart' },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: '#0f1221',
-          borderColor: 'rgba(255,255,255,0.1)',
-          borderWidth: 1,
-          titleColor: '#e8ecf8',
-          bodyColor: '#8891b0',
-          padding: 12,
-          cornerRadius: 6,
-          callbacks: { label: ctx => ` ${ctx.raw.toLocaleString()} PV` }
-        }
-      },
-      scales: {
-        x: {
-          grid: { color: 'rgba(255,255,255,0.05)' },
-          ticks: {
-            color: ctx => {
-              // 年表示ラベル（'25 や '26）は明るく強調
-              const label = ctx.tick && ctx.tick.label;
-              if (Array.isArray(label) && label[0] && label[0].startsWith("'")) return 'rgba(0,229,255,0.9)';
-              if (typeof label === 'string' && label.startsWith("'")) return 'rgba(0,229,255,0.9)';
-              return 'rgba(255,255,255,0.75)';
-            },
-            font: ctx => {
-              const label = ctx.tick && ctx.tick.label;
-              const isYearLabel = Array.isArray(label) ? label[0]?.startsWith("'") : label?.startsWith("'");
-              return { size: isYearLabel ? 10 : 11, weight: isYearLabel ? '700' : '400' };
-            },
-            maxRotation: 0,
-          }
-        },
-        y: {
-          grid: { color: 'rgba(255,255,255,0.05)' },
-          ticks: { color: 'rgba(255,255,255,0.85)' }
-        }
-      }
-    }
-  });
-
-  // 最新週（右端）に自動スクロール
-  const scrollEl = inner && inner.parentElement;
-  if (scrollEl) {
-    setTimeout(() => { scrollEl.scrollLeft = scrollEl.scrollWidth; }, 100);
-  }
-
-  // ─── スキチャート ───
+  const BAR_W = 52; const chartW = Math.max(weekTotals.length * BAR_W, 600);
+  const inner = document.getElementById('weekly-chart-inner'); if (inner) inner.style.width = chartW + 'px';
+  weeklyChartInst = new Chart(document.getElementById('chart-weekly-trend'), { type: 'bar', data: { labels, datasets: [{ label: '週間PV増加', data, backgroundColor: colors, borderColor: colors.map(c => c.replace('0.35','0.8').replace('0.9','1')), borderWidth: 1, borderRadius: 3, barPercentage: 0.7 }] }, options: { responsive: true, maintainAspectRatio: false, animation: { duration: 800 }, plugins: { legend: { display: false }, tooltip: { backgroundColor: '#0f1221', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1, titleColor: '#e8ecf8', bodyColor: '#8891b0', padding: 12, cornerRadius: 6, callbacks: { label: ctx => ` ${ctx.raw.toLocaleString()} PV` } } }, scales: { x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.75)', maxRotation: 0 } }, y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.85)' } } } } });
+  const scrollEl = inner && inner.parentElement; if (scrollEl) setTimeout(() => { scrollEl.scrollLeft = scrollEl.scrollWidth; }, 100);
   if (window._weeklyLikeInst) { window._weeklyLikeInst.destroy(); window._weeklyLikeInst = null; }
-
-  const likeData   = weekTotals.map(w => w.like);
-  const likeMax    = Math.max(...likeData);
+  const likeData = weekTotals.map(w => w.like); const likeMax = Math.max(...likeData);
   const likeColors = likeData.map(v => v === likeMax ? 'rgba(255,77,141,0.85)' : 'rgba(255,77,141,0.35)');
-
-  const innerLike = document.getElementById('weekly-chart-inner-like');
-  if (innerLike) innerLike.style.width = chartW + 'px';
-
-  window._weeklyLikeInst = new Chart(document.getElementById('chart-weekly-trend-like'), {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [{
-        label: '週間スキ増加',
-        data: likeData,
-        backgroundColor: likeColors,
-        borderColor: likeColors.map(c => c.replace('0.35','0.8').replace('0.85','1')),
-        borderWidth: 1,
-        borderRadius: 3,
-        barPercentage: 0.7,
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: { duration: 800, easing: 'easeOutQuart' },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: '#0f1221',
-          borderColor: 'rgba(255,255,255,0.1)',
-          borderWidth: 1,
-          titleColor: '#e8ecf8',
-          bodyColor: '#8891b0',
-          padding: 12,
-          cornerRadius: 6,
-          callbacks: { label: ctx => ` ${ctx.raw.toLocaleString()} スキ` }
-        }
-      },
-      scales: {
-        x: {
-          grid: { color: 'rgba(255,255,255,0.05)' },
-          ticks: {
-            color: ctx => {
-              const label = ctx.tick && ctx.tick.label;
-              if (Array.isArray(label) && label[0]?.startsWith("'")) return 'rgba(255,77,141,0.9)';
-              if (typeof label === 'string' && label.startsWith("'")) return 'rgba(255,77,141,0.9)';
-              return 'rgba(255,255,255,0.75)';
-            },
-            font: ctx => {
-              const label = ctx.tick && ctx.tick.label;
-              const isYearLabel = Array.isArray(label) ? label[0]?.startsWith("'") : label?.startsWith("'");
-              return { size: isYearLabel ? 10 : 11, weight: isYearLabel ? '700' : '400' };
-            },
-            maxRotation: 0,
-          }
-        },
-        y: {
-          grid: { color: 'rgba(255,255,255,0.05)' },
-          ticks: { color: 'rgba(255,255,255,0.85)' }
-        }
-      }
-    }
-  });
-
-  // スキチャートも右端へスクロール
-  const scrollLike = innerLike && innerLike.parentElement;
-  if (scrollLike) {
-    setTimeout(() => { scrollLike.scrollLeft = scrollLike.scrollWidth; }, 100);
-  }
+  const innerLike = document.getElementById('weekly-chart-inner-like'); if (innerLike) innerLike.style.width = chartW + 'px';
+  window._weeklyLikeInst = new Chart(document.getElementById('chart-weekly-trend-like'), { type: 'bar', data: { labels, datasets: [{ label: '週間スキ増加', data: likeData, backgroundColor: likeColors, borderColor: likeColors.map(c => c.replace('0.35','0.8').replace('0.85','1')), borderWidth: 1, borderRadius: 3, barPercentage: 0.7 }] }, options: { responsive: true, maintainAspectRatio: false, animation: { duration: 800 }, plugins: { legend: { display: false }, tooltip: { backgroundColor: '#0f1221', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1, titleColor: '#e8ecf8', bodyColor: '#8891b0', padding: 12, cornerRadius: 6, callbacks: { label: ctx => ` ${ctx.raw.toLocaleString()} スキ` } } }, scales: { x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.75)', maxRotation: 0 } }, y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.85)' } } } } });
+  const scrollLike = innerLike && innerLike.parentElement; if (scrollLike) setTimeout(() => { scrollLike.scrollLeft = scrollLike.scrollWidth; }, 100);
 }
 
-/* ─── 月次 ─── */
 function buildMonthlySummary(rows) {
   monthlyData = rows;
   const months = [...new Set(rows.map(r => r['月']))].sort();
   if (!months.length) return;
-
-  // タブ生成
-  const tabsEl = document.getElementById('monthly-tabs');
-  tabsEl.innerHTML = months.map(m => `<button class="period-tab monthly" data-month="${m}" onclick="selectMonth('${m}')">${m}</button>`).join('');
-
-  // トレンドチャート
-  const monthTotals = months.map(m => {
-    const filtered = rows.filter(r => r['月'] === m);
-    return {
-      month: m,
-      pv:   filtered.reduce((s,r) => s+Number(r['期間増加PV']||0),0),
-      like: filtered.reduce((s,r) => s+Number(r['期間増加スキ']||0),0),
-    };
-  });
+  document.getElementById('monthly-tabs').innerHTML = months.map(m => `<button class="period-tab monthly" data-month="${m}" onclick="selectMonth('${m}')">${m}</button>`).join('');
+  const monthTotals = months.map(m => { const f = rows.filter(r => r['月'] === m); return { month: m, pv: f.reduce((s,r) => s+Number(r['期間増加PV']||0),0), like: f.reduce((s,r) => s+Number(r['期間増加スキ']||0),0) }; });
   buildMonthlyTrendChart(monthTotals);
-
-  // 最新月を選択
   selectMonth(months[months.length - 1]);
 }
 
 function selectMonth(month) {
   currentMonth = month;
-  document.querySelectorAll('#monthly-tabs .period-tab').forEach(t => {
-    t.classList.toggle('active', t.dataset.month === month);
-  });
+  document.querySelectorAll('#monthly-tabs .period-tab').forEach(t => t.classList.toggle('active', t.dataset.month === month));
   const rows = monthlyData.filter(r => r['月'] === month);
   if (!rows.length) return;
-
   document.getElementById('monthly-period-badge').textContent = month;
-
-  const sample = rows[0];
-  document.getElementById('monthly-range').textContent = `${sample['月開始日']} 〜 ${sample['月終了日']}`;
+  const s = rows[0];
+  document.getElementById('monthly-range').textContent = `${s['月開始日']} 〜 ${s['月終了日']}`;
   document.getElementById('monthly-total-pv').textContent = rows.reduce((s,r) => s+Number(r['期間増加PV']||0),0).toLocaleString();
   document.getElementById('monthly-total-like').textContent = rows.reduce((s,r) => s+Number(r['期間増加スキ']||0),0).toLocaleString();
   document.getElementById('monthly-article-count').textContent = rows.length + ' 記事';
-
   renderPeriodRanking('monthly-ranking', rows, monthlyMetric, 'gold');
 }
 
@@ -1698,136 +805,36 @@ function setMonthlyMetric(m) {
 function buildMonthlyTrendChart(monthTotals) {
   if (monthlyChartInst) { monthlyChartInst.destroy(); monthlyChartInst = null; }
   if (window._monthlyLikeInst) { window._monthlyLikeInst.destroy(); window._monthlyLikeInst = null; }
-
-  const labels   = monthTotals.map(m => m.month);
-  const BAR_W    = 80;
-  const chartW   = Math.max(monthTotals.length * BAR_W, 400);
-
-  // PVチャート
-  const pvData   = monthTotals.map(m => m.pv);
-  const pvMax    = Math.max(...pvData);
+  const labels = monthTotals.map(m => m.month);
+  const BAR_W = 80; const chartW = Math.max(monthTotals.length * BAR_W, 400);
+  const pvData = monthTotals.map(m => m.pv); const pvMax = Math.max(...pvData);
   const pvColors = pvData.map(v => v === pvMax ? 'rgba(255,201,71,0.85)' : 'rgba(255,201,71,0.35)');
-
-  const innerPV = document.getElementById('monthly-chart-inner');
-  if (innerPV) innerPV.style.width = chartW + 'px';
-
-  monthlyChartInst = new Chart(document.getElementById('chart-monthly-trend'), {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [{
-        label: '月間PV増加',
-        data: pvData,
-        backgroundColor: pvColors,
-        borderColor: pvColors.map(c => c.replace('0.35','0.8').replace('0.85','1')),
-        borderWidth: 1,
-        borderRadius: 4,
-        barPercentage: 0.65,
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: { duration: 800, easing: 'easeOutQuart' },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: '#0f1221',
-          borderColor: 'rgba(255,255,255,0.1)',
-          borderWidth: 1,
-          titleColor: '#e8ecf8',
-          bodyColor: '#8891b0',
-          padding: 12,
-          cornerRadius: 6,
-          callbacks: { label: ctx => ` ${ctx.raw.toLocaleString()} PV` }
-        }
-      },
-      scales: {
-        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.85)', maxRotation: 0 } },
-        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.85)' } }
-      }
-    }
-  });
-
-  // スクロール右端へ
-  const scrollPV = innerPV && innerPV.parentElement;
-  if (scrollPV) setTimeout(() => { scrollPV.scrollLeft = scrollPV.scrollWidth; }, 100);
-
-  // スキチャート
-  const likeData   = monthTotals.map(m => m.like);
-  const likeMax    = Math.max(...likeData);
+  const innerPV = document.getElementById('monthly-chart-inner'); if (innerPV) innerPV.style.width = chartW + 'px';
+  monthlyChartInst = new Chart(document.getElementById('chart-monthly-trend'), { type: 'bar', data: { labels, datasets: [{ label: '月間PV増加', data: pvData, backgroundColor: pvColors, borderColor: pvColors.map(c => c.replace('0.35','0.8').replace('0.85','1')), borderWidth: 1, borderRadius: 4, barPercentage: 0.65 }] }, options: { responsive: true, maintainAspectRatio: false, animation: { duration: 800 }, plugins: { legend: { display: false }, tooltip: { backgroundColor: '#0f1221', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1, titleColor: '#e8ecf8', bodyColor: '#8891b0', padding: 12, cornerRadius: 6, callbacks: { label: ctx => ` ${ctx.raw.toLocaleString()} PV` } } }, scales: { x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.85)', maxRotation: 0 } }, y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.85)' } } } } });
+  const scrollPV = innerPV && innerPV.parentElement; if (scrollPV) setTimeout(() => { scrollPV.scrollLeft = scrollPV.scrollWidth; }, 100);
+  const likeData = monthTotals.map(m => m.like); const likeMax = Math.max(...likeData);
   const likeColors = likeData.map(v => v === likeMax ? 'rgba(255,77,141,0.85)' : 'rgba(255,77,141,0.35)');
-
-  const innerLike = document.getElementById('monthly-chart-inner-like');
-  if (innerLike) innerLike.style.width = chartW + 'px';
-
-  window._monthlyLikeInst = new Chart(document.getElementById('chart-monthly-trend-like'), {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [{
-        label: '月間スキ増加',
-        data: likeData,
-        backgroundColor: likeColors,
-        borderColor: likeColors.map(c => c.replace('0.35','0.8').replace('0.85','1')),
-        borderWidth: 1,
-        borderRadius: 4,
-        barPercentage: 0.65,
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: { duration: 800, easing: 'easeOutQuart' },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: '#0f1221',
-          borderColor: 'rgba(255,255,255,0.1)',
-          borderWidth: 1,
-          titleColor: '#e8ecf8',
-          bodyColor: '#8891b0',
-          padding: 12,
-          cornerRadius: 6,
-          callbacks: { label: ctx => ` ${ctx.raw.toLocaleString()} スキ` }
-        }
-      },
-      scales: {
-        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.85)', maxRotation: 0 } },
-        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.85)' } }
-      }
-    }
-  });
-
-  // スクロール右端へ
-  const scrollLike = innerLike && innerLike.parentElement;
-  if (scrollLike) setTimeout(() => { scrollLike.scrollLeft = scrollLike.scrollWidth; }, 100);
+  const innerLike = document.getElementById('monthly-chart-inner-like'); if (innerLike) innerLike.style.width = chartW + 'px';
+  window._monthlyLikeInst = new Chart(document.getElementById('chart-monthly-trend-like'), { type: 'bar', data: { labels, datasets: [{ label: '月間スキ増加', data: likeData, backgroundColor: likeColors, borderColor: likeColors.map(c => c.replace('0.35','0.8').replace('0.85','1')), borderWidth: 1, borderRadius: 4, barPercentage: 0.65 }] }, options: { responsive: true, maintainAspectRatio: false, animation: { duration: 800 }, plugins: { legend: { display: false }, tooltip: { backgroundColor: '#0f1221', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1, titleColor: '#e8ecf8', bodyColor: '#8891b0', padding: 12, cornerRadius: 6, callbacks: { label: ctx => ` ${ctx.raw.toLocaleString()} スキ` } } }, scales: { x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.85)', maxRotation: 0 } }, y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.85)' } } } } });
+  const scrollLike = innerLike && innerLike.parentElement; if (scrollLike) setTimeout(() => { scrollLike.scrollLeft = scrollLike.scrollWidth; }, 100);
 }
 
-/* ─── 共通ランキング描画 ─── */
 function renderPeriodRanking(containerId, rows, metric, colorKey) {
-  const pvKey   = '期間増加PV';
-  const likeKey = '期間増加スキ';
+  const pvKey = '期間増加PV'; const likeKey = '期間増加スキ';
   const sortKey = metric === 'pv' ? pvKey : likeKey;
   const barClass = metric === 'pv' ? `${colorKey}-fill` : 'pink-fill';
   const statClass = metric === 'pv' ? colorKey : 'pink';
-
   const sorted = [...rows].filter(r => !isExcluded(r.title)).sort((a,b) => Number(b[sortKey]||0) - Number(a[sortKey]||0)).slice(0, 10);
   const max = Math.max(...sorted.map(r => Number(r[sortKey]||0)), 1);
   const medal = i => i===0?'gold':i===1?'silver':i===2?'bronze':'';
-
   document.getElementById(containerId).innerHTML = sorted.map((r, i) => {
-    const mainVal = Number(r[pvKey]||0);
-    const subVal  = Number(r[likeKey]||0);
-    const barPct  = (Number(r[sortKey]||0) / max * 100).toFixed(1);
-    return `
-    <div class="period-rank-item" style="animation-delay:${i*0.04}s">
+    const mainVal = Number(r[pvKey]||0); const subVal = Number(r[likeKey]||0);
+    const barPct = (Number(r[sortKey]||0) / max * 100).toFixed(1);
+    return `<div class="period-rank-item" style="animation-delay:${i*0.04}s">
       <span class="period-rank-num ${medal(i)}">${String(i+1).padStart(2,'0')}</span>
       <div class="period-rank-info">
         <div class="period-rank-title" title="${r.title}">${r.title}</div>
-        <div class="period-bar-row">
-          <div class="period-bar"><div class="period-bar-fill ${barClass}" style="width:${barPct}%"></div></div>
-        </div>
+        <div class="period-bar-row"><div class="period-bar"><div class="period-bar-fill ${barClass}" style="width:${barPct}%"></div></div></div>
       </div>
       <div class="period-rank-stat">
         <span class="stat-pv ${statClass}">${mainVal.toLocaleString()}</span>
@@ -1837,12 +844,111 @@ function renderPeriodRanking(containerId, rows, metric, colorKey) {
   }).join('');
 }
 
-/* ════════════════════════════════════════
-   INIT
-════════════════════════════════════════ */
+/* ════ ASSET INTELLIGENCE ════ */
+function buildAssetV1Ranking(rows) {
+  const top10 = rows.slice(0, 10);
+  const maxScore = Math.max(...top10.map(r => Number(r['資産スコア']||0)), 1);
+  const medal = i => i===0?'gold':i===1?'silver':i===2?'bronze':'';
+  document.getElementById('ai-v1-ranking').innerHTML = top10.map((r, i) => {
+    const score  = Number(r['資産スコア']||0);
+    const age    = Number(r['Age']||0);
+    const daily  = Number(r['平均日次ビュー']||0).toFixed(1);
+    const active = Number(r['稼働日数']||0);
+    const stab   = Number(r['安定性']||0).toFixed(2);
+    const pct    = (score / maxScore * 100).toFixed(1);
+    return `<div class="period-rank-item">
+      <span class="period-rank-num ${medal(i)}">${String(i+1).padStart(2,'0')}</span>
+      <div class="period-rank-info">
+        <div class="period-rank-title" title="${r['タイトル']}">${r['タイトル']}<span class="ai-age-tag">${age}日</span></div>
+        <div class="period-bar-row"><div class="period-bar"><div class="period-bar-fill" style="width:${pct}%;background:var(--green)"></div></div></div>
+        <div class="ai-sub-row">
+          <span>平均PV: <b style="color:var(--green)">${daily}</b></span>
+          <span>稼働: <b style="color:var(--text2)">${active}日</b></span>
+          <span>安定性: <b style="color:var(--text2)">${stab}</b></span>
+        </div>
+      </div>
+      <div class="period-rank-stat">
+        <span class="stat-pv" style="color:var(--green)">${score.toFixed(1)}</span>
+        <span class="stat-like" style="color:var(--text3)">score</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function buildAssetV2Ranking(rows) {
+  const top10 = rows.slice(0, 10);
+  const maxScore = Math.max(...top10.map(r => Number(r['資産スコア']||0)), 1);
+  const medal = i => i===0?'gold':i===1?'silver':i===2?'bronze':'';
+  document.getElementById('ai-v2-ranking').innerHTML = top10.map((r, i) => {
+    const score   = Number(r['資産スコア']||0);
+    const age     = Number(r['Age']||0);
+    const totalPV = Number(r['TotalView']||0).toLocaleString();
+    const stab    = Number(r['安定性']||0).toFixed(2);
+    const pct     = (score / maxScore * 100).toFixed(1);
+    return `<div class="period-rank-item">
+      <span class="period-rank-num ${medal(i)}">${String(i+1).padStart(2,'0')}</span>
+      <div class="period-rank-info">
+        <div class="period-rank-title" title="${r['タイトル']}">${r['タイトル']}<span class="ai-age-tag">${age}日</span></div>
+        <div class="period-bar-row"><div class="period-bar"><div class="period-bar-fill gold-fill" style="width:${pct}%"></div></div></div>
+        <div class="ai-sub-row">
+          <span>累計PV: <b style="color:var(--gold)">${totalPV}</b></span>
+          <span>安定性: <b style="color:var(--text2)">${stab}</b></span>
+        </div>
+      </div>
+      <div class="period-rank-stat">
+        <span class="stat-pv" style="color:var(--gold)">${score.toFixed(1)}</span>
+        <span class="stat-like" style="color:var(--text3)">score</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function buildAssetCompare(v1rows, v2rows) {
+  const v1top20 = new Set(v1rows.slice(0, 20).map(r => r['key']));
+  const merged = v2rows.slice(0, 20).map(r => {
+    const v1m = v1rows.find(r1 => r1['key'] === r['key']);
+    return { key: r['key'], title: r['タイトル'], age: Number(r['Age']||0), totalPV: Number(r['TotalView']||0),
+      v1score: v1m ? Number(v1m['資産スコア']||0) : 0, v2score: Number(r['資産スコア']||0),
+      inV1: v1top20.has(r['key']), inV2: true };
+  });
+  v1rows.slice(0, 20).forEach(r => {
+    if (!merged.find(m => m.key === r['key'])) {
+      merged.push({ key: r['key'], title: r['タイトル'], age: Number(r['Age']||0), totalPV: Number(r['TotalView']||0),
+        v1score: Number(r['資産スコア']||0), v2score: 0, inV1: true, inV2: false });
+    }
+  });
+  const classify = m => {
+    if (m.inV1 && m.inV2) return { cls: 'qq-both', label: '💎 両方上位' };
+    if (m.inV1)            return { cls: 'qq-v1',   label: '🔥 直近急上昇' };
+    if (m.inV2)            return { cls: 'qq-v2',   label: '🏛️ 長期資産' };
+    return                       { cls: 'qq-none',  label: '💤 休眠' };
+  };
+  const maxV1 = Math.max(...merged.map(m => m.v1score), 1);
+  const maxV2 = Math.max(...merged.map(m => m.v2score), 1);
+  document.getElementById('ai-compare-body').innerHTML = merged.map((m, i) => {
+    const { cls, label } = classify(m);
+    return `<tr>
+      <td class="num-muted" style="text-align:center">${i+1}</td>
+      <td style="max-width:300px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text2)">${m.title}</td>
+      <td style="text-align:center;color:var(--text3)">${m.age}日</td>
+      <td style="text-align:center">${m.totalPV.toLocaleString()}</td>
+      <td><div class="bar-cell-wrap">
+        <div class="inline-bar"><div class="inline-bar-fill" style="width:${(m.v1score/maxV1*100).toFixed(1)}%;background:var(--green)"></div></div>
+        <span style="color:var(--green);font-weight:700;font-size:13px;min-width:36px;text-align:right">${m.v1score>0?m.v1score.toFixed(1):'—'}</span>
+      </div></td>
+      <td><div class="bar-cell-wrap">
+        <div class="inline-bar"><div class="inline-bar-fill" style="width:${(m.v2score/maxV2*100).toFixed(1)}%;background:var(--gold)"></div></div>
+        <span style="color:var(--gold);font-weight:700;font-size:13px;min-width:36px;text-align:right">${m.v2score>0?m.v2score.toFixed(1):'—'}</span>
+      </div></td>
+      <td style="text-align:center"><span class="ai-quad-badge ${cls}">${label}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+/* ════ INIT ════ */
 async function init() {
   try {
-    const [summary, articles, followers, trend, assets, weekly, monthly] = await Promise.all([
+    const [summary, articles, followers, trend, assets, weekly, monthly, assetV1, assetV2] = await Promise.all([
       fetchCSV('daily_summary'),
       fetchCSV('articles'),
       fetchCSV('followers'),
@@ -1850,6 +956,8 @@ async function init() {
       fetchCSV('asset_articles'),
       fetchCSV('weekly_summary').catch(() => []),
       fetchCSV('monthly_summary').catch(() => []),
+      fetchCSV('asset_score_v1').catch(() => []),  // ★ 追加
+      fetchCSV('asset_score_v2').catch(() => []),  // ★ 追加
     ]);
 
     const latest = summary[summary.length - 1];
@@ -1877,91 +985,36 @@ async function init() {
     if (weekly.length)  buildWeeklySummary(weekly);
     if (monthly.length) buildMonthlySummary(monthly);
 
+    // ★ 資産発掘エンジン描画
+    if (assetV1.length) buildAssetV1Ranking(assetV1);
+    if (assetV2.length) buildAssetV2Ranking(assetV2);
+    if (assetV1.length && assetV2.length) buildAssetCompare(assetV1, assetV2);
+
   } catch (e) {
     console.error(e);
     document.getElementById('last-updated').textContent = 'error: ' + e.message;
   }
 }
 
-/* ════════════════════════════════════════
-   慣性スクロール（ヌルっと動く）
-════════════════════════════════════════ */
-// scrollEl: スクロールコンテナ、dragEl: イベントを受け取るオーバーレイ
+/* ════ 慣性スクロール ════ */
 function initMomentumScroll(scrollEl, dragEl) {
   dragEl = dragEl || scrollEl;
-  let isDown = false;
-  let startX, scrollStart;
-  let velX = 0, lastX = 0, lastT = 0;
-  let rafId = null;
-
-  const onDown = e => {
-    isDown = true;
-    const px = e.touches ? e.touches[0].pageX : e.pageX;
-    startX = px;
-    scrollStart = scrollEl.scrollLeft;
-    velX = 0; lastX = px; lastT = Date.now();
-    dragEl.style.cursor = 'grabbing';
-    scrollEl.style.userSelect = 'none';
-    if (rafId) cancelAnimationFrame(rafId);
-  };
-
-  const onMove = e => {
-    if (!isDown) return;
-    if (e.cancelable) e.preventDefault();
-    const px = e.touches ? e.touches[0].pageX : e.pageX;
-    scrollEl.scrollLeft = scrollStart - (px - startX) * 1.2;
-    const now = Date.now();
-    const dt = Math.max(now - lastT, 1);
-    velX = (px - lastX) / dt * 16;
-    lastX = px; lastT = now;
-  };
-
-  const onUp = () => {
-    if (!isDown) return;
-    isDown = false;
-    dragEl.style.cursor = 'grab';
-    scrollEl.style.userSelect = '';
-    const run = () => {
-      if (Math.abs(velX) < 0.5) return;
-      scrollEl.scrollLeft -= velX;
-      velX *= 0.92;
-      rafId = requestAnimationFrame(run);
-    };
-    rafId = requestAnimationFrame(run);
-  };
-
-  // マウスイベント（オーバーレイで受け取る）
-  dragEl.addEventListener('mousedown', onDown);
-  window.addEventListener('mousemove', onMove);
-  window.addEventListener('mouseup', onUp);
-
-  // タッチイベント
-  dragEl.addEventListener('touchstart', onDown, { passive: true });
-  dragEl.addEventListener('touchmove', onMove, { passive: false });
-  dragEl.addEventListener('touchend', onUp);
+  let isDown = false, startX, scrollStart, velX = 0, lastX = 0, lastT = 0, rafId = null;
+  const onDown = e => { isDown = true; const px = e.touches ? e.touches[0].pageX : e.pageX; startX = px; scrollStart = scrollEl.scrollLeft; velX = 0; lastX = px; lastT = Date.now(); dragEl.style.cursor = 'grabbing'; scrollEl.style.userSelect = 'none'; if (rafId) cancelAnimationFrame(rafId); };
+  const onMove = e => { if (!isDown) return; if (e.cancelable) e.preventDefault(); const px = e.touches ? e.touches[0].pageX : e.pageX; scrollEl.scrollLeft = scrollStart - (px - startX) * 1.2; const now = Date.now(); const dt = Math.max(now - lastT, 1); velX = (px - lastX) / dt * 16; lastX = px; lastT = now; };
+  const onUp = () => { if (!isDown) return; isDown = false; dragEl.style.cursor = 'grab'; scrollEl.style.userSelect = ''; const run = () => { if (Math.abs(velX) < 0.5) return; scrollEl.scrollLeft -= velX; velX *= 0.92; rafId = requestAnimationFrame(run); }; rafId = requestAnimationFrame(run); };
+  dragEl.addEventListener('mousedown', onDown); window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp);
+  dragEl.addEventListener('touchstart', onDown, { passive: true }); dragEl.addEventListener('touchmove', onMove, { passive: false }); dragEl.addEventListener('touchend', onUp);
 }
 
-// チャート描画後に適用するため、遅延実行
 function initAllMomentumScrolls() {
-  const pairs = [
-    ['weekly-chart-inner',       'weekly-drag-overlay'],
-    ['weekly-chart-inner-like',  'weekly-drag-overlay-like'],
-    ['monthly-chart-inner',      'monthly-drag-overlay'],
-    ['monthly-chart-inner-like', 'monthly-drag-overlay-like'],
-  ];
-  pairs.forEach(([innerId, overlayId]) => {
-    const inner   = document.getElementById(innerId);
-    const overlay = document.getElementById(overlayId);
-    if (inner && overlay) {
-      const scrollEl = inner.parentElement; // .period-chart-scroll
-      initMomentumScroll(scrollEl, overlay);
-    }
+  [['weekly-chart-inner','weekly-drag-overlay'],['weekly-chart-inner-like','weekly-drag-overlay-like'],['monthly-chart-inner','monthly-drag-overlay'],['monthly-chart-inner-like','monthly-drag-overlay-like']].forEach(([innerId, overlayId]) => {
+    const inner = document.getElementById(innerId); const overlay = document.getElementById(overlayId);
+    if (inner && overlay) { const scrollEl = inner.parentElement; initMomentumScroll(scrollEl, overlay); }
   });
 }
 
-// チャート描画完了後に慣性スクロールを初期化
 setTimeout(initAllMomentumScrolls, 600);
-
 init();
 </script>
 </body>
