@@ -1071,21 +1071,48 @@ const EXCLUDED_TITLES = [
   'みんなが貪欲になっているときこそ恐怖心を抱き、みんなが恐怖心を抱いているとき…',
   'はたらくこと','気になるレシピ#1','This is US','"50',
 ];
+// タイトル除外チェック（完全一致 or 前方一致で対応）
+function isExcluded(title) {
+  if (!title) return true;
+  return EXCLUDED_TITLES.some(ex => title === ex || title.startsWith(ex));
+}
 
 const BASE = 'https://raw.githubusercontent.com/Goo-dev0505/note-stats-public/main/data/';
+
+// クォート（"..."）内のカンマを正しく扱うCSVパーサー
+function parseCSVLine(line) {
+  const vals = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') {
+      // "" は " のエスケープ
+      if (inQ && line[i+1] === '"') { cur += '"'; i++; }
+      else inQ = !inQ;
+    } else if (c === ',' && !inQ) {
+      vals.push(cur.trim()); cur = '';
+    } else {
+      cur += c;
+    }
+  }
+  vals.push(cur.trim());
+  return vals;
+}
 
 async function fetchCSV(name) {
   const res = await fetch(BASE + name + '.csv?t=' + Date.now());
   if (!res.ok) throw new Error(name + ' not found');
   const text = await res.text();
   const lines = text.trim().split('\n');
-  const headers = lines[0].split(',').map(h => h.trim());
-  return lines.slice(1).map(line => {
-    const vals = line.split(',');
-    const obj = {};
-    headers.forEach((h, i) => obj[h] = (vals[i] || '').trim());
-    return obj;
-  });
+  const headers = parseCSVLine(lines[0]);
+  return lines.slice(1)
+    .filter(l => l.trim())
+    .map(line => {
+      const vals = parseCSVLine(line);
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = vals[i] || '');
+      return obj;
+    });
 }
 
 const GRID_COLOR = 'rgba(255,255,255,0.05)';
@@ -1154,7 +1181,7 @@ function buildDaily(rows) {
 function buildRanking(containerId, rows, valueKey, barClass, valClass) {
   if (!rows.length) return;
   const latest = rows.reduce((a, b) => a.date > b.date ? a : b).date;
-  const sorted = rows.filter(r => r.date === latest && !EXCLUDED_TITLES.includes(r.title))
+  const sorted = rows.filter(r => r.date === latest && !isExcluded(r.title))
     .sort((a, b) => Number(b[valueKey]) - Number(a[valueKey])).slice(0, 20);
   const max = Number(sorted[0][valueKey] || 1);
   const medal = i => i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
@@ -1292,7 +1319,7 @@ function build3KPI(summary) {
 function buildWorstRanking(rows) {
   if (!rows.length) return;
   const latest = rows.reduce((a, b) => a.date > b.date ? a : b).date;
-  const all = rows.filter(r => r.date === latest && Number(r['read_count']) > 0 && !EXCLUDED_TITLES.includes(r.title));
+  const all = rows.filter(r => r.date === latest && Number(r['read_count']) > 0 && !isExcluded(r.title));
   const etaWorst = all.filter(r => Number(r['read_count']) >= 50)
     .map(r => ({ ...r, eta: Number(r['like_count']) / Number(r['read_count']) * 100 }))
     .sort((a, b) => a.eta - b.eta).slice(0, 10);
@@ -1314,7 +1341,7 @@ function buildWorstRanking(rows) {
 function buildBestRanking(rows) {
   if (!rows.length) return;
   const latest = rows.reduce((a,b) => a.date > b.date ? a : b).date;
-  const all = rows.filter(r => r.date === latest && Number(r['read_count']) > 0 && !EXCLUDED_TITLES.includes(r.title));
+  const all = rows.filter(r => r.date === latest && Number(r['read_count']) > 0 && !isExcluded(r.title));
   const etaBest = all.filter(r => Number(r['read_count']) >= 50)
     .map(r => ({ ...r, eta: Number(r['like_count'])/Number(r['read_count'])*100 }))
     .sort((a,b) => b.eta-a.eta).slice(0,10);
@@ -1516,7 +1543,7 @@ function renderPeriodRanking(containerId, rows, metric, colorKey) {
   const barClass = metric === 'pv' ? `${colorKey}-fill` : 'pink-fill';
   const statClass = metric === 'pv' ? colorKey : 'pink';
 
-  const sorted = [...rows].sort((a,b) => Number(b[sortKey]||0) - Number(a[sortKey]||0)).slice(0, 10);
+  const sorted = [...rows].filter(r => !isExcluded(r.title)).sort((a,b) => Number(b[sortKey]||0) - Number(a[sortKey]||0)).slice(0, 10);
   const max = Math.max(...sorted.map(r => Number(r[sortKey]||0)), 1);
   const medal = i => i===0?'gold':i===1?'silver':i===2?'bronze':'';
 
