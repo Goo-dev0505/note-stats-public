@@ -737,6 +737,15 @@ header {
 .period-chart-scroll::-webkit-scrollbar-track { background: transparent; }
 .period-chart-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
 .period-chart-scroll:active { cursor: grabbing; }
+.chart-drag-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  cursor: grab;
+  background: transparent;
+}
+.chart-drag-overlay:active { cursor: grabbing; }
+.period-chart-inner { position: relative; }
 .period-chart-inner {
   height: 320px;
   /* 幅はJS側で週数に応じて動的セット */
@@ -1029,6 +1038,7 @@ header {
           <div class="period-chart-scroll">
             <div class="period-chart-inner" id="weekly-chart-inner">
               <canvas id="chart-weekly-trend"></canvas>
+              <div class="chart-drag-overlay" id="weekly-drag-overlay"></div>
             </div>
           </div>
           <div class="period-chart-label" style="margin-top:16px">
@@ -1038,6 +1048,7 @@ header {
           <div class="period-chart-scroll">
             <div class="period-chart-inner" id="weekly-chart-inner-like">
               <canvas id="chart-weekly-trend-like"></canvas>
+              <div class="chart-drag-overlay" id="weekly-drag-overlay-like"></div>
             </div>
           </div>
         </div>
@@ -1725,7 +1736,7 @@ function renderPeriodRanking(containerId, rows, metric, colorKey) {
       </div>
       <div class="period-rank-stat">
         <span class="stat-pv ${statClass}">${mainVal.toLocaleString()}</span>
-        <span class="stat-like">♥ ${subVal.toLocaleString()}</span>
+        <span class="stat-like">🩷 ${subVal.toLocaleString()}</span>
       </div>
     </div>`;
   }).join('');
@@ -1780,96 +1791,79 @@ async function init() {
 /* ════════════════════════════════════════
    慣性スクロール（ヌルっと動く）
 ════════════════════════════════════════ */
-function initMomentumScroll(el) {
+// scrollEl: スクロールコンテナ、dragEl: イベントを受け取るオーバーレイ
+function initMomentumScroll(scrollEl, dragEl) {
+  dragEl = dragEl || scrollEl;
   let isDown = false;
   let startX, scrollStart;
-  let velX = 0;
-  let lastX = 0;
-  let lastT = 0;
+  let velX = 0, lastX = 0, lastT = 0;
   let rafId = null;
 
-  // ドラッグ開始
-  el.addEventListener('mousedown', e => {
+  const onDown = e => {
     isDown = true;
-    startX = e.pageX - el.offsetLeft;
-    scrollStart = el.scrollLeft;
-    velX = 0;
-    lastX = e.pageX;
-    lastT = Date.now();
-    el.style.cursor = 'grabbing';
-    el.style.userSelect = 'none';
+    const px = e.touches ? e.touches[0].pageX : e.pageX;
+    startX = px;
+    scrollStart = scrollEl.scrollLeft;
+    velX = 0; lastX = px; lastT = Date.now();
+    dragEl.style.cursor = 'grabbing';
+    scrollEl.style.userSelect = 'none';
     if (rafId) cancelAnimationFrame(rafId);
-  });
-
-  // ドラッグ中
-  el.addEventListener('mousemove', e => {
-    if (!isDown) return;
-    e.preventDefault();
-    const x = e.pageX - el.offsetLeft;
-    const walk = (x - startX) * 1.2;
-    el.scrollLeft = scrollStart - walk;
-
-    // 速度計算
-    const now = Date.now();
-    const dt = now - lastT || 1;
-    velX = (e.pageX - lastX) / dt * 16; // 1フレーム分に換算
-    lastX = e.pageX;
-    lastT = now;
-  });
-
-  // ドラッグ終了 → 慣性スクロール開始
-  const endDrag = () => {
-    if (!isDown) return;
-    isDown = false;
-    el.style.cursor = 'grab';
-    el.style.userSelect = '';
-
-    // 慣性アニメーション
-    const momentum = () => {
-      if (Math.abs(velX) < 0.5) return;
-      el.scrollLeft -= velX;
-      velX *= 0.92; // 減衰係数（0に近いほど早く止まる）
-      rafId = requestAnimationFrame(momentum);
-    };
-    rafId = requestAnimationFrame(momentum);
   };
 
-  el.addEventListener('mouseup', endDrag);
-  el.addEventListener('mouseleave', endDrag);
-
-  // タッチ対応（スマホ）
-  el.addEventListener('touchstart', e => {
-    startX = e.touches[0].pageX - el.offsetLeft;
-    scrollStart = el.scrollLeft;
-    velX = 0;
-    lastX = e.touches[0].pageX;
-    lastT = Date.now();
-    if (rafId) cancelAnimationFrame(rafId);
-  }, { passive: true });
-
-  el.addEventListener('touchmove', e => {
-    const x = e.touches[0].pageX - el.offsetLeft;
-    el.scrollLeft = scrollStart - (x - startX);
+  const onMove = e => {
+    if (!isDown) return;
+    if (e.cancelable) e.preventDefault();
+    const px = e.touches ? e.touches[0].pageX : e.pageX;
+    scrollEl.scrollLeft = scrollStart - (px - startX) * 1.2;
     const now = Date.now();
-    const dt = now - lastT || 1;
-    velX = (e.touches[0].pageX - lastX) / dt * 16;
-    lastX = e.touches[0].pageX;
-    lastT = now;
-  }, { passive: true });
+    const dt = Math.max(now - lastT, 1);
+    velX = (px - lastX) / dt * 16;
+    lastX = px; lastT = now;
+  };
 
-  el.addEventListener('touchend', () => {
-    const momentum = () => {
+  const onUp = () => {
+    if (!isDown) return;
+    isDown = false;
+    dragEl.style.cursor = 'grab';
+    scrollEl.style.userSelect = '';
+    const run = () => {
       if (Math.abs(velX) < 0.5) return;
-      el.scrollLeft -= velX;
+      scrollEl.scrollLeft -= velX;
       velX *= 0.92;
-      rafId = requestAnimationFrame(momentum);
+      rafId = requestAnimationFrame(run);
     };
-    rafId = requestAnimationFrame(momentum);
+    rafId = requestAnimationFrame(run);
+  };
+
+  // マウスイベント（オーバーレイで受け取る）
+  dragEl.addEventListener('mousedown', onDown);
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+
+  // タッチイベント
+  dragEl.addEventListener('touchstart', onDown, { passive: true });
+  dragEl.addEventListener('touchmove', onMove, { passive: false });
+  dragEl.addEventListener('touchend', onUp);
+}
+
+// チャート描画後に適用するため、遅延実行
+function initAllMomentumScrolls() {
+  const pairs = [
+    ['weekly-chart-inner',      'weekly-drag-overlay'],
+    ['weekly-chart-inner-like', 'weekly-drag-overlay-like'],
+  ];
+  pairs.forEach(([innerId, overlayId]) => {
+    const inner   = document.getElementById(innerId);
+    const overlay = document.getElementById(overlayId);
+    if (inner && overlay) {
+      const scrollEl = inner.parentElement; // .period-chart-scroll
+      initMomentumScroll(scrollEl, overlay);
+    }
   });
 }
 
-// すべての .period-chart-scroll に適用
-document.querySelectorAll('.period-chart-scroll').forEach(initMomentumScroll);
+// チャート描画完了後に慣性スクロールを初期化
+setTimeout(initAllMomentumScrolls, 600);
 
 init();
 </script>
