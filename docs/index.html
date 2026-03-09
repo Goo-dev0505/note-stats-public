@@ -1777,6 +1777,100 @@ async function init() {
   }
 }
 
+/* ════════════════════════════════════════
+   慣性スクロール（ヌルっと動く）
+════════════════════════════════════════ */
+function initMomentumScroll(el) {
+  let isDown = false;
+  let startX, scrollStart;
+  let velX = 0;
+  let lastX = 0;
+  let lastT = 0;
+  let rafId = null;
+
+  // ドラッグ開始
+  el.addEventListener('mousedown', e => {
+    isDown = true;
+    startX = e.pageX - el.offsetLeft;
+    scrollStart = el.scrollLeft;
+    velX = 0;
+    lastX = e.pageX;
+    lastT = Date.now();
+    el.style.cursor = 'grabbing';
+    el.style.userSelect = 'none';
+    if (rafId) cancelAnimationFrame(rafId);
+  });
+
+  // ドラッグ中
+  el.addEventListener('mousemove', e => {
+    if (!isDown) return;
+    e.preventDefault();
+    const x = e.pageX - el.offsetLeft;
+    const walk = (x - startX) * 1.2;
+    el.scrollLeft = scrollStart - walk;
+
+    // 速度計算
+    const now = Date.now();
+    const dt = now - lastT || 1;
+    velX = (e.pageX - lastX) / dt * 16; // 1フレーム分に換算
+    lastX = e.pageX;
+    lastT = now;
+  });
+
+  // ドラッグ終了 → 慣性スクロール開始
+  const endDrag = () => {
+    if (!isDown) return;
+    isDown = false;
+    el.style.cursor = 'grab';
+    el.style.userSelect = '';
+
+    // 慣性アニメーション
+    const momentum = () => {
+      if (Math.abs(velX) < 0.5) return;
+      el.scrollLeft -= velX;
+      velX *= 0.92; // 減衰係数（0に近いほど早く止まる）
+      rafId = requestAnimationFrame(momentum);
+    };
+    rafId = requestAnimationFrame(momentum);
+  };
+
+  el.addEventListener('mouseup', endDrag);
+  el.addEventListener('mouseleave', endDrag);
+
+  // タッチ対応（スマホ）
+  el.addEventListener('touchstart', e => {
+    startX = e.touches[0].pageX - el.offsetLeft;
+    scrollStart = el.scrollLeft;
+    velX = 0;
+    lastX = e.touches[0].pageX;
+    lastT = Date.now();
+    if (rafId) cancelAnimationFrame(rafId);
+  }, { passive: true });
+
+  el.addEventListener('touchmove', e => {
+    const x = e.touches[0].pageX - el.offsetLeft;
+    el.scrollLeft = scrollStart - (x - startX);
+    const now = Date.now();
+    const dt = now - lastT || 1;
+    velX = (e.touches[0].pageX - lastX) / dt * 16;
+    lastX = e.touches[0].pageX;
+    lastT = now;
+  }, { passive: true });
+
+  el.addEventListener('touchend', () => {
+    const momentum = () => {
+      if (Math.abs(velX) < 0.5) return;
+      el.scrollLeft -= velX;
+      velX *= 0.92;
+      rafId = requestAnimationFrame(momentum);
+    };
+    rafId = requestAnimationFrame(momentum);
+  });
+}
+
+// すべての .period-chart-scroll に適用
+document.querySelectorAll('.period-chart-scroll').forEach(initMomentumScroll);
+
 init();
 </script>
 </body>
