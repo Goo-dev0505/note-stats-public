@@ -1099,9 +1099,25 @@ header {
           </div>
         </div>
         <div class="period-chart-section">
-          <div class="period-chart-label">月別 PV 増加推移</div>
-          <div class="period-chart-wrap">
-            <canvas id="chart-monthly-trend"></canvas>
+          <div class="period-chart-label">
+            月別 PV 増加推移
+            <span style="color:var(--text3);font-size:9px;letter-spacing:0.1em;margin-left:8px">← SCROLL →</span>
+          </div>
+          <div class="period-chart-scroll">
+            <div class="period-chart-inner" id="monthly-chart-inner">
+              <canvas id="chart-monthly-trend"></canvas>
+              <div class="chart-drag-overlay" id="monthly-drag-overlay"></div>
+            </div>
+          </div>
+          <div class="period-chart-label" style="margin-top:16px">
+            月別 スキ 増加推移
+            <span style="color:var(--text3);font-size:9px;letter-spacing:0.1em;margin-left:8px">← SCROLL →</span>
+          </div>
+          <div class="period-chart-scroll">
+            <div class="period-chart-inner" id="monthly-chart-inner-like">
+              <canvas id="chart-monthly-trend-like"></canvas>
+              <div class="chart-drag-overlay" id="monthly-drag-overlay-like"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -1641,7 +1657,11 @@ function buildMonthlySummary(rows) {
   // トレンドチャート
   const monthTotals = months.map(m => {
     const filtered = rows.filter(r => r['月'] === m);
-    return { month: m, pv: filtered.reduce((s,r) => s+Number(r['期間増加PV']||0),0) };
+    return {
+      month: m,
+      pv:   filtered.reduce((s,r) => s+Number(r['期間増加PV']||0),0),
+      like: filtered.reduce((s,r) => s+Number(r['期間増加スキ']||0),0),
+    };
   });
   buildMonthlyTrendChart(monthTotals);
 
@@ -1677,10 +1697,19 @@ function setMonthlyMetric(m) {
 
 function buildMonthlyTrendChart(monthTotals) {
   if (monthlyChartInst) { monthlyChartInst.destroy(); monthlyChartInst = null; }
-  const labels = monthTotals.map(m => m.month);
-  const data   = monthTotals.map(m => m.pv);
-  const maxVal = Math.max(...data);
-  const colors = data.map(v => v === maxVal ? 'rgba(255,201,71,0.85)' : 'rgba(255,201,71,0.35)');
+  if (window._monthlyLikeInst) { window._monthlyLikeInst.destroy(); window._monthlyLikeInst = null; }
+
+  const labels   = monthTotals.map(m => m.month);
+  const BAR_W    = 80;
+  const chartW   = Math.max(monthTotals.length * BAR_W, 400);
+
+  // PVチャート
+  const pvData   = monthTotals.map(m => m.pv);
+  const pvMax    = Math.max(...pvData);
+  const pvColors = pvData.map(v => v === pvMax ? 'rgba(255,201,71,0.85)' : 'rgba(255,201,71,0.35)');
+
+  const innerPV = document.getElementById('monthly-chart-inner');
+  if (innerPV) innerPV.style.width = chartW + 'px';
 
   monthlyChartInst = new Chart(document.getElementById('chart-monthly-trend'), {
     type: 'bar',
@@ -1688,25 +1717,91 @@ function buildMonthlyTrendChart(monthTotals) {
       labels,
       datasets: [{
         label: '月間PV増加',
-        data,
-        backgroundColor: colors,
-        borderColor: colors.map(c => c.replace('0.35','0.8').replace('0.85','1')),
+        data: pvData,
+        backgroundColor: pvColors,
+        borderColor: pvColors.map(c => c.replace('0.35','0.8').replace('0.85','1')),
         borderWidth: 1,
         borderRadius: 4,
+        barPercentage: 0.65,
       }]
     },
     options: {
-      ...baseOpts(),
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 800, easing: 'easeOutQuart' },
       plugins: {
-        ...baseOpts().plugins,
         legend: { display: false },
         tooltip: {
-          ...baseOpts().plugins.tooltip,
+          backgroundColor: '#0f1221',
+          borderColor: 'rgba(255,255,255,0.1)',
+          borderWidth: 1,
+          titleColor: '#e8ecf8',
+          bodyColor: '#8891b0',
+          padding: 12,
+          cornerRadius: 6,
           callbacks: { label: ctx => ` ${ctx.raw.toLocaleString()} PV` }
         }
+      },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.85)', maxRotation: 0 } },
+        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.85)' } }
       }
     }
   });
+
+  // スクロール右端へ
+  const scrollPV = innerPV && innerPV.parentElement;
+  if (scrollPV) setTimeout(() => { scrollPV.scrollLeft = scrollPV.scrollWidth; }, 100);
+
+  // スキチャート
+  const likeData   = monthTotals.map(m => m.like);
+  const likeMax    = Math.max(...likeData);
+  const likeColors = likeData.map(v => v === likeMax ? 'rgba(255,77,141,0.85)' : 'rgba(255,77,141,0.35)');
+
+  const innerLike = document.getElementById('monthly-chart-inner-like');
+  if (innerLike) innerLike.style.width = chartW + 'px';
+
+  window._monthlyLikeInst = new Chart(document.getElementById('chart-monthly-trend-like'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: '月間スキ増加',
+        data: likeData,
+        backgroundColor: likeColors,
+        borderColor: likeColors.map(c => c.replace('0.35','0.8').replace('0.85','1')),
+        borderWidth: 1,
+        borderRadius: 4,
+        barPercentage: 0.65,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 800, easing: 'easeOutQuart' },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0f1221',
+          borderColor: 'rgba(255,255,255,0.1)',
+          borderWidth: 1,
+          titleColor: '#e8ecf8',
+          bodyColor: '#8891b0',
+          padding: 12,
+          cornerRadius: 6,
+          callbacks: { label: ctx => ` ${ctx.raw.toLocaleString()} スキ` }
+        }
+      },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.85)', maxRotation: 0 } },
+        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.85)' } }
+      }
+    }
+  });
+
+  // スクロール右端へ
+  const scrollLike = innerLike && innerLike.parentElement;
+  if (scrollLike) setTimeout(() => { scrollLike.scrollLeft = scrollLike.scrollWidth; }, 100);
 }
 
 /* ─── 共通ランキング描画 ─── */
@@ -1849,8 +1944,10 @@ function initMomentumScroll(scrollEl, dragEl) {
 // チャート描画後に適用するため、遅延実行
 function initAllMomentumScrolls() {
   const pairs = [
-    ['weekly-chart-inner',      'weekly-drag-overlay'],
-    ['weekly-chart-inner-like', 'weekly-drag-overlay-like'],
+    ['weekly-chart-inner',       'weekly-drag-overlay'],
+    ['weekly-chart-inner-like',  'weekly-drag-overlay-like'],
+    ['monthly-chart-inner',      'monthly-drag-overlay'],
+    ['monthly-chart-inner-like', 'monthly-drag-overlay-like'],
   ];
   pairs.forEach(([innerId, overlayId]) => {
     const inner   = document.getElementById(innerId);
