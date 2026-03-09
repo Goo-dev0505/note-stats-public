@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>note / stats</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
   --bg:        #06080f;
@@ -131,8 +131,6 @@ header {
 .like-val  { color: var(--pink); }
 .worst-bar { background: var(--red); }
 .worst-val { color: var(--red); }
-.best-bar { background: var(--green); }
-.best-val { color: var(--green); }
 .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--r); }
 .data-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12px; }
 .data-table th { padding: 10px 14px; background: var(--surface); color: var(--text2); text-align: left; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; border-bottom: 1px solid var(--border2); white-space: nowrap; position: sticky; top: 0; z-index: 5; }
@@ -152,6 +150,8 @@ header {
 .worst-section-title::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: var(--red); }
 .best-section-title { font-size: 15px; color: var(--text3); letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
 .best-section-title::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: var(--green); }
+.best-bar { background: var(--green); }
+.best-val { color: var(--green); }
 .loading { display: flex; align-items: center; justify-content: center; height: 160px; font-size: 10px; color: var(--text3); letter-spacing: 0.1em; }
 .loading::after { content: '...'; animation: dots 1.2s steps(4, end) infinite; }
 @keyframes dots { 0%,20% { content: ''; } 40% { content: '.'; } 60% { content: '..'; } 80%,100% { content: '...'; } }
@@ -250,80 +250,6 @@ header {
 .ai-sub-row { display: flex; gap: 10px; margin-top: 3px; font-size: 9px; color: var(--text3); }
 .ai-sub-row span { white-space: nowrap; }
 
-/* ════ QUALITY MAP セクション (プレフィックス qmap- で競合回避) ════ */
-.qmap-divider { background: linear-gradient(90deg, rgba(255,77,141,0.04) 0%, transparent 60%) !important; }
-.qmap-label   { color: var(--pink) !important; }
-.qmap-label::before { background: var(--pink) !important; }
-.qmap-line    { background: linear-gradient(90deg, rgba(255,77,141,0.3), transparent) !important; }
-
-.qmap-stats-row { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
-.qmap-stat-box {
-  background: var(--surface2); border: 1px solid var(--border);
-  border-radius: var(--r); padding: 12px 18px;
-}
-.qmap-stat-val { font-size: 22px; font-weight: 700; letter-spacing: 0.02em; font-family: var(--sans); }
-.qmap-stat-lbl { font-size: 10px; color: var(--text3); letter-spacing: 0.09em; margin-top: 2px; }
-
-.qmap-filter-wrap { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
-.qmap-filter-btn {
-  padding: 5px 14px; border: 1px solid var(--border2); border-radius: 20px;
-  background: transparent; color: var(--text3);
-  font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em;
-  cursor: pointer; transition: all 0.18s; white-space: nowrap;
-}
-.qmap-filter-btn:hover { background: var(--surface2); color: var(--text2); }
-.qmap-filter-btn.on-all    { background: rgba(255,255,255,.08); color: var(--text); border-color: rgba(255,255,255,.2); }
-.qmap-filter-btn.on-burst  { background: rgba(0,229,255,.1); color: var(--cyan); border-color: rgba(0,229,255,.3); }
-.qmap-filter-btn.on-steady { background: rgba(0,229,160,.1); color: var(--green); border-color: rgba(0,229,160,.3); }
-.qmap-filter-btn.on-sleep  { background: rgba(157,111,255,.1); color: var(--violet); border-color: rgba(157,111,255,.3); }
-.qmap-filter-btn.on-fade   { background: rgba(255,77,106,.1); color: var(--red); border-color: rgba(255,77,106,.3); }
-.qmap-filter-btn.on-other  { background: rgba(107,117,153,.15); color: var(--text3); border-color: var(--border2); }
-
-.qmap-legend { display: flex; align-items: center; gap: 24px; margin-bottom: 16px; flex-wrap: wrap; }
-.qmap-legend-item { display: flex; align-items: center; gap: 7px; font-size: 10px; color: var(--text3); letter-spacing: 0.07em; }
-.qmap-legend-swatch { width: 48px; height: 5px; border-radius: 3px; }
-.qmap-legend-bubble { border-radius: 50%; background: rgba(176,188,216,.3); border: 1px solid rgba(176,188,216,.35); flex-shrink: 0; }
-.qmap-count-label { margin-left: auto; font-size: 10px; color: var(--text3); font-family: var(--mono); }
-
-.qmap-scatter-wrap { position: relative; height: 500px; }
-
-.qmap-bottom-grid { display: grid; grid-template-columns: 320px 1fr; gap: 28px; margin-top: 28px; }
-@media (max-width: 900px) { .qmap-bottom-grid { grid-template-columns: 1fr; } }
-
-.qmap-rank-list { display: flex; flex-direction: column; gap: 5px; max-height: 420px; overflow-y: auto; }
-.qmap-rank-item {
-  display: grid; grid-template-columns: 24px 1fr 52px; align-items: center; gap: 8px;
-  padding: 9px 10px; background: var(--surface2); border: 1px solid transparent; border-radius: var(--r);
-  cursor: default; transition: all 0.15s;
-}
-.qmap-rank-item:hover { border-color: var(--border2); transform: translateX(2px); }
-.qmap-rank-n { font-size: 10px; font-weight: 700; text-align: center; color: var(--text3); font-family: var(--mono); }
-.qmap-rank-n.g { color: var(--gold); }
-.qmap-rank-n.s { color: #a0aac0; }
-.qmap-rank-n.b { color: #c08060; }
-.qmap-rank-title { font-size: 11px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px; }
-.qmap-rank-bar { height: 2px; background: var(--border2); border-radius: 2px; overflow: hidden; margin-top: 4px; }
-.qmap-rank-bar-fill { height: 100%; border-radius: 2px; background: var(--pink); }
-.qmap-rank-score { font-size: 15px; font-weight: 700; color: var(--pink); text-align: right; font-family: var(--sans); }
-
-.qmap-tbl-wrap { overflow-x: auto; }
-.qmap-tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
-.qmap-tbl th {
-  padding: 8px 12px; border-bottom: 1px solid var(--border2); color: var(--text3);
-  font-weight: 500; font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em;
-  white-space: nowrap; text-align: left;
-}
-.qmap-tbl td { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text2); white-space: nowrap; }
-.qmap-tbl tr:hover td { background: var(--surface2); }
-.qmap-pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; }
-.qmap-pill.s { background: rgba(0,229,160,.18); color: var(--green); }
-.qmap-pill.a { background: rgba(0,229,255,.12); color: var(--cyan); }
-.qmap-pill.b { background: rgba(255,201,71,.12); color: var(--gold); }
-.qmap-pill.c { background: rgba(107,117,153,.2); color: var(--text3); }
-.qmap-up { color: var(--green); font-weight: 700; }
-.qmap-dn { color: var(--red); font-weight: 700; }
-.qmap-fl { color: var(--text3); }
-
 @media (max-width: 900px) {
   .kpi-strip { grid-template-columns: repeat(2,1fr); }
   .grid { grid-template-columns: 1fr; }
@@ -333,7 +259,6 @@ header {
   .worst-grid { grid-template-columns: 1fr; }
   header, .kpi, .panel, .kpi3-item, .status-memo-wrap { padding-left: 16px; padding-right: 16px; }
   .period-body { grid-template-columns: 1fr; }
-  .qmap-bottom-grid { grid-template-columns: 1fr; }
 }
 </style>
 </head>
@@ -512,16 +437,22 @@ header {
       </div>
     </div>
 
-    <!-- ══ Asset Intelligence ══ -->
+    <!-- ══════════════════════════════════════════════
+         ▼ NEW: 資産発掘エンジン セクション区切り
+    ══════════════════════════════════════════════ -->
     <div class="panel full section-divider ai-divider">
       <span class="section-divider-label ai-label">Asset Intelligence｜資産発掘エンジン</span>
       <div class="section-divider-line ai-line"></div>
       <span class="panel-badge" style="color:var(--green);border-color:rgba(0,229,160,0.2)">AI SCORE</span>
     </div>
 
+    <!-- v1 (左) / v2 (右) -->
     <div class="panel" id="asset-v1-panel">
       <div class="panel-header">
-        <div class="panel-title"><span class="panel-title-dot" style="background:var(--green)"></span>v1｜稼働の質スコア</div>
+        <div class="panel-title">
+          <span class="panel-title-dot" style="background:var(--green)"></span>
+          v1｜稼働の質スコア
+        </div>
         <div style="display:flex;align-items:center;gap:8px">
           <span class="ai-score-formula">平均PV × 稼働日数 × 安定性</span>
           <span class="panel-badge" style="color:var(--green);border-color:rgba(0,229,160,0.2)">TOP 10</span>
@@ -533,7 +464,10 @@ header {
 
     <div class="panel" id="asset-v2-panel">
       <div class="panel-header">
-        <div class="panel-title"><span class="panel-title-dot" style="background:var(--gold)"></span>v2｜累積資産＋利回りスコア</div>
+        <div class="panel-title">
+          <span class="panel-title-dot" style="background:var(--gold)"></span>
+          v2｜累積資産＋利回りスコア
+        </div>
         <div style="display:flex;align-items:center;gap:8px">
           <span class="ai-score-formula">log(累計PV)×10 + 平均PV×安定性</span>
           <span class="panel-badge" style="color:var(--gold);border-color:rgba(255,201,71,0.2)">TOP 10</span>
@@ -543,9 +477,13 @@ header {
       <div class="period-rank-list" id="ai-v2-ranking"><div class="loading">loading</div></div>
     </div>
 
+    <!-- クロス比較テーブル (全幅) -->
     <div class="panel full" id="asset-compare-panel">
       <div class="panel-header">
-        <div class="panel-title"><span class="panel-title-dot" style="background:var(--violet)"></span>v1 × v2 クロス分析｜両指標で高いのが「真の資産記事」</div>
+        <div class="panel-title">
+          <span class="panel-title-dot" style="background:var(--violet)"></span>
+          v1 × v2 クロス分析｜両指標で高いのが「真の資産記事」
+        </div>
         <span class="panel-badge" style="color:var(--violet);border-color:var(--violet-dim)">COMPARE</span>
       </div>
       <div class="ai-matrix-legend">
@@ -558,7 +496,8 @@ header {
         <table class="data-table">
           <thead>
             <tr>
-              <th style="width:44px">#</th><th>タイトル</th>
+              <th style="width:44px">#</th>
+              <th>タイトル</th>
               <th style="width:70px;text-align:center">経過日数</th>
               <th style="width:90px;text-align:center">累計PV</th>
               <th style="width:130px">v1スコア</th>
@@ -571,81 +510,10 @@ header {
       </div>
     </div>
 
-    <!-- ══════════════════════════════════════
-         ▼ NEW: 資産価値マップ セクション
-    ══════════════════════════════════════ -->
-    <div class="panel full section-divider qmap-divider">
-      <span class="section-divider-label qmap-label">Quality Map｜資産価値マップ</span>
-      <div class="section-divider-line qmap-line"></div>
-      <span class="panel-badge" style="color:var(--pink);border-color:rgba(255,77,141,0.2)">BUBBLE</span>
-    </div>
-
-    <!-- サマリー数値 -->
-    <div class="panel full" style="padding-bottom:0;border-bottom:none">
-      <div class="qmap-stats-row" id="qmap-stats-row"></div>
-    </div>
-
-    <!-- スキャッターチャート + フィルター -->
-    <div class="panel full">
-      <div class="panel-header">
-        <div class="panel-title">
-          <span class="panel-title-dot" style="background:var(--pink)"></span>
-          記事 資産価値マップ｜Age × 質スコア × 累計PV
-        </div>
-        <span class="panel-badge" style="color:var(--pink);border-color:rgba(255,77,141,0.2)">SCATTER</span>
-      </div>
-      <p style="font-size:11px;color:var(--text3);letter-spacing:.06em;margin-bottom:16px">
-        右に行くほど長寿記事 ／ 上に行くほど高品質 ／ 大きいほど累計PV大 ／ 色は安定性スコア（紫→青→金）
-      </p>
-
-      <div class="qmap-filter-wrap" id="qmap-filters"></div>
-
-      <div class="qmap-legend">
-        <div class="qmap-legend-item">
-          <div class="qmap-legend-swatch" style="background:linear-gradient(90deg,#1a0a6e,#9d6fff,#00e5ff,#ffc947)"></div>
-          安定性スコア（低→高）
-        </div>
-        <div class="qmap-legend-item">
-          <div class="qmap-legend-bubble" style="width:8px;height:8px"></div>
-          <span style="margin:0 4px">小PV</span>
-          <div class="qmap-legend-bubble" style="width:16px;height:16px"></div>
-          <span style="margin:0 4px">中PV</span>
-          <div class="qmap-legend-bubble" style="width:26px;height:26px"></div>大PV
-        </div>
-        <span class="qmap-count-label" id="qmap-count-label"></span>
-      </div>
-
-      <div class="qmap-scatter-wrap"><canvas id="chart-qmap-scatter"></canvas></div>
-
-      <!-- ランキング + テーブル -->
-      <div class="qmap-bottom-grid">
-        <div>
-          <p style="font-size:10px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px">質スコア TOP 12</p>
-          <div class="qmap-rank-list" id="qmap-ranking"></div>
-        </div>
-        <div>
-          <p style="font-size:10px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px">品質詳細テーブル（TOP 30）</p>
-          <div class="qmap-tbl-wrap">
-            <table class="qmap-tbl">
-              <thead><tr>
-                <th>#</th><th>タイトル</th><th>成長タイプ</th>
-                <th>Age</th><th>PV</th><th>スキ率</th>
-                <th>スキ率↑↓</th><th>持続率</th><th>安定性</th><th>質スコア</th>
-              </tr></thead>
-              <tbody id="qmap-tbody"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-
   </div><!-- /grid -->
 </div><!-- /dashboard -->
 
 <script>
-/* ══════════════════════════════════════════════
-   既存ロジック（note/stats）
-══════════════════════════════════════════════ */
 const EXCLUDED_TITLES = [
   'ナイキ エア ヴェイパーマックス 360','自作PC#2','メモ','スターバックス記事#1',
   'みんなが貪欲になっているときこそ恐怖心を抱き、みんなが恐怖心を抱いているとき…',
@@ -1077,7 +945,7 @@ function buildAssetCompare(v1rows, v2rows) {
   }).join('');
 }
 
-/* ════ INIT (既存) ════ */
+/* ════ INIT ════ */
 async function init() {
   try {
     const [summary, articles, followers, trend, assets, weekly, monthly, assetV1, assetV2] = await Promise.all([
@@ -1088,8 +956,8 @@ async function init() {
       fetchCSV('asset_articles'),
       fetchCSV('weekly_summary').catch(() => []),
       fetchCSV('monthly_summary').catch(() => []),
-      fetchCSV('asset_score_v1').catch(() => []),
-      fetchCSV('asset_score_v2').catch(() => []),
+      fetchCSV('asset_score_v1').catch(() => []),  // ★ 追加
+      fetchCSV('asset_score_v2').catch(() => []),  // ★ 追加
     ]);
 
     const latest = summary[summary.length - 1];
@@ -1113,8 +981,11 @@ async function init() {
     buildAssetTable(assets);
     buildTrendDetailed(trend);
 
+    // 週次・月次
     if (weekly.length)  buildWeeklySummary(weekly);
     if (monthly.length) buildMonthlySummary(monthly);
+
+    // ★ 資産発掘エンジン描画
     if (assetV1.length) buildAssetV1Ranking(assetV1);
     if (assetV2.length) buildAssetV2Ranking(assetV2);
     if (assetV1.length && assetV2.length) buildAssetCompare(assetV1, assetV2);
@@ -1145,224 +1016,6 @@ function initAllMomentumScrolls() {
 
 setTimeout(initAllMomentumScrolls, 600);
 init();
-
-/* ══════════════════════════════════════════════
-   Quality Map ロジック（2枚目HTMLより統合）
-   ※ CSS競合を避けるため qmap- プレフィックス使用
-══════════════════════════════════════════════ */
-const QMAP_DATA = [{"key": "nd946a5f905a2", "タイトル": "KITAcoreのAI×思考ログへようこそ — プロンプト設計、アート、そして人生のログプレイ #116", "成長タイプ": "🌲 定常型", "Age": 115, "累計PV": 1015, "質スコア": 94.2, "安定性スコア": 0.544, "スキ率(%)": 37.54, "スキ率トレンド(pp)": 15.7, "持続率": 1.024}, {"key": "n75c22ba2457f", "タイトル": "日光と食事と睡眠の関係について #29", "成長タイプ": "❓ データ不足", "Age": 182, "累計PV": 42, "質スコア": 80.0, "安定性スコア": 0.741, "スキ率(%)": 19.05, "スキ率トレンド(pp)": 0.09, "持続率": null}, {"key": "n8307b08e003d", "タイトル": "「モジュールってなんだよ！」 理系研究者がAIに裏切られ、初めてのPythonで叫ぶ #57", "成長タイプ": "❓ データ不足", "Age": 160, "累計PV": 93, "質スコア": 79.9, "安定性スコア": 0.734, "スキ率(%)": 16.13, "スキ率トレンド(pp)": -0.58, "持続率": null}, {"key": "n348ed9904976", "タイトル": "名刺の「箱」で展示会に挑んだ後輩：令和の新人、謎の節約術 #51", "成長タイプ": "❓ データ不足", "Age": 166, "累計PV": 42, "質スコア": 79.9, "安定性スコア": 0.733, "スキ率(%)": 23.81, "スキ率トレンド(pp)": -1.26, "持続率": null}, {"key": "nb5da69fd69ff", "タイトル": "日光は見えていたのに、見えていなかった #27", "成長タイプ": "❓ データ不足", "Age": 182, "累計PV": 49, "質スコア": 79.8, "安定性スコア": 0.729, "スキ率(%)": 16.33, "スキ率トレンド(pp)": -0.8, "持続率": null}, {"key": "n94da7a52ea24", "タイトル": "浴びている光はどこを通じて影響があるのか #26", "成長タイプ": "❓ データ不足", "Age": 183, "累計PV": 51, "質スコア": 79.8, "安定性スコア": 0.727, "スキ率(%)": 15.69, "スキ率トレンド(pp)": -0.08, "持続率": null}, {"key": "n8551a6a14870", "タイトル": "生成AIで「調査チーム」を作ってみた〜GPT・Gemini・Grok・Perplexityの役割分担〜 #52", "成長タイプ": "❓ データ不足", "Age": 165, "累計PV": 111, "質スコア": 79.8, "安定性スコア": 0.734, "スキ率(%)": 14.41, "スキ率トレンド(pp)": -1.63, "持続率": null}, {"key": "n3f384bcc700c", "タイトル": "【衝撃】ワイが組んだAI「調査チーム」の役割分担、ガチでプロの「AI戦略」と完全一致してた件 #94", "成長タイプ": "❓ データ不足", "Age": 131, "累計PV": 136, "質スコア": 79.5, "安定性スコア": 0.73, "スキ率(%)": 12.5, "スキ率トレンド(pp)": -0.18, "持続率": null}, {"key": "n3a0a768238a3", "タイトル": "AIシェフと学ぶ！プログラミングは「料理のレシピ」と同じだった #41", "成長タイプ": "❓ データ不足", "Age": 174, "累計PV": 64, "質スコア": 78.5, "安定性スコア": 0.639, "スキ率(%)": 15.62, "スキ率トレンド(pp)": -0.96, "持続率": null}, {"key": "nef0eee72e29d", "タイトル": "生成AIで調査チーム作ったら、頼もしすぎる奴らが集まった話 #72", "成長タイプ": "❓ データ不足", "Age": 150, "累計PV": 249, "質スコア": 78.2, "安定性スコア": 0.729, "スキ率(%)": 9.24, "スキ率トレンド(pp)": 0.13, "持続率": null}, {"key": "n26a2d7839528", "タイトル": "Python環境構築は恋愛だった！？〜初学者エンジニアが辿り着いた、ゆるふわPythonライフ〜 #50", "成長タイプ": "❓ データ不足", "Age": 167, "累計PV": 103, "質スコア": 78.1, "安定性スコア": 0.636, "スキ率(%)": 11.65, "スキ率トレンド(pp)": -1.01, "持続率": null}, {"key": "ncd243f6ab3c4", "タイトル": "ベタベタ・黄ばみ・ヒビ割れ…スマホケースの寿命は"愛用年数"じゃなく科学で決まる！？ #33", "成長タイプ": "❓ データ不足", "Age": 180, "累計PV": 46, "質スコア": 77.6, "安定性スコア": 0.725, "スキ率(%)": 8.7, "スキ率トレンド(pp)": -1.23, "持続率": null}, {"key": "nd4d236c6cb27", "タイトル": "「明日の朝な！」で動く！優柔不断な部下を強制的に自走させるマネジメント術 #67", "成長タイプ": "❓ データ不足", "Age": 154, "累計PV": 142, "質スコア": 77.3, "安定性スコア": 0.719, "スキ率(%)": 8.45, "スキ率トレンド(pp)": -0.15, "持続率": null}, {"key": "nbc8e22ad7cc7", "タイトル": "AIが人の話を聞かない夜に──冷蔵庫GPTが教えてくれた"対話設計"の魔法 #85", "成長タイプ": "❓ データ不足", "Age": 140, "累計PV": 265, "質スコア": 77.2, "安定性スコア": 0.728, "スキ率(%)": 8.3, "スキ率トレンド(pp)": 0.21, "持続率": null}, {"key": "ncd12f1fca6d2", "タイトル": "自己紹介 Ver.2 ─ 60日後に見えた、自分という構造 #98", "成長タイプ": "💤 眠り型", "Age": 127, "累計PV": 293, "質スコア": 77.1, "安定性スコア": 0.562, "スキ率(%)": 16.04, "スキ率トレンド(pp)": 2.02, "持続率": null}, {"key": "na3b1cce5678c", "タイトル": "「Excel卒業！Pythonでデータ分析の冒険を始めよう」〜初心者向けマガジン紹介 #84", "成長タイプ": "❓ データ不足", "Age": 141, "累計PV": 429, "質スコア": 77.1, "安定性スコア": 0.564, "スキ率(%)": 14.92, "スキ率トレンド(pp)": -0.66, "持続率": null}, {"key": "n08c433ea540a", "タイトル": "データ分析の最初の敵！Pandasで汚いカラムをクリーンにする五大魔法 #68", "成長タイプ": "❓ データ不足", "Age": 153, "累計PV": 177, "質スコア": 76.9, "安定性スコア": 0.686, "スキ率(%)": 8.47, "スキ率トレンド(pp)": -0.19, "持続率": null}, {"key": "nc29de171f59d", "タイトル": "朝ごはんと日光浴のゴールデンコンビ──時間栄養学の視点から #44", "成長タイプ": "❓ データ不足", "Age": 172, "累計PV": 44, "質スコア": 76.9, "安定性スコア": 0.648, "スキ率(%)": 9.09, "スキ率トレンド(pp)": -2.64, "持続率": null}, {"key": "n163696d4f163", "タイトル": "「人気の壁」を越える条件とは？──データ分析で見えた"自走するSNS"の法則 #96", "成長タイプ": "❓ データ不足", "Age": 129, "累計PV": 134, "質スコア": 76.5, "安定性スコア": 0.777, "スキ率(%)": 7.46, "スキ率トレンド(pp)": -0.12, "持続率": null}, {"key": "n0c9b355a99c9", "タイトル": "AIに心を支配されない方法：「道具」として使いこなすための\"疑いながら使う\"成熟の境界線 #109", "成長タイプ": "❓ データ不足", "Age": 119, "累計PV": 257, "質スコア": 76.3, "安定性スコア": 0.575, "スキ率(%)": 10.12, "スキ率トレンド(pp)": -1.11, "持続率": null}, {"key": "ncf485b303b59", "タイトル": "使い方で、製品寿命が変わる？！ #30", "成長タイプ": "❓ データ不足", "Age": 182, "累計PV": 40, "質スコア": 76.3, "安定性スコア": 0.751, "スキ率(%)": 7.5, "スキ率トレンド(pp)": -0.33, "持続率": null}, {"key": "n010c671b5d53", "タイトル": "「Context Engineering 2.0」論文の独自解釈 #107", "成長タイプ": "❓ データ不足", "Age": 121, "累計PV": 136, "質スコア": 76.3, "安定性スコア": 0.622, "スキ率(%)": 8.82, "スキ率トレンド(pp)": -0.01, "持続率": null}, {"key": "n359e812b0ab5", "タイトル": "バイオリンプロットって、データ界の"楽団リーダー"やった話 #101", "成長タイプ": "❓ データ不足", "Age": 125, "累計PV": 185, "質スコア": 76.3, "安定性スコア": 0.675, "スキ率(%)": 8.11, "スキ率トレンド(pp)": -0.8, "持続率": null}, {"key": "nb22642a2ee59", "タイトル": "【簡易版】Platformは、なぜ推しのアルゴリズムを公開したのか。 #267", "成長タイプ": "🌙 スリーパー型", "Age": 16, "累計PV": 434, "質スコア": 76.2, "安定性スコア": 0.556, "スキ率(%)": 10.6, "スキ率トレンド(pp)": -0.3, "持続率": null}, {"key": "n7540136bf03c", "タイトル": "srefってなんや！？魔法か？──構造じゃなく"演奏"でMidjourneyが描く世界 #103", "成長タイプ": "❓ データ不足", "Age": 123, "累計PV": 155, "質スコア": 75.8, "安定性スコア": 0.621, "スキ率(%)": 8.39, "スキ率トレンド(pp)": 0.54, "持続率": null}, {"key": "n1584fd23e2ce", "タイトル": "【無料プロンプト付き】Reflective Counter Mode─AIが自分にツッコミを入れはじめた日。 #108", "成長タイプ": "❓ データ不足", "Age": 120, "累計PV": 152, "質スコア": 75.6, "安定性スコア": 0.547, "スキ率(%)": 9.87, "スキ率トレンド(pp)": 0.02, "持続率": null}, {"key": "n2962eed0a9d4", "タイトル": "プロンプトの読み方。長すぎるプロンプト、どう使えばええねん？ #110", "成長タイプ": "❓ データ不足", "Age": 118, "累計PV": 182, "質スコア": 75.5, "安定性スコア": 0.557, "スキ率(%)": 9.34, "スキ率トレンド(pp)": -0.55, "持続率": null}, {"key": "n995baed7ded7", "タイトル": "Gemini、お前Duolingoか！？ AI先生と"ステップ学習"が始まった日 #87", "成長タイプ": "❓ データ不足", "Age": 138, "累計PV": 210, "質スコア": 75.4, "安定性スコア": 0.731, "スキ率(%)": 7.14, "スキ率トレンド(pp)": 0.34, "持続率": null}, {"key": "n66e70669703e", "タイトル": "「誰やねん初対面やぞ！」 アレニウス式とウイスキー熟成に隠された時間と温度の哲学 #93", "成長タイプ": "❓ データ不足", "Age": 132, "累計PV": 149, "質スコア": 75.3, "安定性スコア": 0.578, "スキ率(%)": 8.72, "スキ率トレンド(pp)": -0.54, "持続率": null}, {"key": "n3df7eb2c83f6", "タイトル": "【プロンプト付き】やりたい顔を"書けば作れる"ようになった。 #100", "成長タイプ": "🌙 スリーパー型", "Age": 125, "累計PV": 350, "質スコア": 74.9, "安定性スコア": 0.564, "スキ率(%)": 8.57, "スキ率トレンド(pp)": -0.41, "持続率": null}, {"key": "n3fbdcd94294e", "タイトル": "AIの回答を劇的改善！プロンプトの型と時短テクニック #53", "成長タイプ": "❓ データ不足", "Age": 164, "累計PV": 58, "質スコア": 74.9, "安定性スコア": 0.733, "スキ率(%)": 6.9, "スキ率トレンド(pp)": 1.25, "持続率": null}, {"key": "n8b612ec93167", "タイトル": "Midjourneyに手を出してみたら、アメコミ以外ぜんぜん出てこない件。 #66", "成長タイプ": "❓ データ不足", "Age": 154, "累計PV": 192, "質スコア": 74.7, "安定性スコア": 0.737, "スキ率(%)": 6.77, "スキ率トレンド(pp)": -0.09, "持続率": null}, {"key": "nd3bf83ee8270", "タイトル": "光を浴びるだけで整う〜朝の自然光と"体内リズム"の科学〜 #22", "成長タイプ": "❓ データ不足", "Age": 184, "累計PV": 33, "質スコア": 74.6, "安定性スコア": 1.0, "スキ率(%)": 6.06, "スキ率トレンド(pp)": -0.66, "持続率": null}, {"key": "n205d389bba48", "タイトル": "たった30分の差が、ストレスを22％減らす ― Apple Watchが示した最新研究 #35", "成長タイプ": "❓ データ不足", "Age": 179, "累計PV": 268, "質スコア": 73.9, "安定性スコア": 0.43, "スキ率(%)": 36.57, "スキ率トレンド(pp)": -9.75, "持続率": null}, {"key": "n27e2942c02d7", "タイトル": "自己紹介/はじめてのnote #23", "成長タイプ": "❓ データ不足", "Age": 183, "累計PV": 181, "質スコア": 73.8, "安定性スコア": 0.427, "スキ率(%)": 30.94, "スキ率トレンド(pp)": -1.0, "持続率": null}, {"key": "nbf5b6023ea85", "タイトル": "こんなユーザーには気をつけろ！？Noteの闇、覗いちゃいました #70", "成長タイプ": "🌙 スリーパー型", "Age": 151, "累計PV": 335, "質スコア": 73.3, "安定性スコア": 0.412, "スキ率(%)": 14.03, "スキ率トレンド(pp)": 0.76, "持続率": null}, {"key": "n280140423c90", "タイトル": "🎃トリックオアトリート👻 -ハロウィンアートイラスト2025- #75", "成長タイプ": "❓ データ不足", "Age": 147, "累計PV": 347, "質スコア": 73.0, "安定性スコア": 0.683, "スキ率(%)": 6.34, "スキ率トレンド(pp)": 0.54, "持続率": null}, {"key": "ndda6aa6d3fb1", "タイトル": "IRを読むと、裏側の配管が見える！？（noteで遊ぶコスト構造） #275", "成長タイプ": "🎆 バースト型", "Age": 10, "累計PV": 367, "質スコア": 72.9, "安定性スコア": 0.404, "スキ率(%)": 12.81, "スキ率トレンド(pp)": 0.23, "持続率": null}, {"key": "n7c537e680f56", "タイトル": "【383文字の実験】Noteのアルゴリズムをハックしたい。 #277", "成長タイプ": "❓ データ不足", "Age": 8, "累計PV": 579, "質スコア": 72.8, "安定性スコア": 0.399, "スキ率(%)": 12.95, "スキ率トレンド(pp)": 1.79, "持続率": null}, {"key": "n876dd0c9e114", "タイトル": "生成AIを「考える相棒」にする──対話型で思考を深める使い方 #11", "成長タイプ": "❓ データ不足", "Age": 345, "累計PV": 82, "質スコア": 72.7, "安定性スコア": 0.546, "スキ率(%)": 7.32, "スキ率トレンド(pp)": 1.46, "持続率": null}, {"key": "nc26003dfcebd", "タイトル": "爆速投資ハック！Excel地獄から5分で脱出！ #86", "成長タイプ": "🌙 スリーパー型", "Age": 139, "累計PV": 1161, "質スコア": 54.3, "安定性スコア": 0.562, "スキ率(%)": 2.41, "スキ率トレンド(pp)": -0.23, "持続率": null}, {"key": "n3df2abbd3e90", "タイトル": "ChatGPT、ついに"制限解除"──AIが笑って返す時代の幕開け！？ #80", "成長タイプ": "🌙 スリーパー型", "Age": 144, "累計PV": 1375, "質スコア": 47.1, "安定性スコア": 0.497, "スキ率(%)": 1.16, "スキ率トレンド(pp)": -0.64, "持続率": null}, {"key": "n07d869d6422e", "タイトル": "アレニウスモデルについてまとめてみる #15", "成長タイプ": "🌙 スリーパー型", "Age": 226, "累計PV": 748, "質スコア": 44.9, "安定性スコア": 0.543, "スキ率(%)": 0.27, "スキ率トレンド(pp)": 0.09, "持続率": null}, {"key": "n12201dd9b5ff", "タイトル": "【NanoBanana 構造化設計】画像生成を「運」から「論理」へ変える #129", "成長タイプ": "🎆 バースト型", "Age": 108, "累計PV": 711, "質スコア": 64.3, "安定性スコア": 0.437, "スキ率(%)": 7.88, "スキ率トレンド(pp)": -3.71, "持続率": 0.081}, {"key": "n1ab80047f8f8", "タイトル": "デザインマネージャーの「資料生成術」をエンジニアがハックしたら #244", "成長タイプ": "🎆 バースト型", "Age": 34, "累計PV": 852, "質スコア": 59.7, "安定性スコア": 0.324, "スキ率(%)": 9.15, "スキ率トレンド(pp)": -1.49, "持続率": 0.022}, {"key": "nc6a83f270ae6", "タイトル": "【無料公開】Nano Banana Pro キャラクターシート生成プロンプト集 #167", "成長タイプ": "🎆 バースト型", "Age": 85, "累計PV": 849, "質スコア": 57.5, "安定性スコア": 0.358, "スキ率(%)": 5.54, "スキ率トレンド(pp)": -2.33, "持続率": 0.101}, {"key": "n825cd2765f6a", "タイトル": "FUJI式YAMLに触発されて作った「インフォグラフィック設計プロンプト」 #164", "成長タイプ": "🎆 バースト型", "Age": 87, "累計PV": 656, "質スコア": 52.7, "安定性スコア": 0.283, "スキ率(%)": 5.64, "スキ率トレンド(pp)": -1.4, "持続率": 0.045}, {"key": "n53ddb87df48b", "タイトル": "コピペでイチコロ。イラストを実写化するプロンプト全公開 #136", "成長タイプ": "🎆 バースト型", "Age": 103, "累計PV": 558, "質スコア": 59.6, "安定性スコア": 0.482, "スキ率(%)": 3.05, "スキ率トレンド(pp)": -6.96, "持続率": 0.271}];
-
-/* ─── 安定性スコア → カラー ─── */
-function qmapStabColor(v, a) {
-  v = Math.max(0, Math.min(1, v || 0));
-  let r, g, b;
-  if (v < 0.4) { const t = v / 0.4; r = Math.round(26 + (157 - 26) * t); g = Math.round(10 + (111 - 10) * t); b = Math.round(110 + (255 - 110) * t); }
-  else if (v < 0.7) { const t = (v - 0.4) / 0.3; r = Math.round(157 + (0 - 157) * t); g = Math.round(111 + (229 - 111) * t); b = 255; }
-  else { const t = (v - 0.7) / 0.3; r = Math.round(0 + 255 * t); g = Math.round(229 + (201 - 229) * t); b = Math.round(255 + (71 - 255) * t); }
-  return `rgba(${r},${g},${b},${a})`;
-}
-
-/* ─── バブルサイズ ─── */
-const QMAP_MAX_PV = Math.max(...QMAP_DATA.map(r => r['累計PV'] || 0));
-function qmapPvR(pv) { return Math.max(4, Math.min(30, Math.sqrt((pv || 0) / QMAP_MAX_PV) * 30)); }
-
-/* ─── 成長タイプ → フィルタークラス ─── */
-const QMAP_TYPE_BTN = {
-  'ALL': 'on-all', '🎆 バースト型': 'on-burst', '🌲 定常型': 'on-steady',
-  '🌙 スリーパー型': 'on-sleep', '📉 フェード型': 'on-fade', '❓ データ不足': 'on-other'
-};
-
-let qmapActiveFilter = 'ALL';
-let qmapChartInst = null;
-
-/* ─── フィルターボタン生成 ─── */
-(function buildQmapFilters() {
-  const types = ['ALL', '🎆 バースト型', '🌲 定常型', '🌙 スリーパー型', '📉 フェード型', '❓ データ不足'];
-  document.getElementById('qmap-filters').innerHTML = types.map(t =>
-    `<button class="qmap-filter-btn ${t === 'ALL' ? 'on-all' : ''}" data-qtype="${t}" onclick="qmapSetFilter('${t}')">${t === 'ALL' ? '● 全表示' : t}</button>`
-  ).join('');
-})();
-
-function qmapSetFilter(t) {
-  qmapActiveFilter = t;
-  document.querySelectorAll('.qmap-filter-btn').forEach(b => {
-    const cls = QMAP_TYPE_BTN[b.dataset.qtype] || 'on-other';
-    b.className = 'qmap-filter-btn' + (b.dataset.qtype === t ? ' ' + cls : '');
-  });
-  qmapDrawScatter();
-}
-
-/* ─── スキャッター描画 ─── */
-function qmapDrawScatter() {
-  const rows = qmapActiveFilter === 'ALL' ? QMAP_DATA : QMAP_DATA.filter(r => r['成長タイプ'] === qmapActiveFilter);
-  document.getElementById('qmap-count-label').textContent = `${rows.length} / ${QMAP_DATA.length} 記事`;
-
-  const pts = rows.map(r => ({
-    x: Math.min(r['Age'] || 0, 400),
-    y: r['質スコア'] || 0,
-    r: qmapPvR(r['累計PV'] || 0),
-    _d: r
-  }));
-
-  if (qmapChartInst) { qmapChartInst.destroy(); qmapChartInst = null; }
-
-  /* 新着ブーストゾーン背景プラグイン */
-  const boostPlugin = {
-    id: 'qmap-boost',
-    beforeDraw(ch) {
-      const { ctx, chartArea: ca, scales } = ch;
-      if (!ca) return;
-      const x7 = scales.x.getPixelForValue(7);
-      ctx.save();
-      ctx.fillStyle = 'rgba(255,77,106,.06)';
-      ctx.fillRect(ca.left, ca.top, x7 - ca.left, ca.height);
-      ctx.strokeStyle = 'rgba(255,77,106,.3)'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
-      ctx.beginPath(); ctx.moveTo(x7, ca.top); ctx.lineTo(x7, ca.bottom); ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.fillStyle = 'rgba(255,77,106,.55)'; ctx.font = '9px JetBrains Mono,monospace';
-      ctx.fillText('新着ブースト圏内', ca.left + 5, ca.top + 14);
-      ctx.restore();
-    }
-  };
-
-  qmapChartInst = new Chart(document.getElementById('chart-qmap-scatter'), {
-    type: 'bubble',
-    plugins: [boostPlugin],
-    data: {
-      datasets: [{
-        label: '記事',
-        data: pts,
-        backgroundColor: pts.map(p => qmapStabColor(p._d['安定性スコア'] || 0, 0.8)),
-        borderColor:     pts.map(p => qmapStabColor(p._d['安定性スコア'] || 0, 1.0)),
-        borderWidth: 1
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      animation: { duration: 500, easing: 'easeOutQuart' },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: '#0c0f1e',
-          borderColor: 'rgba(255,255,255,.15)', borderWidth: 1,
-          titleColor: '#e8ecf8', bodyColor: '#8891b0',
-          padding: 14, cornerRadius: 8,
-          callbacks: {
-            title: ctx => { const t = String(ctx[0].raw._d['タイトル'] || ''); return t.length > 42 ? t.slice(0, 42) + '…' : t; },
-            label: ctx => {
-              const d = ctx.raw._d;
-              return [
-                ` ${d['成長タイプ']}`,
-                ` 質スコア  : ${(d['質スコア'] || 0).toFixed(1)} pt`,
-                ` スキ率    : ${(d['スキ率(%)'] || 0).toFixed(1)} %`,
-                ` 安定性    : ${(d['安定性スコア'] || 0).toFixed(2)}`,
-                ` 累計PV   : ${Number(d['累計PV'] || 0).toLocaleString()}`,
-                ` Age      : ${d['Age']}日`,
-              ];
-            }
-          }
-        }
-      },
-      scales: {
-        x: {
-          min: 0, max: 410,
-          grid: { color: 'rgba(255,255,255,.05)' },
-          ticks: { color: 'rgba(255,255,255,.7)', stepSize: 50, font: { family: "'JetBrains Mono',monospace", size: 11 } },
-          title: { display: true, text: '経過日数 (Age)', color: 'rgba(255,255,255,.45)', font: { size: 12 } }
-        },
-        y: {
-          min: 30, max: 100,
-          grid: { color: 'rgba(255,255,255,.05)' },
-          ticks: { color: 'rgba(255,255,255,.7)', font: { family: "'JetBrains Mono',monospace", size: 11 } },
-          title: { display: true, text: '質スコア', color: 'rgba(255,255,255,.45)', font: { size: 12 } }
-        }
-      }
-    }
-  });
-}
-
-/* ─── サマリーカード ─── */
-function qmapDrawStats() {
-  const total  = QMAP_DATA.length;
-  const burst  = QMAP_DATA.filter(r => r['成長タイプ'] === '🎆 バースト型').length;
-  const sleep  = QMAP_DATA.filter(r => r['成長タイプ'] === '🌙 スリーパー型').length;
-  const topEta = Math.max(...QMAP_DATA.map(r => r['スキ率(%)'] || 0)).toFixed(1);
-  const avgQ   = (QMAP_DATA.reduce((s, r) => s + (r['質スコア'] || 0), 0) / total).toFixed(1);
-  const items = [
-    { val: total,         lbl: '解析記事数',   c: 'var(--text)' },
-    { val: burst + '件',  lbl: 'バースト型',   c: 'var(--cyan)' },
-    { val: sleep + '件',  lbl: 'スリーパー型', c: 'var(--violet)' },
-    { val: topEta + '%',  lbl: '最高スキ率',   c: 'var(--gold)' },
-    { val: avgQ + ' pt',  lbl: '平均質スコア', c: 'var(--green)' },
-  ];
-  document.getElementById('qmap-stats-row').innerHTML = items.map(s =>
-    `<div class="qmap-stat-box">
-      <div class="qmap-stat-val" style="color:${s.c}">${s.val}</div>
-      <div class="qmap-stat-lbl">${s.lbl}</div>
-    </div>`
-  ).join('');
-}
-
-/* ─── 質スコア ランキング TOP 12 ─── */
-function qmapDrawRanking() {
-  const top12 = [...QMAP_DATA].sort((a, b) => (b['質スコア'] || 0) - (a['質スコア'] || 0)).slice(0, 12);
-  const medals = i => i === 0 ? 'g' : i === 1 ? 's' : i === 2 ? 'b' : '';
-  document.getElementById('qmap-ranking').innerHTML = top12.map((r, i) => {
-    const sc = r['質スコア'] || 0;
-    const t  = String(r['タイトル'] || '');
-    return `<div class="qmap-rank-item">
-      <span class="qmap-rank-n ${medals(i)}">${String(i + 1).padStart(2, '0')}</span>
-      <div>
-        <div class="qmap-rank-title" title="${t}">${t}</div>
-        <div class="qmap-rank-bar"><div class="qmap-rank-bar-fill" style="width:${sc}%"></div></div>
-      </div>
-      <span class="qmap-rank-score">${sc.toFixed(1)}</span>
-    </div>`;
-  }).join('');
-}
-
-/* ─── 品質詳細テーブル TOP 30 ─── */
-function qmapDrawTable() {
-  const sorted = [...QMAP_DATA].sort((a, b) => (b['質スコア'] || 0) - (a['質スコア'] || 0)).slice(0, 30);
-
-  function pill(v) {
-    const cl  = v >= 75 ? 's' : v >= 65 ? 'a' : v >= 55 ? 'b' : 'c';
-    const lbl = v >= 75 ? 'S' : v >= 65 ? 'A' : v >= 55 ? 'B' : 'C';
-    return `<span class="qmap-pill ${cl}">${lbl} ${v.toFixed(1)}</span>`;
-  }
-  function trend(v) {
-    if (v == null || isNaN(v)) return '<span class="qmap-fl">—</span>';
-    if (v > 0.5)  return `<span class="qmap-up">▲${v.toFixed(2)}</span>`;
-    if (v < -0.5) return `<span class="qmap-dn">▼${Math.abs(v).toFixed(2)}</span>`;
-    return `<span class="qmap-fl">→${v.toFixed(2)}</span>`;
-  }
-  function f(v, d = 2, s = '') {
-    if (v == null || isNaN(Number(v))) return '<span style="color:var(--text3)">—</span>';
-    return `${Number(v).toFixed(d)}${s}`;
-  }
-
-  document.getElementById('qmap-tbody').innerHTML = sorted.map((r, i) => {
-    const t = String(r['タイトル'] || '');
-    return `<tr>
-      <td style="color:var(--text3)">${i + 1}</td>
-      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis" title="${t}">${t}</td>
-      <td style="font-size:11px">${r['成長タイプ']}</td>
-      <td style="color:var(--text3)">${r['Age']}日</td>
-      <td>${Number(r['累計PV'] || 0).toLocaleString()}</td>
-      <td>${f(r['スキ率(%)'], 1, '%')}</td>
-      <td>${trend(r['スキ率トレンド(pp)'])}</td>
-      <td>${f(r['持続率'], 2)}</td>
-      <td>${f(r['安定性スコア'], 2)}</td>
-      <td>${pill(r['質スコア'] || 0)}</td>
-    </tr>`;
-  }).join('');
-}
-
-/* ─── Quality Map 初期化 ─── */
-qmapDrawStats();
-qmapDrawScatter();
-qmapDrawRanking();
-qmapDrawTable();
 </script>
 </body>
 </html>
