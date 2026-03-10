@@ -2269,9 +2269,9 @@ const decayUI = {
 };
 /* ============================================================
    ▼ ARTICLE TREND ANALYSIS — 記事推移グラフ（日付軸 & 経過日数軸）
+      article_trend.csv（横持ち・差分済み）を直接使用
    ============================================================ */
 
-// 多色ライン用カラーパレット（最大20記事分）
 const TREND_COLORS = [
   '#00e5ff','#ff4d8d','#ffc947','#9d6fff','#00e5a0',
   '#ff7c4d','#4dc8ff','#ff4d6a','#c8ff4d','#e04dff',
@@ -2280,13 +2280,12 @@ const TREND_COLORS = [
 ];
 
 const articleTrendUI = {
-  _articles:   [],
-  _matrix:     null,   // { title, dates[], vals[], metrics }[]
-  _allDates:   [],
-  _chartDate:  null,
-  _chartRel:   null,
-  _timer:      null,
-
+  _rows:      [],
+  _matrix:    null,
+  _allDates:  [],
+  _chartDate: null,
+  _chartRel:  null,
+  _timer:     null,
   _opts: {
     sortMode:  'firstday',
     topN:      5,
@@ -2295,13 +2294,13 @@ const articleTrendUI = {
   },
 
   /* ── 初期化 ── */
-  init(articles) {
-    this._articles = articles;
+  init(rows) {
+    this._rows = rows;
     this._buildMatrix();
     this._render();
   },
 
-  /* ── フィルター操作 ── */
+  /* ── フィルター操作（HTML側から呼ばれる） ── */
   setSortMode(mode) {
     this._opts.sortMode = mode;
     document.querySelectorAll('[data-sort]').forEach(t =>
@@ -2325,71 +2324,87 @@ const articleTrendUI = {
     this._timer = setTimeout(() => this._render(), 200);
   },
 
-  /* ── articles CSV → title×date マトリクス構築 ── */
+  /* ── article_trend.csv → 内部マトリクス構築 ── */
   _buildMatrix() {
-    const byTitle = {};
-    this._articles.forEach(r => {
-      // if (isExcluded(r.title)) return;
-      if (!byTitle[r.title]) byTitle[r.title] = {};
-      byTitle[r.title][r.date] = Number(r.read_count || 0);
-    });
+    const dayColRe = /^day(\d+)$/;
 
-    this._allDates = [...new Set(this._articles.map(r => r.date))].sort();
-    const dates    = this._allDates;
+    this._matrix = this._rows
+      .filter(r => !isExcluded(r.title) && r.first_day)
+      .map(r => {
+        // day0, day1, ... 列を抽出してソート
+        const dayEntries = Object.keys(r)
+          .filter(k => dayColRe.test(k))
+          .sort((a, b) => parseInt(a.slice(3)) - parseInt(b.slice(3)))
+          .map(k => ({ day: parseInt(k.slice(3)), diff: Math.max(0, Number(r[k]) || 0) }));
 
-    this._matrix = Object.entries(byTitle).map(([title, dateMap]) => {
-      // 前方補完しながら値配列を作る
-      let last = 0;
-      const vals = dates.map(d => {
-        if (dateMap[d] != null) { last = dateMap[d]; return dateMap[d]; }
-        return last;
-      });
+        if (!dayEntries.length) return null;
 
-      // 日次増分
-      const diffs = vals.map((v, i) => i === 0 ? v : Math.max(v - vals[i - 1], 0));
+        // 累積値（チャート①用）
+        let cum = 0;
+        const cumVals = dayEntries.map(e => { cum += e.diff; return cum; });
 
-      // Is_New: 最初に正値になる前に 0 が存在するか
-      let firstIdx = vals.findIndex(v => v > 0);
-      if (firstIdx < 0) return null;
-      const isNew = vals.slice(0, firstIdx + 1).includes(0);
+        const isNew        = r.is_new === 'True' || r.is_new === 'true' || r.is_new === true;
+        const firstDayJump = Number(r.first_day_jump) || 0;
+        const totalViews   = Number(r.total_views)    || 0;
+        const peakJump     = Math.max(...dayEntries.map(e => e.diff));
+        const initialVel   = dayEntries
+          .slice(0, this._opts.earlyDays)
+          .reduce((s, e) => s + e.diff, 0);
 
-      const earlySum = diffs.slice(firstIdx, firstIdx + this._opts.earlyDays)
-                            .reduce((s, v) => s + v, 0);
+        return {
+          title: r.title,
+          firstDay: r.first_day,   // "YYYY/MM/DD"
+          isNew, firstDayJump, totalViews, peakJump, initialVel,
+          dayEntries,  // [{day, diff}]
+          cumVals,     // 累積
+        };
+      }).filter(Boolean);
 
-      return {
-        title,
-        dates,
-        vals,
-        diffs,
-        firstIdx,
-        isNew,
-        totalViews:   vals[vals.length - 1],
-        initialVel:   earlySum,
-        peakJump:     Math.max(...diffs),
-        firstDayJump: diffs[firstIdx] || 0,
-      };
-    }).filter(Boolean);
+    this._buildDateRange();
+  },
+
+  /* ── チャート①用の共通日付軸を構築 ── */
+  _buildDateRange() {
+    if (!this._matrix.length) { this._allDates = []; return; }
+
+    const firstDays = this._matrix.map(r => r.firstDay).filter(Boolean);
+    const minDate   = firstDays.reduce((a, b) => a < b ? a : b);
+    const maxDate   = firstDays.reduce((a, b) => a > b ? a : b);
+    const maxDayCount = Math.max(...this._matrix.map(r => r.dayEntries.length));
+
+    const end = new Date(maxDate.replace(/\//g, '-'));
+    end.setDate(end.getDate() + maxDayCount);
+
+    const dates = [];
+    const cur   = new Date(minDate.replace(/\//g, '-'));
+    while (cur <= end) {
+      dates.push(cur.toISOString().slice(0, 10).replace(/-/g, '/'));
+      cur.setDate(cur.getDate() + 1);
+    }
+    this._allDates = dates;
   },
 
   /* ── チャート描画 ── */
   _render() {
     const { sortMode, topN, filterNew } = this._opts;
 
-    // フィルタ & ソート
     let records = [...this._matrix];
     if (filterNew) {
       const newOnes = records.filter(r => r.isNew);
       if (newOnes.length > 0) records = newOnes;
     }
-    const sortKey = { firstday:'firstDayJump', total:'totalViews', peak:'peakJump', initial:'initialVel' }[sortMode] || 'totalViews';
+
+    const sortKey = {
+      firstday: 'firstDayJump', total: 'totalViews',
+      peak: 'peakJump', initial: 'initialVel'
+    }[sortMode] || 'totalViews';
+
     records.sort((a, b) => b[sortKey] - a[sortKey]);
     records = records.slice(0, topN);
 
-    // バッジ & カウント更新
-    document.getElementById('trend-article-badge').textContent  = `TOP ${records.length}`;
-    document.getElementById('trend-article-count').textContent  = `${records.length} 記事を表示`;
+    document.getElementById('trend-article-badge').textContent = `TOP ${records.length}`;
+    document.getElementById('trend-article-count').textContent = `${records.length} 記事を表示`;
 
-    // 既存チャートを破棄
     if (this._chartDate) { this._chartDate.destroy(); this._chartDate = null; }
     if (this._chartRel)  { this._chartRel.destroy();  this._chartRel  = null; }
 
@@ -2399,20 +2414,13 @@ const articleTrendUI = {
       animation: { duration: 600, easing: 'easeOutQuart' },
       plugins: {
         legend: {
-          display: true,
-          position: 'right',
+          display: true, position: 'right',
           labels: { boxWidth: 8, padding: 12, color: 'rgba(255,255,255,0.75)', usePointStyle: true, font: { size: 10 } }
         },
         tooltip: {
-          backgroundColor: '#0f1221',
-          borderColor: 'rgba(255,255,255,0.1)',
-          borderWidth: 1,
-          titleColor: '#e8ecf8',
-          bodyColor: '#8891b0',
-          padding: 12,
-          cornerRadius: 6,
-          mode: 'index',
-          intersect: false,
+          backgroundColor: '#0f1221', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1,
+          titleColor: '#e8ecf8', bodyColor: '#8891b0', padding: 12, cornerRadius: 6,
+          mode: 'index', intersect: false,
         }
       },
       scales: {
@@ -2423,53 +2431,52 @@ const articleTrendUI = {
     };
 
     /* ── グラフ①：カレンダー日付軸 ── */
-    const dateLabels = this._allDates.map(d => d.slice(5)); // MM/DD
+    const label = t => t.length > 20 ? t.slice(0, 20) + '…' : t;
+    const dateLabels = this._allDates.map(d => d.slice(5));   // MM/DD
+
     this._chartDate = new Chart(document.getElementById('chart-trend-date'), {
       type: 'line',
       data: {
         labels: dateLabels,
-        datasets: records.map((r, i) => ({
-          label:            r.title.length > 20 ? r.title.slice(0, 20) + '…' : r.title,
-          data:             r.vals,
-          borderColor:      TREND_COLORS[i % TREND_COLORS.length],
-          backgroundColor:  TREND_COLORS[i % TREND_COLORS.length].replace(')', ',0.08)').replace('rgb', 'rgba'),
-          borderWidth:      1.8,
-          pointRadius:      0,
-          pointHoverRadius: 4,
-          tension:          0.3,
-          fill:             false,
-        }))
+        datasets: records.map((r, i) => {
+          // firstDay + day番号 → 実際の日付にマッピング
+          const dateMap = {};
+          let cum = 0;
+          r.dayEntries.forEach(e => {
+            const d = new Date(r.firstDay.replace(/\//g, '-'));
+            d.setDate(d.getDate() + e.day);
+            cum += e.diff;
+            dateMap[d.toISOString().slice(0, 10).replace(/-/g, '/')] = cum;
+          });
+          return {
+            label:            label(r.title),
+            data:             this._allDates.map(d => dateMap[d] ?? null),
+            borderColor:      TREND_COLORS[i % TREND_COLORS.length],
+            backgroundColor:  'transparent',
+            borderWidth: 1.8, pointRadius: 0, pointHoverRadius: 4,
+            tension: 0.3, fill: false, spanGaps: true,
+          };
+        })
       },
       options: commonOpts,
     });
 
-    /* ── グラフ②：経過日数軸（投稿日 0 基準） ── */
-    // 最大経過日数を計算
-    const maxRelDays = Math.max(...records.map(r => r.vals.length - r.firstIdx));
-    const relLabels  = Array.from({ length: maxRelDays }, (_, i) => i);
+    /* ── グラフ②：経過日数軸（day0 基準の累積） ── */
+    const maxDays   = Math.max(...records.map(r => r.cumVals.length));
+    const relLabels = Array.from({ length: maxDays }, (_, i) => i);
 
     this._chartRel = new Chart(document.getElementById('chart-trend-rel'), {
       type: 'line',
       data: {
         labels: relLabels,
-        datasets: records.map((r, i) => {
-          // firstIdx 以降の値を経過日数 0,1,2... として並べる
-          const relVals = r.vals.slice(r.firstIdx);
-          // 長さを maxRelDays に合わせて null 埋め
-          const padded  = [...relVals, ...Array(maxRelDays - relVals.length).fill(null)];
-          return {
-            label:            r.title.length > 20 ? r.title.slice(0, 20) + '…' : r.title,
-            data:             padded,
-            borderColor:      TREND_COLORS[i % TREND_COLORS.length],
-            backgroundColor:  'transparent',
-            borderWidth:      1.8,
-            pointRadius:      0,
-            pointHoverRadius: 4,
-            tension:          0.3,
-            fill:             false,
-            spanGaps:         false,
-          };
-        })
+        datasets: records.map((r, i) => ({
+          label:           label(r.title),
+          data:            [...r.cumVals, ...Array(maxDays - r.cumVals.length).fill(null)],
+          borderColor:     TREND_COLORS[i % TREND_COLORS.length],
+          backgroundColor: 'transparent',
+          borderWidth: 1.8, pointRadius: 0, pointHoverRadius: 4,
+          tension: 0.3, fill: false, spanGaps: false,
+        }))
       },
       options: {
         ...commonOpts,
@@ -2477,16 +2484,13 @@ const articleTrendUI = {
           ...commonOpts.scales,
           x: {
             ...commonOpts.scales.x,
-            ticks: {
-              ...commonOpts.scales.x.ticks,
-              callback: v => v + '日',
-            },
+            ticks: { ...commonOpts.scales.x.ticks, callback: v => v + '日' },
             title: { display: true, text: '投稿日からの経過日数', color: 'rgba(255,255,255,0.4)', font: { size: 10 } }
           }
         }
       },
     });
-  }
+  },
 };
 /* ============================================================
    SCROLL — 慣性スクロール
@@ -2518,7 +2522,7 @@ function initAllMomentumScrolls() {
    ============================================================ */
 async function init() {
   try {
-    const [summary, articles, followers, trend, assets, weekly, monthly, assetV1, assetV2] = await Promise.all([
+    const [summary, articles, followers, trend, assets, weekly, monthly, assetV1, assetV2, articleTrend] = await Promise.all([
       fetchCSV('daily_summary'),
       fetchCSV('articles'),
       fetchCSV('followers'),
@@ -2528,6 +2532,7 @@ async function init() {
       fetchCSV('monthly_summary').catch(() => []),
       fetchCSV('asset_score_v1').catch(() => []),
       fetchCSV('asset_score_v2').catch(() => []),
+      fetchCSV('article_trend').catch(() => []),   // ← 3/10 追加
     ]);
 
     const latest = summary[summary.length - 1];
@@ -2559,7 +2564,7 @@ async function init() {
 
     // ── 消費期限分析を初期化 ──
     if (articles.length) decayUI.init(articles);
-    if (articles.length) articleTrendUI.init(articles); 
+    if (articleTrend.length) articleTrendUI.init(articleTrend); 
 
   } catch (e) {
     console.error(e);
