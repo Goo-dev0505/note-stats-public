@@ -2269,7 +2269,7 @@ const decayUI = {
 };
 /* ============================================================
    ▼ ARTICLE TREND ANALYSIS — 記事推移グラフ（日付軸 & 経過日数軸）
-      article_trend.csv（横持ち・差分済み）を直接使用
+     article_trend.csv（横持ち・差分済み）を直接使用
    ============================================================ */
 
 const TREND_COLORS = [
@@ -2300,7 +2300,7 @@ const articleTrendUI = {
     this._render();
   },
 
-  /* ── フィルター操作（HTML側から呼ばれる） ── */
+  /* ── フィルター操作 ── */
   setSortMode(mode) {
     this._opts.sortMode = mode;
     document.querySelectorAll('[data-sort]').forEach(t =>
@@ -2339,9 +2339,8 @@ const articleTrendUI = {
 
         if (!dayEntries.length) return null;
 
-        // 累積値（チャート①用）
-        let cum = 0;
-        const cumVals = dayEntries.map(e => { cum += e.diff; return cum; });
+        // ★累積ではなく「日次増分」の配列をそのまま保持する
+        const diffVals = dayEntries.map(e => e.diff);
 
         const isNew        = r.is_new === 'True' || r.is_new === 'true' || r.is_new === true;
         const firstDayJump = Number(r.first_day_jump) || 0;
@@ -2353,10 +2352,10 @@ const articleTrendUI = {
 
         return {
           title: r.title,
-          firstDay: r.first_day,   // "YYYY/MM/DD"
+          firstDay: r.first_day,
           isNew, firstDayJump, totalViews, peakJump, initialVel,
           dayEntries,  // [{day, diff}]
-          cumVals,     // 累積
+          diffVals,    // ★日次増分の配列
         };
       }).filter(Boolean);
 
@@ -2425,7 +2424,7 @@ const articleTrendUI = {
       },
       scales: {
         x: { grid: { color: CONFIG.GRID_COLOR }, ticks: { maxTicksLimit: 12, color: 'rgba(255,255,255,0.65)', maxRotation: 0 } },
-        y: { grid: { color: CONFIG.GRID_COLOR }, ticks: { color: CONFIG.TICK_COLOR } ,beginAtZero: true,}
+        y: { grid: { color: CONFIG.GRID_COLOR }, ticks: { color: CONFIG.TICK_COLOR }, beginAtZero: true }
       },
       interaction: { mode: 'index', intersect: false },
     };
@@ -2439,14 +2438,12 @@ const articleTrendUI = {
       data: {
         labels: dateLabels,
         datasets: records.map((r, i) => {
-          // firstDay + day番号 → 実際の日付にマッピング
           const dateMap = {};
-          let cum = 0;
           r.dayEntries.forEach(e => {
             const d = new Date(r.firstDay.replace(/\//g, '-'));
             d.setDate(d.getDate() + e.day);
-            cum += e.diff;
-            dateMap[d.toISOString().slice(0, 10).replace(/-/g, '/')] = cum;
+            // ★累積せずに e.diff をそのまま代入する
+            dateMap[d.toISOString().slice(0, 10).replace(/-/g, '/')] = e.diff;
           });
           return {
             label:            label(r.title),
@@ -2461,8 +2458,8 @@ const articleTrendUI = {
       options: commonOpts,
     });
 
-    /* ── グラフ②：経過日数軸（day0 基準の累積） ── */
-    const maxDays   = Math.max(...records.map(r => r.cumVals.length));
+    /* ── グラフ②：経過日数軸（day0 基準の日次増分） ── */
+    const maxDays   = Math.max(...records.map(r => r.diffVals.length));
     const relLabels = Array.from({ length: maxDays }, (_, i) => i);
 
     this._chartRel = new Chart(document.getElementById('chart-trend-rel'), {
@@ -2471,7 +2468,8 @@ const articleTrendUI = {
         labels: relLabels,
         datasets: records.map((r, i) => ({
           label:           label(r.title),
-          data:            [...r.cumVals, ...Array(maxDays - r.cumVals.length).fill(null)],
+          // ★cumVals ではなく diffVals を使う
+          data:            [...r.diffVals, ...Array(maxDays - r.diffVals.length).fill(null)],
           borderColor:     TREND_COLORS[i % TREND_COLORS.length],
           backgroundColor: 'transparent',
           borderWidth: 1.8, pointRadius: 0, pointHoverRadius: 4,
