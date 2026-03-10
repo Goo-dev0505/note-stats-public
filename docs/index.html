@@ -2270,6 +2270,7 @@ const decayUI = {
 /* ============================================================
    ▼ ARTICLE TREND ANALYSIS — 記事推移グラフ（日付軸 & 経過日数軸）
      article_trend.csv（横持ち・差分済み）を直接使用
+     ★ Y軸を累積PVに変更（Colab版と同じ表示）
    ============================================================ */
 
 const TREND_COLORS = [
@@ -2339,19 +2340,25 @@ const articleTrendUI = {
         if (!dayEntries.length) return null;
 
         const diffVals = dayEntries.map(e => e.diff);
-        
+
+        // ★ cumVals: diffVals の累積和（Colab グラフと同じ累積PV）
+        const cumVals = diffVals.reduce((acc, v) => {
+          acc.push((acc.length > 0 ? acc[acc.length - 1] : 0) + v);
+          return acc;
+        }, []);
+
         let isNew        = r.is_new === 'True' || r.is_new === 'true' || r.is_new === true;
         let firstDayJump = Number(r.first_day_jump) || 0;
         const totalViews = Number(r.total_views)    || 0;
         let peakJump     = Math.max(...diffVals);
 
-        // 🚑 【緊急オペ】途中参加の過去記事ノイズ（巨大スパイク）を除去
-        // 初日の増分が50以上で、かつ累計PVの85%以上を占める場合は「過去の累積が計上されただけ」とみなして折る
+        // 途中参加の過去記事ノイズ（巨大スパイク）を除去
         if (firstDayJump >= 50 && totalViews > 0 && (firstDayJump / totalViews) > 0.85) {
-            diffVals[0] = 0;         // スパイクを消す
-            firstDayJump = 0;        // 初日ドカーンランキングからも除外
-            peakJump = Math.max(...diffVals); // ピーク増加も再計算
-            isNew = false;           // 新規記事扱いからも外す
+          diffVals[0] = 0;
+          cumVals[0]  = 0;  // ★ cumVals も修正
+          firstDayJump = 0;
+          peakJump = Math.max(...diffVals);
+          isNew = false;
         }
 
         const initialVel = diffVals
@@ -2364,6 +2371,7 @@ const articleTrendUI = {
           isNew, firstDayJump, totalViews, peakJump, initialVel,
           dayEntries,
           diffVals,
+          cumVals,  // ★ 追加
         };
       }).filter(Boolean);
 
@@ -2374,9 +2382,9 @@ const articleTrendUI = {
   _buildDateRange() {
     if (!this._matrix.length) { this._allDates = []; return; }
 
-    const firstDays = this._matrix.map(r => r.firstDay).filter(Boolean);
-    const minDate   = firstDays.reduce((a, b) => a < b ? a : b);
-    const maxDate   = firstDays.reduce((a, b) => a > b ? a : b);
+    const firstDays   = this._matrix.map(r => r.firstDay).filter(Boolean);
+    const minDate     = firstDays.reduce((a, b) => a < b ? a : b);
+    const maxDate     = firstDays.reduce((a, b) => a > b ? a : b);
     const maxDayCount = Math.max(...this._matrix.map(r => r.dayEntries.length));
 
     const end = new Date(maxDate.replace(/\//g, '-'));
@@ -2428,17 +2436,26 @@ const articleTrendUI = {
           backgroundColor: '#0f1221', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1,
           titleColor: '#e8ecf8', bodyColor: '#8891b0', padding: 12, cornerRadius: 6,
           mode: 'index', intersect: false,
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: ${ctx.raw != null ? ctx.raw.toLocaleString() + ' PV' : '—'}`
+          }
         }
       },
       scales: {
         x: { grid: { color: CONFIG.GRID_COLOR }, ticks: { maxTicksLimit: 12, color: 'rgba(255,255,255,0.65)', maxRotation: 0 } },
-        y: { grid: { color: CONFIG.GRID_COLOR }, ticks: { color: CONFIG.TICK_COLOR }, beginAtZero: true }
+        y: {
+          grid: { color: CONFIG.GRID_COLOR },
+          ticks: { color: CONFIG.TICK_COLOR },
+          beginAtZero: true,
+          title: { display: true, text: '累積 PV', color: 'rgba(255,255,255,0.4)', font: { size: 10 } }  // ★
+        }
       },
       interaction: { mode: 'index', intersect: false },
     };
 
-    /* ── グラフ①：カレンダー日付軸 ── */
     const label = t => t.length > 20 ? t.slice(0, 20) + '…' : t;
+
+    /* ── グラフ①：カレンダー日付軸（累積PV） ── */
     const dateLabels = this._allDates.map(d => d.slice(5));   // MM/DD
 
     this._chartDate = new Chart(document.getElementById('chart-trend-date'), {
@@ -2446,12 +2463,12 @@ const articleTrendUI = {
       data: {
         labels: dateLabels,
         datasets: records.map((r, i) => {
+          // ★ cumVals を日付にマッピング
           const dateMap = {};
-          r.dayEntries.forEach(e => {
+          r.dayEntries.forEach((e, idx) => {
             const d = new Date(r.firstDay.replace(/\//g, '-'));
             d.setDate(d.getDate() + e.day);
-            // ★累積せずに e.diff をそのまま代入する
-            dateMap[d.toISOString().slice(0, 10).replace(/-/g, '/')] = e.diff;
+            dateMap[d.toISOString().slice(0, 10).replace(/-/g, '/')] = r.cumVals[idx];
           });
           return {
             label:            label(r.title),
@@ -2459,15 +2476,15 @@ const articleTrendUI = {
             borderColor:      TREND_COLORS[i % TREND_COLORS.length],
             backgroundColor:  'transparent',
             borderWidth: 1.8, pointRadius: 0, pointHoverRadius: 4,
-            tension: 0.3, fill: false, spanGaps: true,
+            tension: 0.3, fill: false, spanGaps: false,
           };
         })
       },
       options: commonOpts,
     });
 
-    /* ── グラフ②：経過日数軸（day0 基準の日次増分） ── */
-    const maxDays   = Math.max(...records.map(r => r.diffVals.length));
+    /* ── グラフ②：経過日数軸（累積PV・day0基準） ── */
+    const maxDays   = Math.max(...records.map(r => r.cumVals.length));
     const relLabels = Array.from({ length: maxDays }, (_, i) => i);
 
     this._chartRel = new Chart(document.getElementById('chart-trend-rel'), {
@@ -2476,8 +2493,8 @@ const articleTrendUI = {
         labels: relLabels,
         datasets: records.map((r, i) => ({
           label:           label(r.title),
-          // ★cumVals ではなく diffVals を使う
-          data:            [...r.diffVals, ...Array(maxDays - r.diffVals.length).fill(null)],
+          // ★ cumVals を使う（Colab グラフ②と同じ累積PV）
+          data:            [...r.cumVals, ...Array(maxDays - r.cumVals.length).fill(null)],
           borderColor:     TREND_COLORS[i % TREND_COLORS.length],
           backgroundColor: 'transparent',
           borderWidth: 1.8, pointRadius: 0, pointHoverRadius: 4,
@@ -2491,7 +2508,7 @@ const articleTrendUI = {
           x: {
             ...commonOpts.scales.x,
             ticks: { ...commonOpts.scales.x.ticks, callback: v => v + '日' },
-            title: { display: true, text: '投稿日からの経過日数', color: 'rgba(255,255,255,0.4)', font: { size: 10 } }
+            title: { display: true, text: '投稿日からの経過日数（Day）', color: 'rgba(255,255,255,0.4)', font: { size: 10 } }
           }
         }
       },
