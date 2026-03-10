@@ -2331,7 +2331,6 @@ const articleTrendUI = {
     this._matrix = this._rows
       .filter(r => !isExcluded(r.title) && r.first_day)
       .map(r => {
-        // day0, day1, ... 列を抽出してソート
         const dayEntries = Object.keys(r)
           .filter(k => dayColRe.test(k))
           .sort((a, b) => parseInt(a.slice(3)) - parseInt(b.slice(3)))
@@ -2339,23 +2338,32 @@ const articleTrendUI = {
 
         if (!dayEntries.length) return null;
 
-        // ★累積ではなく「日次増分」の配列をそのまま保持する
         const diffVals = dayEntries.map(e => e.diff);
+        
+        let isNew        = r.is_new === 'True' || r.is_new === 'true' || r.is_new === true;
+        let firstDayJump = Number(r.first_day_jump) || 0;
+        const totalViews = Number(r.total_views)    || 0;
+        let peakJump     = Math.max(...diffVals);
 
-        const isNew        = r.is_new === 'True' || r.is_new === 'true' || r.is_new === true;
-        const firstDayJump = Number(r.first_day_jump) || 0;
-        const totalViews   = Number(r.total_views)    || 0;
-        const peakJump     = Math.max(...dayEntries.map(e => e.diff));
-        const initialVel   = dayEntries
+        // 🚑 【緊急オペ】途中参加の過去記事ノイズ（巨大スパイク）を除去
+        // 初日の増分が50以上で、かつ累計PVの85%以上を占める場合は「過去の累積が計上されただけ」とみなして折る
+        if (firstDayJump >= 50 && totalViews > 0 && (firstDayJump / totalViews) > 0.85) {
+            diffVals[0] = 0;         // スパイクを消す
+            firstDayJump = 0;        // 初日ドカーンランキングからも除外
+            peakJump = Math.max(...diffVals); // ピーク増加も再計算
+            isNew = false;           // 新規記事扱いからも外す
+        }
+
+        const initialVel = diffVals
           .slice(0, this._opts.earlyDays)
-          .reduce((s, e) => s + e.diff, 0);
+          .reduce((s, val) => s + val, 0);
 
         return {
           title: r.title,
           firstDay: r.first_day,
           isNew, firstDayJump, totalViews, peakJump, initialVel,
-          dayEntries,  // [{day, diff}]
-          diffVals,    // ★日次増分の配列
+          dayEntries,
+          diffVals,
         };
       }).filter(Boolean);
 
