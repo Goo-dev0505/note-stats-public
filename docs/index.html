@@ -32,6 +32,56 @@
   --sans: 'Syne', sans-serif;
   --r: 6px;
 }
+
+/* ── ARTICLE TREND ANALYSIS ── */
+.section-divider.trend-div {
+  background: linear-gradient(90deg, rgba(0,229,255,0.04) 0%, transparent 60%);
+}
+.section-divider-label.trend-label { color: var(--cyan); }
+.section-divider-label.trend-label::before { background: var(--cyan); }
+
+.trend-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 14px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+}
+.trend-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.trend-filter-label {
+  font-size: 10px;
+  color: var(--text3);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.trend-filter-divider {
+  width: 1px; height: 24px;
+  background: var(--border2);
+  flex-shrink: 0;
+}
+.trend-chart-title {
+  font-size: 10px;
+  color: var(--text3);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  padding-left: 2px;
+}
+.trend-chart-pair {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
   background: var(--bg);
@@ -1180,7 +1230,76 @@ header {
       </div>
 
     </div><!-- /decay-panel -->
+    <!-- ══ 記事推移分析 セクション区切り ══ -->
+<div class="panel full section-divider trend-div">
+  <span class="section-divider-label trend-label">Article Trend｜記事推移分析</span>
+  <div class="section-divider-line" style="background:linear-gradient(90deg,rgba(0,229,255,0.3),transparent)"></div>
+  <span class="panel-badge" style="color:var(--cyan);border-color:rgba(0,229,255,0.2)">LINE</span>
+</div>
 
+<!-- 記事推移パネル -->
+<div class="panel full" id="trend-article-panel">
+  <div class="panel-header">
+    <div class="panel-title">
+      <span class="panel-title-dot" style="background:var(--cyan)"></span>
+      記事推移グラフ｜日付軸 &amp; 経過日数軸
+    </div>
+    <span id="trend-article-badge" class="panel-badge" style="color:var(--cyan);border-color:var(--cyan-dim)">—</span>
+  </div>
+
+  <!-- フィルターバー -->
+  <div class="trend-filter-bar">
+
+    <!-- ソートモード -->
+    <div class="trend-filter-group">
+      <span class="trend-filter-label">ソート順</span>
+      <div class="period-tabs-wrap" style="margin-bottom:0">
+        <button class="period-tab active" data-sort="firstday" onclick="articleTrendUI.setSortMode('firstday')">初日ドカーン</button>
+        <button class="period-tab" data-sort="total"    onclick="articleTrendUI.setSortMode('total')">累計PV</button>
+        <button class="period-tab" data-sort="peak"     onclick="articleTrendUI.setSortMode('peak')">ピーク増加</button>
+        <button class="period-tab" data-sort="initial"  onclick="articleTrendUI.setSortMode('initial')">初速(7日)</button>
+      </div>
+    </div>
+
+    <div class="trend-filter-divider"></div>
+
+    <!-- Top N -->
+    <div class="trend-filter-group">
+      <span class="trend-filter-label">上位 N 件</span>
+      <div class="period-tabs-wrap" style="margin-bottom:0">
+        <button class="period-tab active" data-topn="5"  onclick="articleTrendUI.setTopN(5)">5</button>
+        <button class="period-tab"        data-topn="10" onclick="articleTrendUI.setTopN(10)">10</button>
+        <button class="period-tab"        data-topn="15" onclick="articleTrendUI.setTopN(15)">15</button>
+        <button class="period-tab"        data-topn="20" onclick="articleTrendUI.setTopN(20)">20</button>
+      </div>
+    </div>
+
+    <div class="trend-filter-divider"></div>
+
+    <!-- 対象記事 -->
+    <div class="trend-filter-group">
+      <span class="trend-filter-label">対象</span>
+      <div class="period-tabs-wrap" style="margin-bottom:0">
+        <button class="period-tab active" id="trend-filter-new" onclick="articleTrendUI.setFilterNew(true)">新規のみ</button>
+        <button class="period-tab"        id="trend-filter-all" onclick="articleTrendUI.setFilterNew(false)">全記事</button>
+      </div>
+    </div>
+
+    <span id="trend-article-count" style="margin-left:auto;font-size:10px;color:var(--text3);letter-spacing:0.08em">— 記事</span>
+  </div>
+
+  <!-- 2チャート -->
+  <div class="trend-chart-pair">
+    <div>
+      <div class="trend-chart-title">① カレンダー日付軸</div>
+      <div class="chart-wrap" style="height:340px"><canvas id="chart-trend-date"></canvas></div>
+    </div>
+    <div>
+      <div class="trend-chart-title">② 投稿日 0日目 基準の経過日数軸</div>
+      <div class="chart-wrap" style="height:340px"><canvas id="chart-trend-rel"></canvas></div>
+    </div>
+  </div>
+</div>
   </div><!-- /grid -->
 </div><!-- /dashboard -->
 
@@ -2148,7 +2267,227 @@ const decayUI = {
     el.addEventListener('touchend', () => { isDown = false; });
   }
 };
+/* ============================================================
+   ▼ ARTICLE TREND ANALYSIS — 記事推移グラフ（日付軸 & 経過日数軸）
+   ============================================================ */
 
+// 多色ライン用カラーパレット（最大20記事分）
+const TREND_COLORS = [
+  '#00e5ff','#ff4d8d','#ffc947','#9d6fff','#00e5a0',
+  '#ff7c4d','#4dc8ff','#ff4d6a','#c8ff4d','#e04dff',
+  '#4dffb8','#ff9d4d','#7c9dff','#ff4d4d','#4dffe0',
+  '#ffdf4d','#b84dff','#4dff7c','#ff6e9d','#9dffcf',
+];
+
+const articleTrendUI = {
+  _articles:   [],
+  _matrix:     null,   // { title, dates[], vals[], metrics }[]
+  _allDates:   [],
+  _chartDate:  null,
+  _chartRel:   null,
+  _timer:      null,
+
+  _opts: {
+    sortMode:  'firstday',
+    topN:      5,
+    filterNew: true,
+    earlyDays: 7,
+  },
+
+  /* ── 初期化 ── */
+  init(articles) {
+    this._articles = articles;
+    this._buildMatrix();
+    this._render();
+  },
+
+  /* ── フィルター操作 ── */
+  setSortMode(mode) {
+    this._opts.sortMode = mode;
+    document.querySelectorAll('[data-sort]').forEach(t =>
+      t.classList.toggle('active', t.dataset.sort === mode));
+    this._schedule();
+  },
+  setTopN(n) {
+    this._opts.topN = Number(n);
+    document.querySelectorAll('[data-topn]').forEach(t =>
+      t.classList.toggle('active', Number(t.dataset.topn) === Number(n)));
+    this._schedule();
+  },
+  setFilterNew(isNew) {
+    this._opts.filterNew = isNew;
+    document.getElementById('trend-filter-new').classList.toggle('active',  isNew);
+    document.getElementById('trend-filter-all').classList.toggle('active', !isNew);
+    this._schedule();
+  },
+  _schedule() {
+    clearTimeout(this._timer);
+    this._timer = setTimeout(() => this._render(), 200);
+  },
+
+  /* ── articles CSV → title×date マトリクス構築 ── */
+  _buildMatrix() {
+    const byTitle = {};
+    this._articles.forEach(r => {
+      // if (isExcluded(r.title)) return;
+      if (!byTitle[r.title]) byTitle[r.title] = {};
+      byTitle[r.title][r.date] = Number(r.read_count || 0);
+    });
+
+    this._allDates = [...new Set(this._articles.map(r => r.date))].sort();
+    const dates    = this._allDates;
+
+    this._matrix = Object.entries(byTitle).map(([title, dateMap]) => {
+      // 前方補完しながら値配列を作る
+      let last = 0;
+      const vals = dates.map(d => {
+        if (dateMap[d] != null) { last = dateMap[d]; return dateMap[d]; }
+        return last;
+      });
+
+      // 日次増分
+      const diffs = vals.map((v, i) => i === 0 ? v : Math.max(v - vals[i - 1], 0));
+
+      // Is_New: 最初に正値になる前に 0 が存在するか
+      let firstIdx = vals.findIndex(v => v > 0);
+      if (firstIdx < 0) return null;
+      const isNew = vals.slice(0, firstIdx + 1).includes(0);
+
+      const earlySum = diffs.slice(firstIdx, firstIdx + this._opts.earlyDays)
+                            .reduce((s, v) => s + v, 0);
+
+      return {
+        title,
+        dates,
+        vals,
+        diffs,
+        firstIdx,
+        isNew,
+        totalViews:   vals[vals.length - 1],
+        initialVel:   earlySum,
+        peakJump:     Math.max(...diffs),
+        firstDayJump: diffs[firstIdx] || 0,
+      };
+    }).filter(Boolean);
+  },
+
+  /* ── チャート描画 ── */
+  _render() {
+    const { sortMode, topN, filterNew } = this._opts;
+
+    // フィルタ & ソート
+    let records = [...this._matrix];
+    if (filterNew) {
+      const newOnes = records.filter(r => r.isNew);
+      if (newOnes.length > 0) records = newOnes;
+    }
+    const sortKey = { firstday:'firstDayJump', total:'totalViews', peak:'peakJump', initial:'initialVel' }[sortMode] || 'totalViews';
+    records.sort((a, b) => b[sortKey] - a[sortKey]);
+    records = records.slice(0, topN);
+
+    // バッジ & カウント更新
+    document.getElementById('trend-article-badge').textContent  = `TOP ${records.length}`;
+    document.getElementById('trend-article-count').textContent  = `${records.length} 記事を表示`;
+
+    // 既存チャートを破棄
+    if (this._chartDate) { this._chartDate.destroy(); this._chartDate = null; }
+    if (this._chartRel)  { this._chartRel.destroy();  this._chartRel  = null; }
+
+    const commonOpts = {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 600, easing: 'easeOutQuart' },
+      plugins: {
+        legend: {
+          display: true,
+          position: 'right',
+          labels: { boxWidth: 8, padding: 12, color: 'rgba(255,255,255,0.75)', usePointStyle: true, font: { size: 10 } }
+        },
+        tooltip: {
+          backgroundColor: '#0f1221',
+          borderColor: 'rgba(255,255,255,0.1)',
+          borderWidth: 1,
+          titleColor: '#e8ecf8',
+          bodyColor: '#8891b0',
+          padding: 12,
+          cornerRadius: 6,
+          mode: 'index',
+          intersect: false,
+        }
+      },
+      scales: {
+        x: { grid: { color: CONFIG.GRID_COLOR }, ticks: { maxTicksLimit: 12, color: 'rgba(255,255,255,0.65)', maxRotation: 0 } },
+        y: { grid: { color: CONFIG.GRID_COLOR }, ticks: { color: CONFIG.TICK_COLOR } }
+      },
+      interaction: { mode: 'index', intersect: false },
+    };
+
+    /* ── グラフ①：カレンダー日付軸 ── */
+    const dateLabels = this._allDates.map(d => d.slice(5)); // MM/DD
+    this._chartDate = new Chart(document.getElementById('chart-trend-date'), {
+      type: 'line',
+      data: {
+        labels: dateLabels,
+        datasets: records.map((r, i) => ({
+          label:            r.title.length > 20 ? r.title.slice(0, 20) + '…' : r.title,
+          data:             r.vals,
+          borderColor:      TREND_COLORS[i % TREND_COLORS.length],
+          backgroundColor:  TREND_COLORS[i % TREND_COLORS.length].replace(')', ',0.08)').replace('rgb', 'rgba'),
+          borderWidth:      1.8,
+          pointRadius:      0,
+          pointHoverRadius: 4,
+          tension:          0.3,
+          fill:             false,
+        }))
+      },
+      options: commonOpts,
+    });
+
+    /* ── グラフ②：経過日数軸（投稿日 0 基準） ── */
+    // 最大経過日数を計算
+    const maxRelDays = Math.max(...records.map(r => r.vals.length - r.firstIdx));
+    const relLabels  = Array.from({ length: maxRelDays }, (_, i) => i);
+
+    this._chartRel = new Chart(document.getElementById('chart-trend-rel'), {
+      type: 'line',
+      data: {
+        labels: relLabels,
+        datasets: records.map((r, i) => {
+          // firstIdx 以降の値を経過日数 0,1,2... として並べる
+          const relVals = r.vals.slice(r.firstIdx);
+          // 長さを maxRelDays に合わせて null 埋め
+          const padded  = [...relVals, ...Array(maxRelDays - relVals.length).fill(null)];
+          return {
+            label:            r.title.length > 20 ? r.title.slice(0, 20) + '…' : r.title,
+            data:             padded,
+            borderColor:      TREND_COLORS[i % TREND_COLORS.length],
+            backgroundColor:  'transparent',
+            borderWidth:      1.8,
+            pointRadius:      0,
+            pointHoverRadius: 4,
+            tension:          0.3,
+            fill:             false,
+            spanGaps:         false,
+          };
+        })
+      },
+      options: {
+        ...commonOpts,
+        scales: {
+          ...commonOpts.scales,
+          x: {
+            ...commonOpts.scales.x,
+            ticks: {
+              ...commonOpts.scales.x.ticks,
+              callback: v => v + '日',
+            },
+            title: { display: true, text: '投稿日からの経過日数', color: 'rgba(255,255,255,0.4)', font: { size: 10 } }
+          }
+        }
+      },
+    });
+  }
+};
 /* ============================================================
    SCROLL — 慣性スクロール
    ============================================================ */
@@ -2220,6 +2559,7 @@ async function init() {
 
     // ── 消費期限分析を初期化 ──
     if (articles.length) decayUI.init(articles);
+    if (articles.length) articleTrendUI.init(articles); 
 
   } catch (e) {
     console.error(e);
