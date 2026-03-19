@@ -2005,23 +2005,25 @@ const articleTrendUI = {
    ⑭ Comment Intelligence
    ================================================================ */
 const CommentStore = {
-  // articles から最新日付・コメントあり行のみ抽出
+  // articles から記事keyごとに「最新かつcomment_countが有効な行」を1行ずつ取得
   build(articles) {
-    // 最新日付を取得
-    const latestDate = articles.reduce((a, b) => a.date > b.date ? a.date : b.date, '');
-    // 最新日付行 + 除外タイトル除外 + comment_countが有効な行のみ
-    return articles.filter(r =>
-      r.date === latestDate &&
-      !Store.isExcluded(r.title) &&
-      r.comment_count !== '' &&
-      r.comment_count !== undefined &&
-      !isNaN(Number(r.comment_count))
-    ).map(r => ({
-      title:        r.title,
-      read_count:   Number(r.read_count)   || 0,
-      like_count:   Number(r.like_count)   || 0,
+    // keyごとに最新のcomment_count有効行を探す
+    const byKey = {};
+    for (const r of articles) {
+      if (Store.isExcluded(r.title)) continue;
+      const cc = r.comment_count;
+      if (cc === '' || cc === undefined || cc === null || isNaN(Number(cc))) continue;
+      const key = r.key || r.title; // keyがなければtitleでグループ化
+      if (!byKey[key] || r.date > byKey[key].date) {
+        byKey[key] = r;
+      }
+    }
+    return Object.values(byKey).map(r => ({
+      title:         r.title,
+      read_count:    Number(r.read_count)    || 0,
+      like_count:    Number(r.like_count)    || 0,
       comment_count: Number(r.comment_count) || 0,
-      comment_rate: (Number(r.read_count) >= CONFIG.minPvForEta && Number(r.read_count) > 0)
+      comment_rate:  (Number(r.read_count) >= CONFIG.minPvForEta && Number(r.read_count) > 0)
         ? Number(r.comment_count) / Number(r.read_count) * 100
         : null,
     }));
@@ -2163,7 +2165,19 @@ function renderCommentScatter(rows) {
 
 function renderCommentSection(articles) {
   const rows = CommentStore.build(articles);
-  if (!rows.length) return;
+
+  // データなし時はローディング表示をクリアして終了
+  if (!rows.length) {
+    ['ranking-comments','ranking-comment-rate'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = '<div style="padding:20px;font-size:11px;color:var(--text3);letter-spacing:0.08em">コメントデータがありません</div>';
+    });
+    ['ckpi-total','ckpi-engaged','ckpi-rate','ckpi-max'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = '—';
+    });
+    return;
+  }
 
   renderCommentKPIs(rows);
 
@@ -2181,7 +2195,7 @@ function renderCommentSection(articles) {
     'ranking-comment-rate',
     CommentStore.rankByRate(rows),
     'comment_rate',
-    'fill-gold', 'val-gold' ,
+    'fill-gold', 'val-gold',
     v => v.toFixed(3) + '%'
   );
 
@@ -2189,7 +2203,7 @@ function renderCommentSection(articles) {
   renderCommentScatter(rows);
 }
 
-   ================================================================ */
+
 function initMomentumScroll(scrollEl, dragEl) {
   dragEl = dragEl || scrollEl;
   let down=false, startX=0, scrollStart=0, vel=0, lastX=0, lastT=0, raf=null;
