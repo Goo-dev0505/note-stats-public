@@ -1,1824 +1,2419 @@
 <!DOCTYPE html>
-<html lang="ja" data-theme="light">
+<html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KITAcore Note Analytics</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <style>
-    /* ===== CSS Custom Properties ===== */
-    :root {
-      --note-green: #3EC19C;
-      --note-green-hover: #35a886;
-      --note-blue: #4a90d9;
-      --pro-color: #ff7043;
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>note / stats</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+/* ── 変数 ── */
+:root {
+  --bg:         #06080f;
+  --bg2:        #0b0e1a;
+  --surface:    #0f1221;
+  --surface2:   #141729;
+  --border:     rgba(255,255,255,0.07);
+  --border2:    rgba(255,255,255,0.12);
+  --cyan:       #00e5ff;
+  --cyan-dim:   rgba(0,229,255,0.12);
+  --pink:       #ff4d8d;
+  --pink-dim:   rgba(255,77,141,0.12);
+  --gold:       #ffc947;
+  --gold-dim:   rgba(255,201,71,0.12);
+  --violet:     #9d6fff;
+  --violet-dim: rgba(157,111,255,0.12);
+  --green:      #00e5a0;
+  --red:        #ff4d6a;
+  --text:       #f0f4ff;
+  --text2:      #b0bcd8;
+  --text3:      #6b7599;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Syne', sans-serif;
+  --r: 6px;
+}
 
-      /* Light theme */
-      --bg: #f6f6f6;
-      --surface: #ffffff;
-      --surface-2: #f9f9f9;
-      --border: #e8e8e8;
-      --text-primary: #1a1a1a;
-      --text-secondary: #555555;
-      --text-muted: #999999;
-      --kpi-num: #1a1a1a;
-      --table-hover: #f5faf8;
-      --shadow: 0 1px 3px rgba(0,0,0,0.07);
-      --shadow-md: 0 2px 10px rgba(0,0,0,0.10);
-      --positive: #27ae60;
-      --negative: #e74c3c;
-    }
+/* ── リセット & ベース ── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 999;
+}
+::-webkit-scrollbar        { width: 4px; height: 4px; }
+::-webkit-scrollbar-track  { background: var(--bg); }
+::-webkit-scrollbar-thumb  { background: var(--border2); border-radius: 2px; }
 
-    [data-theme="dark"] {
-      --bg: #0e1018;
-      --surface: #181b27;
-      --surface-2: #131620;
-      --border: #252838;
-      --text-primary: #e8e8e8;
-      --text-secondary: #9494aa;
-      --text-muted: #5a5a70;
-      --kpi-num: #f0f0f0;
-      --table-hover: #1c1f2e;
-      --shadow: 0 1px 4px rgba(0,0,0,0.4);
-      --shadow-md: 0 2px 12px rgba(0,0,0,0.5);
-      --positive: #2ecc71;
-      --negative: #e74c3c;
-    }
+/* ── ヘッダー ── */
+header {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(6,8,15,0.92);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 32px; height: 56px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.logo {
+  font-family: var(--sans); font-size: 15px; font-weight: 800;
+  letter-spacing: 0.05em;
+  display: flex; align-items: center; gap: 10px;
+}
+.logo-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--cyan); box-shadow: 0 0 12px var(--cyan);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100% { opacity:1;transform:scale(1); } 50% { opacity:0.5;transform:scale(0.8); } }
+.logo-slash { color: var(--text3); margin: 0 2px; }
+.logo-sub   { color: var(--cyan); }
+.header-right    { display: flex; align-items: center; gap: 24px; }
+#last-updated    { font-size: 12px; color: var(--text2); letter-spacing: 0.1em; }
+.header-badge    { font-size: 9px; padding: 3px 8px; border: 1px solid var(--border2); border-radius: 2px; color: var(--text2); letter-spacing: 0.15em; text-transform: uppercase; }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+/* ── ダッシュボード ── */
+.dashboard { max-width: 1600px; margin: 0 auto; }
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans',
-                   'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
-      background: var(--bg);
-      color: var(--text-primary);
-      font-size: 14px;
-      line-height: 1.5;
-      transition: background 0.25s, color 0.25s;
-    }
+/* ── ステータスバンド ── */
+.status-band {
+  border-bottom: 1px solid var(--border);
+  padding: 28px 32px;
+  display: grid;
+  grid-template-columns: 1fr 1px 1fr 1px 1fr 2px 1fr;
+  align-items: center;
+  animation: fadeUp 0.6s ease both;
+}
+.band-div       { width:1px; height:40px; background:var(--border2); justify-self:center; }
+.band-div.thick { width:2px; height:60px; }
+.kpi3 { padding: 0 28px; }
+.kpi3-label { font-size:15px; color:var(--text2); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:10px; }
+.kpi3-row   { display:flex; align-items:baseline; gap:10px; }
+.kpi3-val   { font-family:var(--sans); font-size:34px; font-weight:700; color:var(--text); line-height:1; }
+.kpi3-arrow { font-size:20px; }
+.kpi3-arrow.up   { color: var(--green); }
+.kpi3-arrow.down { color: var(--red); }
+.kpi3-arrow.flat { color: var(--text3); }
+.kpi3-sub   { font-size:12px; color:var(--text3); margin-top:5px; }
+.memo-wrap  { padding: 0 28px; }
+.memo-label { font-size:18px; color:var(--text2); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:10px; }
+#memo-text  { font-family:var(--sans); font-size:15px; font-weight:600; color:var(--cyan); line-height:1.5; min-height:40px; }
 
-    /* ===== HEADER ===== */
-    .header {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 0 24px;
-      height: 56px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      position: sticky;
-      top: 0;
-      z-index: 200;
-      box-shadow: var(--shadow);
-    }
-    .header-left { display: flex; align-items: center; gap: 10px; }
-    .logo { font-size: 17px; font-weight: 800; color: var(--note-green); letter-spacing: -0.5px; }
-    .logo-sep { color: var(--border); font-size: 18px; }
-    .logo-sub { font-size: 13px; color: var(--text-muted); font-weight: 500; }
+/* ── KPIストリップ ── */
+.kpi-strip {
+  display: grid; grid-template-columns: repeat(4,1fr);
+  border-bottom: 1px solid var(--border);
+  animation: fadeUp 0.6s 0.1s ease both;
+}
+.kpi {
+  padding: 24px 32px; border-right: 1px solid var(--border);
+  position: relative; overflow: hidden;
+  transition: background 0.2s; cursor: default;
+}
+.kpi:last-child { border-right: none; }
+.kpi::after {
+  content:''; position:absolute; bottom:0; left:32px; right:32px;
+  height:2px; border-radius:1px; opacity:0; transition:opacity 0.3s;
+}
+.kpi:nth-child(1)::after { background:var(--cyan); }
+.kpi:nth-child(2)::after { background:var(--pink); }
+.kpi:nth-child(3)::after { background:var(--gold); }
+.kpi:nth-child(4)::after { background:var(--violet); }
+.kpi:hover::after { opacity:1; }
+.kpi:hover { background: var(--surface); }
+.kpi-label {
+  font-size:18px; color:var(--text2); letter-spacing:0.12em; text-transform:uppercase;
+  margin-bottom:10px; display:flex; align-items:center; gap:6px;
+}
+.kpi-label::before { content:''; width:5px; height:5px; border-radius:50%; }
+.kpi:nth-child(1) .kpi-label::before { background:var(--cyan);   box-shadow:0 0 6px var(--cyan); }
+.kpi:nth-child(2) .kpi-label::before { background:var(--pink);   box-shadow:0 0 6px var(--pink); }
+.kpi:nth-child(3) .kpi-label::before { background:var(--gold);   box-shadow:0 0 6px var(--gold); }
+.kpi:nth-child(4) .kpi-label::before { background:var(--violet); box-shadow:0 0 6px var(--violet); }
+.kpi-value  { font-family:var(--sans); font-size:48px; font-weight:800; line-height:1; letter-spacing:-0.02em; }
+.kpi-value.v { color:var(--cyan); } .kpi-value.l { color:var(--pink); }
+.kpi-value.a { color:var(--gold); } .kpi-value.f { color:var(--violet); }
+.kpi-diff      { margin-top:8px; font-size:12px; color:var(--text3); display:flex; align-items:center; gap:4px; }
+.kpi-diff.up   { color:var(--green); }
+.kpi-diff.down { color:var(--red); }
 
-    .header-right { display: flex; align-items: center; gap: 14px; }
+/* ── グリッド / パネル ── */
+.grid { display:grid; grid-template-columns:1fr 1fr; }
+.panel {
+  padding: 28px 32px;
+  border-bottom: 1px solid var(--border);
+  border-right:  1px solid var(--border);
+  animation: fadeUp 0.5s ease both;
+}
+.panel:nth-child(2n) { border-right: none; }
+.panel.full          { grid-column:1/-1; border-right:none; }
+.panel-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; }
+.panel-title  { font-size:18px; color:var(--text2); letter-spacing:0.1em; text-transform:uppercase; display:flex; align-items:center; gap:8px; }
+.ptdot        { width:4px; height:4px; border-radius:50%; flex-shrink:0; }
+.panel-badge  { font-size:10px; padding:2px 8px; border:1px solid var(--border2); border-radius:2px; color:var(--text3); letter-spacing:0.1em; }
+.chart-wrap   { position:relative; height:280px; }
+.chart-wrap.tall { height:360px; }
 
-    .status-chip {
-      display: flex; align-items: center; gap: 6px;
-      font-size: 12px; color: var(--text-muted);
-      padding: 4px 10px;
-      background: var(--surface-2);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-    }
-    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #ccc; flex-shrink: 0; }
-    .status-dot.loaded { background: var(--note-green); }
-    .status-dot.loading { background: #ffc947; animation: pulse 1s infinite; }
-    .status-dot.error   { background: var(--negative); }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+@keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+.panel:nth-child(1){animation-delay:0.05s} .panel:nth-child(2){animation-delay:0.10s}
+.panel:nth-child(3){animation-delay:0.15s} .panel:nth-child(4){animation-delay:0.20s}
+.panel:nth-child(5){animation-delay:0.25s} .panel:nth-child(6){animation-delay:0.30s}
+.panel:nth-child(7){animation-delay:0.35s} .panel:nth-child(8){animation-delay:0.40s}
 
-    .pro-toggle-wrap {
-      display: flex; align-items: center; gap: 7px;
-      font-size: 12px; color: var(--text-secondary); cursor: pointer;
-      user-select: none;
-    }
-    .pro-toggle-wrap input { display: none; }
-    .toggle-track {
-      width: 36px; height: 20px;
-      background: var(--border); border-radius: 10px;
-      position: relative; transition: background 0.2s;
-    }
-    .toggle-track::after {
-      content: ''; position: absolute;
-      width: 16px; height: 16px; border-radius: 50%;
-      background: white; top: 2px; left: 2px; transition: transform 0.2s;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-    }
-    .pro-toggle-wrap input:checked + .toggle-track { background: var(--pro-color); }
-    .pro-toggle-wrap input:checked + .toggle-track::after { transform: translateX(16px); }
+/* ── ランキング ── */
+.rank-list { display:flex; flex-direction:column; gap:4px; max-height:380px; overflow-y:auto; padding-right:4px; }
+.rank-item {
+  display:grid; grid-template-columns:28px 1fr 110px;
+  align-items:center; gap:10px; padding:9px 12px;
+  border-radius:var(--r); border:1px solid transparent;
+  background:var(--surface); transition:all 0.15s ease; cursor:default;
+}
+.rank-item:hover { background:var(--surface2); border-color:var(--border2); transform:translateX(2px); }
+.rank-num         { font-size:11px; color:var(--text3); text-align:center; font-weight:600; }
+.rank-num.gold    { color:var(--gold); }
+.rank-num.silver  { color:#a8b0c8; }
+.rank-num.bronze  { color:#c87850; }
+.rank-title       { font-size:16px; color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.rank-item:hover .rank-title { color:var(--text); }
+.rank-right       { display:flex; align-items:center; gap:8px; }
+.rank-bar         { flex:1; height:2px; background:var(--border2); border-radius:1px; overflow:hidden; }
+.rank-bar-fill    { height:100%; border-radius:1px; transition:width 1s cubic-bezier(0.16,1,0.3,1); }
+.rank-val         { font-size:12px; min-width:44px; text-align:right; font-weight:600; }
+.fill-cyan  { background:var(--cyan); }   .val-cyan  { color:var(--cyan); }
+.fill-pink  { background:var(--pink); }   .val-pink  { color:var(--pink); }
+.fill-red   { background:var(--red); }    .val-red   { color:var(--red); }
+.fill-green { background:var(--green); }  .val-green { color:var(--green); }
 
-    .theme-btn {
-      background: none; border: 1px solid var(--border);
-      border-radius: 8px; padding: 5px 12px;
-      cursor: pointer; color: var(--text-secondary);
-      font-size: 12px; font-weight: 500;
-      transition: all 0.15s;
-    }
-    .theme-btn:hover { background: var(--surface-2); color: var(--text-primary); }
+/* ── テーブル ── */
+.table-wrap { overflow-x:auto; border:1px solid var(--border); border-radius:var(--r); }
+.data-table { width:100%; border-collapse:separate; border-spacing:0; font-size:12px; }
+.data-table th {
+  padding:10px 14px; background:var(--surface); color:var(--text2);
+  text-align:left; font-size:12px; letter-spacing:0.08em; text-transform:uppercase;
+  border-bottom:1px solid var(--border2); white-space:nowrap; position:sticky; top:0; z-index:5;
+}
+.data-table td { padding:10px 14px; border-bottom:1px solid var(--border); color:var(--text2); font-size:14px; }
+.data-table tr:last-child td { border-bottom:none; }
+.status-badge { display:inline-block; padding:2px 8px; border-radius:3px; font-size:10px; font-weight:700; letter-spacing:0.05em; white-space:nowrap; }
+.badge-hot  { background:rgba(255,77,106,0.15); color:#ff4d6a; border:1px solid rgba(255,77,106,0.3); }
+.badge-grow { background:rgba(0,229,160,0.12);  color:var(--green); border:1px solid rgba(0,229,160,0.25); }
+.badge-idle { background:rgba(61,68,102,0.3);   color:var(--text3); border:1px solid var(--border); }
+.bar-cell   { display:flex; align-items:center; gap:8px; }
+.inline-bar { width:80px; height:5px; background:var(--border2); border-radius:3px; overflow:hidden; flex-shrink:0; }
+.inline-bar-fill { height:100%; background:var(--cyan); border-radius:3px; }
+.num-r  { text-align:right !important; font-weight:600; color:var(--text); }
+.num-c  { color:var(--cyan); }
+.num-g  { color:var(--gold); }
+.num-m  { color:var(--text3); }
 
-    /* ===== DATA LOAD BAR ===== */
-    .data-bar {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 8px 24px;
-    }
-    .drop-zone {
-      border: 1.5px dashed var(--border);
-      border-radius: 8px;
-      padding: 10px 18px;
-      text-align: center;
-      color: var(--text-muted);
-      font-size: 12px;
-      cursor: pointer;
-      transition: all 0.15s;
-      background: var(--surface-2);
-      display: flex; align-items: center; justify-content: center; gap: 8px;
-    }
-    .drop-zone:hover, .drop-zone.drag-over {
-      border-color: var(--note-green);
-      color: var(--note-green);
-      background: rgba(62,193,156,0.04);
-    }
-    .drop-zone input { display: none; }
-    .dz-icon { font-size: 16px; }
+/* ── ワースト/ベスト グリッド ── */
+.wb-grid { display:grid; grid-template-columns:1fr 1fr; gap:32px; }
+.wb-head { font-size:15px; letter-spacing:0.2em; text-transform:uppercase; margin-bottom:12px; display:flex; align-items:center; gap:6px; }
+.wb-head::before { content:''; width:4px; height:4px; border-radius:50%; }
+.wb-head.w::before { background:var(--red); }
+.wb-head.b::before { background:var(--green); }
+.wb-head.w { color:var(--text3); } .wb-head.b { color:var(--text3); }
 
-    /* ===== MAIN NAV TABS ===== */
-    .main-nav {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 0 24px;
-      display: flex; gap: 0;
-      overflow-x: auto;
-    }
-    .main-nav::-webkit-scrollbar { display: none; }
-    .main-tab {
-      padding: 15px 18px;
-      font-size: 14px; font-weight: 500;
-      color: var(--text-muted);
-      cursor: pointer;
-      border-bottom: 2px solid transparent;
-      transition: all 0.15s;
-      display: flex; align-items: center; gap: 7px;
-      white-space: nowrap; flex-shrink: 0;
-    }
-    .main-tab:hover { color: var(--text-primary); }
-    .main-tab.active {
-      color: var(--text-primary);
-      border-bottom-color: var(--note-green);
-      font-weight: 600;
-    }
-    .pro-badge {
-      font-size: 9px; background: var(--pro-color); color: white;
-      padding: 1px 5px; border-radius: 3px; font-weight: 700; letter-spacing: 0.5px;
-    }
+/* ── セクション区切り ── */
+.section-div {
+  grid-column:1/-1; border-bottom:1px solid var(--border); border-right:none;
+  padding:20px 32px 16px;
+  display:flex; align-items:center; gap:14px;
+}
+.section-div-line  { flex:1; height:1px; background:linear-gradient(90deg,var(--border2),transparent); }
+.section-div-label {
+  font-family:var(--sans); font-size:11px; font-weight:700;
+  letter-spacing:0.25em; text-transform:uppercase;
+  display:flex; align-items:center; gap:8px;
+}
+.section-div-label::before { content:''; width:20px; height:1px; }
 
-    /* ===== PAGES ===== */
-    .page { display: none; padding: 22px 24px; max-width: 1180px; margin: 0 auto; }
-    .page.active { display: block; }
+/* ── ピリオドタブ ── */
+.tabs-wrap { display:flex; align-items:center; gap:6px; margin-bottom:24px; overflow-x:auto; padding-bottom:4px; scrollbar-width:none; }
+.tabs-wrap::-webkit-scrollbar { display:none; }
+.tab-btn {
+  flex-shrink:0; padding:5px 14px; border:1px solid var(--border2); border-radius:3px;
+  background:transparent; color:var(--text3); font-family:var(--mono);
+  font-size:11px; letter-spacing:0.08em; cursor:pointer; transition:all 0.15s ease; white-space:nowrap;
+}
+.tab-btn:hover { background:var(--surface2); color:var(--text2); }
+.tab-btn.active       { background:var(--cyan-dim);  color:var(--cyan);  border-color:rgba(0,229,255,0.35); }
+.tab-btn.active.gold  { background:var(--gold-dim);  color:var(--gold);  border-color:rgba(255,201,71,0.35); }
+.period-meta {
+  font-size:11px; color:var(--text3); letter-spacing:0.08em; margin-bottom:16px;
+  padding:8px 12px; background:var(--surface); border-radius:var(--r); border:1px solid var(--border);
+  display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+}
+.period-meta-val      { font-weight:600; color:var(--text2); }
+.period-meta-val.cyan { color:var(--cyan); }
+.period-meta-val.gold { color:var(--gold); }
+.period-meta-val.pink { color:var(--pink); }
+.period-body { display:grid; grid-template-columns:1fr 1.5fr; gap:28px; align-items:start; }
 
-    /* ===== PERIOD SUB-TABS ===== */
-    .period-tabs {
-      display: flex; border-bottom: 1px solid var(--border);
-      margin-bottom: 20px;
-    }
-    .period-tab {
-      padding: 9px 18px; font-size: 13px; font-weight: 500;
-      color: var(--text-muted); cursor: pointer;
-      border-bottom: 2px solid transparent; transition: all 0.15s;
-    }
-    .period-tab:hover { color: var(--text-primary); }
-    .period-tab.active { color: var(--note-green); border-bottom-color: var(--note-green); font-weight: 600; }
+/* ── ピリオドランクリスト ── */
+.p-rank-list { display:flex; flex-direction:column; gap:5px; }
+.p-rank-item {
+  display:grid; grid-template-columns:22px 1fr auto;
+  align-items:center; gap:10px; padding:10px 12px;
+  background:var(--surface); border:1px solid transparent;
+  border-radius:var(--r); transition:all 0.15s; cursor:default;
+}
+.p-rank-item:hover { background:var(--surface2); border-color:var(--border2); transform:translateX(3px); }
+.p-rank-num        { font-size:10px; color:var(--text3); font-weight:700; text-align:center; }
+.p-rank-num.gold   { color:var(--gold); }
+.p-rank-num.silver { color:#a0aac0; }
+.p-rank-num.bronze { color:#c08060; }
+.p-rank-info  { min-width:0; }
+.p-rank-title { font-size:12px; color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:5px; }
+.p-rank-item:hover .p-rank-title { color:var(--text); }
+.p-bar-row    { display:flex; align-items:center; gap:6px; }
+.p-bar        { flex:1; height:2px; background:var(--border2); border-radius:2px; overflow:hidden; }
+.p-bar-fill   { height:100%; border-radius:2px; transition:width 0.9s cubic-bezier(0.16,1,0.3,1); }
+.p-rank-stat  { display:flex; flex-direction:column; align-items:flex-end; gap:2px; min-width:60px; }
+.p-stat-main  { font-size:14px; font-weight:700; line-height:1; }
+.p-stat-sub   { font-size:10px; color:var(--pink); line-height:1; }
 
-    /* ===== KPI STRIP ===== */
-    .kpi-strip {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 12px; margin-bottom: 20px;
-    }
-    .kpi-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px; padding: 16px 18px;
-      box-shadow: var(--shadow);
-    }
-    .kpi-label { font-size: 11px; color: var(--text-muted); margin-bottom: 5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-    .kpi-value { font-size: 28px; font-weight: 800; color: var(--kpi-num); letter-spacing: -0.5px; line-height: 1.1; }
-    .kpi-diff { font-size: 11px; margin-top: 5px; display: flex; align-items: center; gap: 2px; }
-    .kpi-diff.up   { color: var(--positive); }
-    .kpi-diff.down { color: var(--negative); }
-    .kpi-diff.flat { color: var(--text-muted); }
+/* ── メトリクス切替ボタン ── */
+.metric-toggle { display:flex; gap:6px; margin-bottom:14px; }
+.metric-btn {
+  padding:4px 12px; border:1px solid var(--border2); border-radius:3px;
+  background:transparent; color:var(--text3); font-family:var(--mono); font-size:10px;
+  letter-spacing:0.1em; cursor:pointer; transition:all 0.15s;
+}
+.metric-btn:hover     { color:var(--text2); background:var(--surface2); }
+.metric-btn.on-cyan   { background:var(--cyan-dim);   color:var(--cyan);   border-color:rgba(0,229,255,0.3); }
+.metric-btn.on-gold   { background:var(--gold-dim);   color:var(--gold);   border-color:rgba(255,201,71,0.3); }
+.metric-btn.on-pink   { background:var(--pink-dim);   color:var(--pink);   border-color:rgba(255,77,141,0.3); }
+.metric-btn.on-violet { background:var(--violet-dim); color:var(--violet); border-color:rgba(157,111,255,0.3); }
 
-    /* ===== CARDS ===== */
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      box-shadow: var(--shadow);
-    }
-    .card-header {
-      padding: 15px 18px;
-      border-bottom: 1px solid var(--border);
-      display: flex; justify-content: space-between; align-items: center;
-    }
-    .card-title { font-size: 13px; font-weight: 700; }
-    .card-sub   { font-size: 11px; color: var(--text-muted); }
-    .card-body  { padding: 18px; }
-    .card-body-flush { padding: 0; }
+/* ── スクロール可能チャート ── */
+.chart-scroll {
+  overflow-x:auto; overflow-y:hidden;
+  border:1px solid var(--border); border-radius:var(--r);
+  background:var(--surface); cursor:grab;
+  scrollbar-width:thin; scrollbar-color:var(--border2) transparent;
+}
+.chart-scroll:active { cursor:grabbing; }
+.chart-scroll::-webkit-scrollbar { height:4px; }
+.chart-scroll::-webkit-scrollbar-thumb { background:var(--border2); border-radius:2px; }
+.chart-inner  { position:relative; height:320px; }
+.drag-overlay { position:absolute; inset:0; z-index:10; cursor:grab; background:transparent; }
+.drag-overlay:active { cursor:grabbing; }
+.chart-sub-label { font-size:10px; color:var(--text3); letter-spacing:0.15em; text-transform:uppercase; margin-bottom:10px; }
+.chart-pair { display:flex; flex-direction:column; gap:28px; }
 
-    .mb-4 { margin-bottom: 16px; }
-    .mb-5 { margin-bottom: 20px; }
+/* ── AI スコアパネル ── */
+.ai-formula { font-size:9px; color:var(--text3); letter-spacing:0.06em; padding:2px 8px; border:1px solid var(--border); border-radius:2px; }
+.ai-age-tag { font-size:9px; color:var(--text3); margin-left:4px; vertical-align:middle; }
+.ai-sub-row { display:flex; gap:10px; margin-top:3px; font-size:9px; color:var(--text3); }
+.ai-quad-badge { font-size:10px; padding:3px 10px; border-radius:3px; font-weight:700; letter-spacing:0.05em; border:1px solid transparent; }
+.qq-both  { background:rgba(157,111,255,0.15); color:var(--violet); border-color:rgba(157,111,255,0.3); }
+.qq-v1    { background:rgba(0,229,160,0.12);   color:var(--green);  border-color:rgba(0,229,160,0.25); }
+.qq-v2    { background:rgba(255,201,71,0.12);  color:var(--gold);   border-color:rgba(255,201,71,0.25); }
+.qq-none  { background:rgba(61,68,102,0.2);    color:var(--text3);  border-color:var(--border); }
 
-    /* ===== CHART CANVAS ===== */
-    .chart-wrap { position: relative; }
-    .chart-legend {
-      display: flex; gap: 14px;
-      font-size: 11px; color: var(--text-secondary);
-    }
-    .legend-dot {
-      display: inline-block; width: 8px; height: 8px;
-      border-radius: 50%; margin-right: 4px;
-    }
-    canvas { display: block; }
+/* ── バブルチャート ── */
+.bq-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:20px; }
+.bq-item { padding:10px 14px; border-radius:var(--r); border:1px solid transparent; font-size:10px; letter-spacing:0.06em; }
+.bq-tl { background:rgba(0,229,160,0.06);   border-color:rgba(0,229,160,0.15);   color:var(--green); }
+.bq-tr { background:rgba(157,111,255,0.08); border-color:rgba(157,111,255,0.2);  color:var(--violet); }
+.bq-bl { background:rgba(255,201,71,0.06);  border-color:rgba(255,201,71,0.15);  color:var(--gold); }
+.bq-br { background:rgba(61,68,102,0.15);   border-color:var(--border);          color:var(--text3); }
+.bq-label { font-weight:700; font-size:11px; margin-bottom:3px; }
+.bubble-legend-bar { width:120px; height:6px; border-radius:3px; background:linear-gradient(90deg,#ff4d6a 0%,#ffc947 50%,#00e5ff 100%); display:inline-block; vertical-align:middle; }
+.bubble-axis { font-size:10px; color:var(--text3); letter-spacing:0.08em; padding:3px 10px; border:1px solid var(--border); border-radius:3px; }
 
-    /* ===== TABLE ===== */
-    .tbl-scroll { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; }
-    thead th {
-      padding: 9px 14px;
-      text-align: left; font-size: 11px; font-weight: 700;
-      color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px;
-      background: var(--surface-2);
-      border-bottom: 1px solid var(--border);
-      cursor: pointer; user-select: none; white-space: nowrap;
-    }
-    thead th:hover { color: var(--text-primary); }
-    thead th.sort-asc::after  { content: ' ↑'; color: var(--note-green); }
-    thead th.sort-desc::after { content: ' ↓'; color: var(--note-green); }
-    thead th.no-sort { cursor: default; }
-    thead th.no-sort:hover { color: var(--text-muted); }
-    tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
-    tbody tr:last-child { border-bottom: none; }
-    tbody tr:hover { background: var(--table-hover); }
-    tbody td { padding: 11px 14px; font-size: 13px; vertical-align: middle; }
-    .td-right { text-align: right; font-variant-numeric: tabular-nums; }
-    .td-muted  { color: var(--text-muted); font-size: 11px; }
+/* ── Decay 分析 ── */
+.decay-filter-bar {
+  display:flex; align-items:center; gap:24px; margin-bottom:24px;
+  flex-wrap:wrap; padding:14px 20px; background:var(--surface);
+  border:1px solid var(--border); border-radius:var(--r);
+  position:relative; overflow:hidden;
+}
+.decay-filter-bar::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--violet); border-radius:0 2px 2px 0; box-shadow:0 0 10px var(--violet-dim); }
+.decay-filter-group { display:flex; align-items:center; gap:10px; }
+.filter-label { font-size:10px; color:var(--text3); letter-spacing:0.12em; text-transform:uppercase; white-space:nowrap; }
+.filter-val   { font-size:13px; font-weight:700; min-width:28px; text-align:right; color:var(--violet); }
+.filter-val.cyan { color:var(--cyan); }
+.decay-range {
+  -webkit-appearance:none; appearance:none; height:3px; background:var(--border2);
+  border-radius:2px; outline:none; cursor:pointer; width:130px;
+}
+.decay-range::-webkit-slider-thumb {
+  -webkit-appearance:none; width:13px; height:13px; border-radius:50%;
+  background:var(--violet); cursor:pointer; box-shadow:0 0 8px rgba(157,111,255,0.6);
+}
+.filter-div { width:1px; height:28px; background:var(--border2); flex-shrink:0; }
+.decay-summary-cards { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
+.decay-card { padding:14px 16px; background:var(--surface); border:1px solid var(--border); border-radius:var(--r); }
+.decay-card:hover { border-color:rgba(157,111,255,0.3); }
+.decay-card-label { font-size:9px; color:var(--text3); letter-spacing:0.15em; text-transform:uppercase; margin-bottom:6px; }
+.decay-card-val   { font-family:var(--sans); font-size:22px; font-weight:700; color:var(--violet); line-height:1; }
+.decay-card-sub   { font-size:10px; color:var(--text3); margin-top:4px; }
+.decay-chart-area {
+  width:100%; overflow-x:auto; overflow-y:hidden;
+  border:1px solid var(--border); border-radius:var(--r);
+  background:var(--surface); cursor:grab;
+  scrollbar-width:thin; scrollbar-color:rgba(157,111,255,0.3) transparent;
+}
+.decay-chart-area:active { cursor:grabbing; }
+.decay-chart-area::-webkit-scrollbar { height:4px; }
+.decay-chart-area::-webkit-scrollbar-thumb { background:rgba(157,111,255,0.3); border-radius:2px; }
+.decay-legend { display:flex; gap:20px; margin-top:16px; flex-wrap:wrap; padding:12px 16px; background:var(--surface); border:1px solid var(--border); border-radius:var(--r); }
+.decay-legend-item { display:flex; align-items:center; gap:8px; font-size:10px; color:var(--text3); letter-spacing:0.06em; }
+.dl-dot  { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.dl-line { width:22px; height:2.5px; border-radius:2px; flex-shrink:0; }
+.dl-rect { width:16px; height:10px; border-radius:2px; flex-shrink:0; }
 
-    .rank-num { font-size: 12px; font-weight: 700; color: var(--text-muted); width: 30px; text-align: center; }
-    .rank-num.top1 { color: #e6a200; }
-    .rank-num.top2 { color: #888; }
-    .rank-num.top3 { color: #b0714a; }
+/* ── Decay ツールチップ ── */
+.decay-tooltip {
+  position:fixed; pointer-events:none; z-index:500;
+  background:#0d1020; border:1px solid rgba(157,111,255,0.3); border-radius:6px;
+  padding:10px 14px; font-size:11px; color:var(--text2); opacity:0; transition:opacity 0.15s;
+  max-width:220px; box-shadow:0 8px 24px rgba(0,0,0,0.5);
+}
+.decay-tooltip.show { opacity:1; }
+.tt-title { font-size:12px; color:var(--text); margin-bottom:6px; font-weight:600; }
+.tt-row   { display:flex; justify-content:space-between; gap:16px; margin-top:2px; }
+.tt-key   { color:var(--text3); }
+.tt-val   { color:var(--violet); font-weight:700; }
 
-    .art-title {
-      max-width: 380px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-      font-weight: 500;
-    }
-    .art-link { color: var(--text-primary); text-decoration: none; }
-    .art-link:hover { color: var(--note-green); text-decoration: underline; }
+/* ── Article Trend ── */
+.trend-filter-bar {
+  display:flex; flex-wrap:wrap; gap:16px; align-items:center;
+  margin-bottom:20px; padding:14px 18px; background:var(--surface);
+  border:1px solid var(--border); border-radius:var(--r);
+}
+.trend-filter-group { display:flex; align-items:center; gap:10px; }
 
-    /* ===== BADGES ===== */
-    .eta-badge {
-      display: inline-block; padding: 2px 7px;
-      border-radius: 4px; font-size: 11px; font-weight: 700;
-    }
-    .eta-hi  { background: rgba(62,193,156,0.12); color: #1a9e78; }
-    .eta-mid { background: rgba(255,193,7,0.15);  color: #c08000; }
-    .eta-lo  { background: rgba(231,76,60,0.12);  color: #c0392b; }
-    [data-theme="dark"] .eta-hi  { background: rgba(62,193,156,0.18); color: #3EC19C; }
-    [data-theme="dark"] .eta-mid { background: rgba(255,193,7,0.18);  color: #ffc947; }
-    [data-theme="dark"] .eta-lo  { background: rgba(231,76,60,0.18);  color: #ff6b6b; }
+/* ── ローディング ── */
+.loading {
+  display:flex; align-items:center; justify-content:center;
+  height:160px; font-size:10px; color:var(--text3); letter-spacing:0.1em;
+}
+.loading::after { content:'...'; animation:dots 1.2s steps(4,end) infinite; }
+@keyframes dots { 0%,20%{content:''} 40%{content:'.'} 60%{content:'..'} 80%,100%{content:'...'} }
 
-    .cat-badge {
-      display: inline-block; padding: 1px 7px;
-      border-radius: 3px; font-size: 11px; font-weight: 600;
-      background: var(--surface-2); border: 1px solid var(--border);
-      color: var(--text-secondary);
-    }
+/* ── Comment Intelligence ── */
+.comment-kpi-strip {
+  display: grid; grid-template-columns: repeat(4,1fr);
+  gap: 12px; margin-bottom: 24px;
+}
+.comment-kpi-card {
+  padding: 16px 20px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: var(--r);
+  transition: border-color 0.2s;
+}
+.comment-kpi-card:hover { border-color: var(--border2); }
+.ckpi-label { font-size: 9px; color: var(--text3); letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 8px; }
+.ckpi-val   { font-family: var(--sans); font-size: 28px; font-weight: 700; line-height: 1; }
+.ckpi-sub   { font-size: 10px; color: var(--text3); margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ckpi-val.c-cyan   { color: var(--cyan); }
+.ckpi-val.c-pink   { color: var(--pink); }
+.ckpi-val.c-gold   { color: var(--gold); }
+.ckpi-val.c-violet { color: var(--violet); }
 
-    .diff-chip {
-      display: inline-flex; align-items: center; gap: 2px;
-      font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 4px;
-    }
-    .diff-chip.up   { background: rgba(39,174,96,0.1);  color: var(--positive); }
-    .diff-chip.down { background: rgba(231,76,60,0.1);  color: var(--negative); }
-    .diff-chip.flat { background: var(--surface-2); color: var(--text-muted); }
+/* scatter */
+.scatter-legend {
+  display: flex; align-items: center; gap: 20px;
+  margin-top: 14px; flex-wrap: wrap;
+  font-size: 10px; color: var(--text3); letter-spacing: 0.06em;
+}
+.scatter-legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 
-    /* ===== PRO GATE OVERLAY ===== */
-    .pro-gate { position: relative; }
-    .pro-overlay {
-      position: absolute; inset: 0;
-      background: rgba(246,246,246,0.82);
-      backdrop-filter: blur(5px) saturate(1.2);
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      border-radius: 10px; z-index: 50;
-      pointer-events: auto;
-    }
-    [data-theme="dark"] .pro-overlay { background: rgba(14,16,24,0.84); }
-    .pro-overlay-icon { font-size: 36px; margin-bottom: 10px; }
-    .pro-overlay-title { font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; }
-    .pro-overlay-sub   { font-size: 12px; color: var(--text-muted); }
+/* ── レスポンシブ ── */
+@media (max-width:900px) {
+  .kpi-strip { grid-template-columns:repeat(2,1fr); }
+  .grid { grid-template-columns:1fr; }
+  .panel, .panel.full { border-right:none !important; }
+  .status-band { grid-template-columns:1fr; gap:16px; }
+  .band-div { display:none; }
+  .wb-grid { grid-template-columns:1fr; }
+  .bq-grid { grid-template-columns:1fr; }
+  .period-body { grid-template-columns:1fr; }
+  .decay-summary-cards { grid-template-columns:repeat(2,1fr); }
+  .comment-kpi-strip   { grid-template-columns:repeat(2,1fr); }
+  header, .kpi, .panel, .kpi3, .memo-wrap { padding-left:16px !important; padding-right:16px !important; }
+  .main-tab-bar { padding: 0 16px; }
+  .main-tab { padding: 0 14px; font-size: 10px; }
+}
 
-    /* ===== SUB-TABS (inside pro pages) ===== */
-    .sub-tabs {
-      display: flex; gap: 0; width: fit-content;
-      background: var(--surface-2);
-      border: 1px solid var(--border); border-radius: 8px;
-      padding: 3px; margin-bottom: 18px;
-    }
-    .sub-tab {
-      padding: 6px 16px; font-size: 13px; font-weight: 500;
-      color: var(--text-muted); cursor: pointer; border-radius: 6px;
-      transition: all 0.15s;
-    }
-    .sub-tab.active {
-      background: var(--surface); color: var(--text-primary);
-      box-shadow: var(--shadow); font-weight: 600;
-    }
+/* ══════════════════════════════════════════
+   メインタブナビ
+══════════════════════════════════════════ */
+.main-tab-bar {
+  position: sticky; top: 56px; z-index: 90;
+  background: rgba(6,8,15,0.96);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: stretch;
+  padding: 0 32px; gap: 0;
+  overflow-x: auto; scrollbar-width: none;
+}
+.main-tab-bar::-webkit-scrollbar { display: none; }
 
-    /* ===== GRID ===== */
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.main-tab {
+  flex-shrink: 0;
+  padding: 0 22px; height: 44px;
+  border: none; border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text3); font-family: var(--mono);
+  font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+  cursor: pointer; transition: all 0.15s;
+  display: flex; align-items: center; gap: 8px;
+}
+.main-tab:hover { color: var(--text2); background: rgba(255,255,255,0.02); }
+.main-tab[data-tab="daily"].active   { color: var(--cyan);   border-bottom-color: var(--cyan); }
+.main-tab[data-tab="weekly"].active  { color: var(--cyan);   border-bottom-color: var(--cyan); }
+.main-tab[data-tab="monthly"].active { color: var(--gold);   border-bottom-color: var(--gold); }
+.main-tab[data-tab="deepdive"].active{ color: var(--violet); border-bottom-color: var(--violet); }
 
-    /* ===== EMPTY / LOADING STATES ===== */
-    .empty {
-      text-align: center; padding: 52px 20px;
-      color: var(--text-muted);
-    }
-    .empty-icon { font-size: 36px; margin-bottom: 10px; }
-    .empty-text { font-size: 14px; font-weight: 500; margin-bottom: 5px; color: var(--text-secondary); }
-    .empty-sub  { font-size: 12px; }
+.main-tab-time {
+  font-size: 9px; padding: 1px 6px;
+  border: 1px solid currentColor; border-radius: 2px;
+  opacity: 0.4; letter-spacing: 0.06em;
+}
+.main-tab.active .main-tab-time { opacity: 0.65; }
 
-    /* ===== AI REPORT AREA ===== */
-    .report-body {
-      font-size: 13px; line-height: 1.9;
-      color: var(--text-secondary);
-      white-space: pre-wrap;
-      font-family: 'Hiragino Sans', 'Noto Sans JP', monospace;
-    }
-    .report-copy-btn {
-      margin-top: 14px; padding: 7px 16px;
-      background: var(--note-green); color: white;
-      border: none; border-radius: 7px;
-      cursor: pointer; font-size: 12px; font-weight: 700;
-      transition: background 0.15s;
-    }
-    .report-copy-btn:hover { background: var(--note-green-hover); }
+/* タブパネル */
+.tab-panel { display: none; }
+.tab-panel.active { display: block; animation: fadeUp 0.25s ease both; }
 
-    /* ===== RESPONSIVE ===== */
-    @media (max-width: 900px) {
-      .kpi-strip { grid-template-columns: repeat(3, 1fr); }
-      .grid-2, .grid-3 { grid-template-columns: 1fr; }
-    }
-    @media (max-width: 600px) {
-      .kpi-strip { grid-template-columns: 1fr 1fr; }
-      .page { padding: 14px 16px; }
-      .header { padding: 0 16px; }
-      .logo-sub { display: none; }
-    }
+/* Daily タブ — コンパクト診断エリア */
+.daily-top {
+  display: grid; grid-template-columns: 1fr 1px 1fr;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  padding: 20px 32px; gap: 0;
+}
+.daily-memo {
+  padding: 0 28px 0 0;
+}
+.daily-memo-label {
+  font-size: 10px; color: var(--text3); letter-spacing: 0.15em;
+  text-transform: uppercase; margin-bottom: 8px;
+}
+.daily-memo-text {
+  font-family: var(--sans); font-size: 15px; font-weight: 600;
+  color: var(--cyan); line-height: 1.5; min-height: 36px;
+}
+.daily-div { width:1px; height:48px; background:var(--border2); }
 
-    /* ===== SPINNER ===== */
-    .spin {
-      display: inline-block; width: 14px; height: 14px;
-      border: 2px solid var(--border);
-      border-top-color: var(--note-green);
-      border-radius: 50%;
-      animation: spinanim 0.6s linear infinite;
-    }
-    @keyframes spinanim { to { transform: rotate(360deg); } }
-  </style>
+.daily-metrics {
+  padding: 0 0 0 28px;
+  display: flex; gap: 32px;
+}
+.daily-metric { display: flex; flex-direction: column; gap: 4px; }
+.daily-metric-label { font-size: 9px; color: var(--text3); letter-spacing: 0.15em; text-transform: uppercase; }
+.daily-metric-val { font-family: var(--sans); font-size: 28px; font-weight: 700; line-height: 1; }
+.daily-metric-diff { font-size: 11px; color: var(--text3); }
+.daily-metric-diff.up { color: var(--green); }
+.daily-metric-diff.down { color: var(--red); }
+
+/* Deep Dive タブ — セクション区切りのpadding調整 */
+#tab-deepdive .section-div { padding-top: 24px; padding-bottom: 18px; }
+</style>
 </head>
 <body>
 
-<!-- ===================== HEADER ===================== -->
-<header class="header">
-  <div class="header-left">
-    <span class="logo">KITAcore</span>
-    <span class="logo-sep">|</span>
-    <span class="logo-sub">note Analytics</span>
+<header>
+  <div class="logo">
+    <div class="logo-dot"></div>
+    <span>note</span><span class="logo-slash">/</span><span class="logo-sub">stats</span>
   </div>
   <div class="header-right">
-    <div class="status-chip">
-      <span class="status-dot" id="statusDot"></span>
-      <span id="statusText">データ未読込</span>
-    </div>
-    <label class="pro-toggle-wrap" title="Pro機能を表示（デモ用）">
-      <input type="checkbox" id="proToggle" onchange="togglePro(this.checked)">
-      <div class="toggle-track"></div>
-      <span>Pro</span>
-    </label>
-    <button class="theme-btn" onclick="toggleTheme()" id="themeBtn">🌙 ダーク</button>
+    <div id="last-updated">—</div>
+    <div class="header-badge">live</div>
   </div>
 </header>
 
-<!-- ===================== DATA LOAD BAR ===================== -->
-<div class="data-bar">
-  <div class="drop-zone" id="dropZone"
-       onclick="document.getElementById('fileInput').click()"
-       ondragover="handleDragOver(event)"
-       ondragleave="handleDragLeave(event)"
-       ondrop="handleDrop(event)">
-    <input type="file" id="fileInput" multiple accept=".csv" onchange="handleFileSelect(event)">
-    <span class="dz-icon">📁</span>
-    <span>CSVファイルをドロップ <span style="color:var(--border)">|</span> または <strong style="color:var(--note-green)">クリックして選択</strong>
-    <span style="color:var(--text-muted)">（data/フォルダの全CSVをまとめて選択可）— GitHub Pages では自動読込</span></span>
-  </div>
+<!-- ── メインタブナビ ── -->
+<div class="main-tab-bar">
+  <button class="main-tab active" data-tab="daily" onclick="switchTab('daily')">
+    Daily <span class="main-tab-time">1 min</span>
+  </button>
+  <button class="main-tab" data-tab="weekly" onclick="switchTab('weekly')">
+    Weekly <span class="main-tab-time">15 min</span>
+  </button>
+  <button class="main-tab" data-tab="monthly" onclick="switchTab('monthly')">
+    Monthly <span class="main-tab-time">10 min</span>
+  </button>
+  <button class="main-tab" data-tab="deepdive" onclick="switchTab('deepdive')">
+    Deep Dive
+  </button>
 </div>
 
-<!-- ===================== MAIN TABS ===================== -->
-<nav class="main-nav">
-  <div class="main-tab active" onclick="switchTab('summary', this)" id="tab-summary">アクセス状況</div>
-  <div class="main-tab" onclick="switchTab('articles', this)" id="tab-articles">記事分析 <span class="pro-badge">PRO</span></div>
-  <div class="main-tab" onclick="switchTab('readers', this)" id="tab-readers">読者分析 <span class="pro-badge">PRO</span></div>
-  <div class="main-tab" onclick="switchTab('strategy', this)" id="tab-strategy">戦略レポート <span class="pro-badge">PRO</span></div>
-</nav>
+<div class="dashboard">
 
+<!-- ══════════════════════════════════════════
+     TAB: DAILY
+══════════════════════════════════════════ -->
+<div id="tab-daily" class="tab-panel active">
 
-<!-- ===================== TAB 1: アクセス状況 ===================== -->
-<div class="page active" id="page-summary">
-
-  <!-- Period sub-tabs -->
-  <div class="period-tabs">
-    <div class="period-tab active" onclick="switchPeriod('weekly', this)">週</div>
-    <div class="period-tab" onclick="switchPeriod('monthly', this)">月</div>
-    <div class="period-tab" onclick="switchPeriod('yearly', this)">年</div>
-    <div class="period-tab" onclick="switchPeriod('all', this)">全期間</div>
+  <!-- 診断バンド -->
+  <div class="daily-top">
+    <div class="daily-memo">
+      <div class="daily-memo-label">Status Memo｜自動診断</div>
+      <div class="daily-memo-text" id="memo-text">データ読み込み中...</div>
+    </div>
+    <div class="daily-div"></div>
+    <div class="daily-metrics">
+      <div class="daily-metric">
+        <span class="daily-metric-label">Reach Power</span>
+        <span class="daily-metric-val" id="k3-reach" style="color:var(--cyan)">—</span>
+        <span class="daily-metric-diff" id="k3-reach-arrow"></span>
+      </div>
+      <div class="daily-metric">
+        <span class="daily-metric-label">Action Power</span>
+        <span class="daily-metric-val" id="k3-action" style="color:var(--pink)">—</span>
+        <span class="daily-metric-diff" id="k3-action-arrow"></span>
+      </div>
+      <div class="daily-metric">
+        <span class="daily-metric-label">η スキ率</span>
+        <span class="daily-metric-val" id="k3-eta" style="color:var(--gold)">—</span>
+        <span class="daily-metric-diff" id="k3-eta-arrow"></span>
+      </div>
+    </div>
   </div>
 
-  <!-- KPI strip -->
+  <!-- KPIストリップ -->
   <div class="kpi-strip">
-    <div class="kpi-card">
-      <div class="kpi-label">全体ビュー</div>
-      <div class="kpi-value" id="kpiViews">—</div>
-      <div class="kpi-diff flat" id="kpiViewsDiff">前期間比 —</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">スキ</div>
-      <div class="kpi-value" id="kpiLikes">—</div>
-      <div class="kpi-diff flat" id="kpiLikesDiff">前期間比 —</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">コメント</div>
-      <div class="kpi-value" id="kpiComments">—</div>
-      <div class="kpi-diff flat" id="kpiCommentsDiff">前期間比 —</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">η スキ率</div>
-      <div class="kpi-value" id="kpiEta">—</div>
-      <div class="kpi-diff flat" id="kpiEtaDiff">前期間比 —</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">フォロワー</div>
-      <div class="kpi-value" id="kpiFollowers">—</div>
-      <div class="kpi-diff flat" id="kpiFollowersDiff">純増 —</div>
-    </div>
+    <div class="kpi"><div class="kpi-label">Total Views</div><div class="kpi-value v" id="kpi-views">—</div><div class="kpi-diff" id="kpi-views-diff">前日比</div></div>
+    <div class="kpi"><div class="kpi-label">Total Likes</div><div class="kpi-value l" id="kpi-likes">—</div><div class="kpi-diff" id="kpi-likes-diff">前日比</div></div>
+    <div class="kpi"><div class="kpi-label">Articles</div><div class="kpi-value a" id="kpi-articles">—</div><div class="kpi-diff">公開記事数</div></div>
+    <div class="kpi"><div class="kpi-label">Followers</div><div class="kpi-value f" id="kpi-followers">—</div><div class="kpi-diff">フォロワー数</div></div>
   </div>
 
-  <!-- Trend chart -->
-  <div class="card mb-4">
-    <div class="card-header">
-      <span class="card-title" id="chartTitle">ビュー推移（週）</span>
-      <div class="chart-legend">
-        <span><span class="legend-dot" style="background:#3EC19C"></span>ビュー</span>
-        <span><span class="legend-dot" style="background:#ff7043"></span>スキ</span>
+  <!-- チャート + スキ増ランキング TOP3 -->
+  <div class="grid">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title"><span class="ptdot" style="background:var(--cyan)"></span>ビュー / スキ 日次推移</div>
+        <span class="panel-badge">60D</span>
+      </div>
+      <div class="chart-wrap"><canvas id="chart-daily"></canvas></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title"><span class="ptdot" style="background:var(--pink)"></span>スキ増 ランキング TOP 3</div>
+        <span class="panel-badge" style="color:var(--pink);border-color:var(--pink-dim)">LIKE ▲</span>
+      </div>
+      <div class="rank-list" id="ranking-likes-mini" style="max-height:none"><div class="loading">loading</div></div>
+      <div style="margin-top:24px;border-top:1px solid var(--border);padding-top:20px">
+        <div class="panel-title" style="margin-bottom:16px;font-size:11px"><span class="ptdot" style="background:var(--red)"></span>スキ率 ワースト 3｜刺さってない記事</div>
+        <div class="rank-list" id="ranking-worst-mini" style="max-height:none"><div class="loading">loading</div></div>
       </div>
     </div>
-    <div class="card-body">
-      <div class="chart-wrap"><canvas id="mainChart" style="height:210px"></canvas></div>
-    </div>
   </div>
 
-  <!-- Article ranking table -->
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">記事ランキング</span>
-      <span class="card-sub" id="tablePeriodLabel">週間</span>
-    </div>
-    <div class="card-body-flush tbl-scroll">
-      <table>
-        <thead>
-          <tr>
-            <th class="no-sort" style="width:36px">#</th>
-            <th class="no-sort">タイトル</th>
-            <th class="td-right sort-desc" onclick="sortSummaryTable('views')">ビュー</th>
-            <th class="td-right" onclick="sortSummaryTable('likes')">スキ</th>
-            <th class="td-right" onclick="sortSummaryTable('comments')">コメント</th>
-            <th class="td-right" onclick="sortSummaryTable('eta')">η</th>
-          </tr>
-        </thead>
-        <tbody id="summaryArticleTable">
-          <tr><td colspan="6">
-            <div class="empty">
-              <div class="empty-icon">📊</div>
-              <div class="empty-text">データを読み込んでください</div>
-              <div class="empty-sub">CSVをドロップ、またはGitHub Pages で自動読込</div>
-            </div>
-          </td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
+</div><!-- /tab-daily -->
 
 
-<!-- ===================== TAB 2: 記事分析 ===================== -->
-<div class="page" id="page-articles">
-  <div class="pro-gate" id="articlesGate" style="min-height:500px">
+<!-- ══════════════════════════════════════════
+     TAB: WEEKLY
+══════════════════════════════════════════ -->
+<div id="tab-weekly" class="tab-panel">
+  <div class="grid">
 
-    <div class="sub-tabs">
-      <div class="sub-tab active" onclick="switchSubTab('articles','ranking',this)">ランキング</div>
-      <div class="sub-tab" onclick="switchSubTab('articles','trend',this)">トレンド</div>
-      <div class="sub-tab" onclick="switchSubTab('articles','map',this)">4象限マップ</div>
-    </div>
-
-    <!-- Ranking sub-tab -->
-    <div id="articles-ranking">
-      <div class="card">
-        <div class="card-header"><span class="card-title">全記事ランキング</span></div>
-        <div class="card-body-flush tbl-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th class="no-sort" style="width:36px">#</th>
-                <th class="no-sort">タイトル</th>
-                <th class="no-sort">カテゴリ</th>
-                <th class="td-right" onclick="sortArticlesTable('views')">ビュー</th>
-                <th class="td-right" onclick="sortArticlesTable('likes')">スキ</th>
-                <th class="td-right" onclick="sortArticlesTable('eta')">η</th>
-                <th class="td-right no-sort">公開日</th>
-              </tr>
-            </thead>
-            <tbody id="allRankingTable">
-              <tr><td colspan="7"><div class="empty"><div class="empty-icon">📄</div><div class="empty-text">articles.csv を読み込んでください</div></div></td></tr>
-            </tbody>
-          </table>
-        </div>
+    <!-- フォロワー推移 -->
+    <div class="panel full">
+      <div class="panel-header">
+        <div class="panel-title"><span class="ptdot" style="background:var(--violet)"></span>フォロワー 日次推移</div>
+        <span class="panel-badge">ALL</span>
       </div>
+      <div class="chart-wrap"><canvas id="chart-followers"></canvas></div>
     </div>
 
-    <!-- Trend sub-tab -->
-    <div id="articles-trend" style="display:none">
-      <div class="grid-2 mb-4">
-        <div class="card">
-          <div class="card-header"><span class="card-title">PV減衰カーブ（公開後 Day別）</span></div>
-          <div class="card-body">
-            <div class="chart-wrap"><canvas id="decayChart" style="height:220px"></canvas></div>
+    <!-- 週別パフォーマンス -->
+    <div class="panel full">
+      <div class="panel-header">
+        <div class="panel-title"><span class="ptdot" style="background:var(--cyan)"></span>週別 記事パフォーマンス</div>
+        <span class="panel-badge" id="weekly-badge" style="color:var(--cyan);border-color:var(--cyan-dim)">—</span>
+      </div>
+      <div class="tabs-wrap" id="weekly-tabs"><div class="loading" style="height:32px">loading</div></div>
+      <div class="period-meta" id="weekly-meta">
+        <span>期間 <span class="period-meta-val" id="weekly-range">—</span></span>
+        <span>総PV増加 <span class="period-meta-val cyan" id="weekly-pv">—</span></span>
+        <span>総スキ増加 <span class="period-meta-val pink" id="weekly-like">—</span></span>
+        <span>ランクイン記事 <span class="period-meta-val" id="weekly-count">—</span></span>
+      </div>
+      <div class="period-body">
+        <div>
+          <div class="metric-toggle">
+            <button class="metric-btn on-cyan" id="wbtn-pv"   onclick="weeklyUI.setMetric('pv')">PV</button>
+            <button class="metric-btn"         id="wbtn-like" onclick="weeklyUI.setMetric('like')">スキ</button>
           </div>
+          <div class="p-rank-list" id="weekly-ranking"><div class="loading">loading</div></div>
         </div>
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title">η トレンド（週次）</span>
-            <div class="chart-legend">
-              <span><span class="legend-dot" style="background:#3EC19C"></span>η(%)</span>
-            </div>
+        <div class="chart-pair">
+          <div>
+            <div class="chart-sub-label">週別 PV 増加推移 <span style="font-size:9px;margin-left:8px">← SCROLL →</span></div>
+            <div class="chart-scroll"><div class="chart-inner" id="wi-pv"><canvas id="chart-weekly-pv"></canvas><div class="drag-overlay" id="wo-pv"></div></div></div>
           </div>
-          <div class="card-body">
-            <div class="chart-wrap"><canvas id="etaTrendChart" style="height:220px"></canvas></div>
+          <div>
+            <div class="chart-sub-label">週別 スキ 増加推移 <span style="font-size:9px;margin-left:8px">← SCROLL →</span></div>
+            <div class="chart-scroll"><div class="chart-inner" id="wi-like"><canvas id="chart-weekly-like"></canvas><div class="drag-overlay" id="wo-like"></div></div></div>
           </div>
         </div>
       </div>
-      <div class="card">
-        <div class="card-header"><span class="card-title">ロングテール記事（Day6+ でPV増加傾向）</span></div>
-        <div class="card-body">
-          <div id="longTailList"><div class="empty"><div class="empty-sub">article_trend.csv があれば表示されます</div></div></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Map sub-tab -->
-    <div id="articles-map" style="display:none">
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">4象限マップ（ビュー × η スキ率）</span>
-          <span class="card-sub">右上 = 優秀記事 ／ 左上 = 隠れ良記事 ／ 右下 = 集客力あり ／ 左下 = 要改善</span>
-        </div>
-        <div class="card-body">
-          <div class="chart-wrap"><canvas id="scatterChart" style="height:380px"></canvas></div>
-        </div>
-      </div>
     </div>
 
   </div>
-</div>
+</div><!-- /tab-weekly -->
 
 
-<!-- ===================== TAB 3: 読者分析 ===================== -->
-<div class="page" id="page-readers">
-  <div class="pro-gate" id="readersGate" style="min-height:500px">
+<!-- ══════════════════════════════════════════
+     TAB: MONTHLY
+══════════════════════════════════════════ -->
+<div id="tab-monthly" class="tab-panel">
+  <div class="grid">
 
-    <div class="sub-tabs">
-      <div class="sub-tab active" onclick="switchSubTab('readers','weekly',this)">週次サマリー</div>
-      <div class="sub-tab" onclick="switchSubTab('readers','suki',this)">スキランキング</div>
-      <div class="sub-tab" onclick="switchSubTab('readers','followers',this)">フォロワー推移</div>
-    </div>
-
-    <!-- Weekly sub-tab -->
-    <div id="readers-weekly">
-      <div class="card">
-        <div class="card-header"><span class="card-title">週次レポート</span></div>
-        <div class="card-body-flush tbl-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th class="no-sort">週</th>
-                <th class="td-right">ビュー</th>
-                <th class="td-right">スキ</th>
-                <th class="td-right">η</th>
-                <th class="td-right">コメント</th>
-                <th class="td-right">前週比</th>
-              </tr>
-            </thead>
-            <tbody id="weeklyTable">
-              <tr><td colspan="6"><div class="empty"><div class="empty-sub">weekly_summary.csv を読み込んでください</div></div></td></tr>
-            </tbody>
-          </table>
-        </div>
+    <div class="panel full">
+      <div class="panel-header">
+        <div class="panel-title"><span class="ptdot" style="background:var(--gold)"></span>月別 記事パフォーマンス</div>
+        <span class="panel-badge" id="monthly-badge" style="color:var(--gold);border-color:var(--gold-dim)">—</span>
       </div>
-    </div>
-
-    <!-- Suki sub-tab -->
-    <div id="readers-suki" style="display:none">
-      <div class="card">
-        <div class="card-header"><span class="card-title">スキ数ランキング</span></div>
-        <div class="card-body-flush tbl-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th class="no-sort" style="width:36px">#</th>
-                <th class="no-sort">タイトル</th>
-                <th class="td-right">スキ数</th>
-                <th class="td-right">η スキ率</th>
-                <th class="td-right">ビュー</th>
-              </tr>
-            </thead>
-            <tbody id="sukiRankTable">
-              <tr><td colspan="5"><div class="empty"><div class="empty-sub">articles.csv を読み込んでください</div></div></td></tr>
-            </tbody>
-          </table>
-        </div>
+      <div class="tabs-wrap" id="monthly-tabs"><div class="loading" style="height:32px">loading</div></div>
+      <div class="period-meta" id="monthly-meta">
+        <span>期間 <span class="period-meta-val" id="monthly-range">—</span></span>
+        <span>総PV増加 <span class="period-meta-val gold" id="monthly-pv">—</span></span>
+        <span>総スキ増加 <span class="period-meta-val pink" id="monthly-like">—</span></span>
+        <span>ランクイン記事 <span class="period-meta-val" id="monthly-count">—</span></span>
       </div>
-    </div>
-
-    <!-- Followers sub-tab -->
-    <div id="readers-followers" style="display:none">
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">フォロワー推移</span>
-          <div class="chart-legend">
-            <span><span class="legend-dot" style="background:#4a90d9"></span>累計フォロワー</span>
+      <div class="period-body">
+        <div>
+          <div class="metric-toggle">
+            <button class="metric-btn on-gold" id="mbtn-pv"   onclick="monthlyUI.setMetric('pv')">PV</button>
+            <button class="metric-btn"         id="mbtn-like" onclick="monthlyUI.setMetric('like')">スキ</button>
+          </div>
+          <div class="p-rank-list" id="monthly-ranking"><div class="loading">loading</div></div>
+        </div>
+        <div class="chart-pair">
+          <div>
+            <div class="chart-sub-label">月別 PV 増加推移 <span style="font-size:9px;margin-left:8px">← SCROLL →</span></div>
+            <div class="chart-scroll"><div class="chart-inner" id="mi-pv"><canvas id="chart-monthly-pv"></canvas><div class="drag-overlay" id="mo-pv"></div></div></div>
+          </div>
+          <div>
+            <div class="chart-sub-label">月別 スキ 増加推移 <span style="font-size:9px;margin-left:8px">← SCROLL →</span></div>
+            <div class="chart-scroll"><div class="chart-inner" id="mi-like"><canvas id="chart-monthly-like"></canvas><div class="drag-overlay" id="mo-like"></div></div></div>
           </div>
         </div>
-        <div class="card-body">
-          <div class="chart-wrap"><canvas id="followerChart" style="height:240px"></canvas></div>
-        </div>
       </div>
     </div>
 
   </div>
-</div>
+</div><!-- /tab-monthly -->
 
 
-<!-- ===================== TAB 4: 戦略レポート ===================== -->
-<div class="page" id="page-strategy">
-  <div class="pro-gate" id="strategyGate" style="min-height:500px">
+<!-- ══════════════════════════════════════════
+     TAB: DEEP DIVE
+══════════════════════════════════════════ -->
+<div id="tab-deepdive" class="tab-panel">
+  <div class="grid">
 
-    <!-- Category charts -->
-    <div class="grid-2 mb-4">
-      <div class="card">
-        <div class="card-header"><span class="card-title">カテゴリ別 投稿数</span></div>
-        <div class="card-body">
-          <div class="chart-wrap"><canvas id="categoryChart" style="height:220px"></canvas></div>
+    <!-- Viewランキング -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title"><span class="ptdot" style="background:var(--cyan)"></span>View ランキング TOP 20</div>
+        <span class="panel-badge" style="color:var(--cyan);border-color:var(--cyan-dim)">PV</span>
+      </div>
+      <div class="rank-list" id="ranking-views"><div class="loading">loading</div></div>
+    </div>
+
+    <!-- スキランキング -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title"><span class="ptdot" style="background:var(--pink)"></span>スキ ランキング TOP 20</div>
+        <span class="panel-badge" style="color:var(--pink);border-color:var(--pink-dim)">LIKE</span>
+      </div>
+      <div class="rank-list" id="ranking-likes"><div class="loading">loading</div></div>
+    </div>
+
+    <!-- ワースト/ベスト分析 -->
+    <div class="panel full">
+      <div class="panel-header">
+        <div class="panel-title"><span class="ptdot" style="background:var(--red)"></span>改善候補 ワースト分析</div>
+        <span class="panel-badge" style="color:var(--red);border-color:rgba(255,77,106,0.2)">WORST 10</span>
+      </div>
+      <div class="wb-grid" style="margin-bottom:28px">
+        <div><div class="wb-head w">スキ率 ワースト（読まれてるのに刺さってない）</div><div class="rank-list" id="rank-worst-eta"><div class="loading">loading</div></div></div>
+        <div><div class="wb-head w">View数 ワースト（埋もれている記事）</div><div class="rank-list" id="rank-worst-views"><div class="loading">loading</div></div></div>
+      </div>
+      <div style="border-top:1px solid var(--border);margin-bottom:28px;position:relative">
+        <span style="position:absolute;top:-9px;left:50%;transform:translateX(-50%);background:var(--bg2);padding:0 16px;font-size:9px;color:var(--text3);letter-spacing:0.25em">VS</span>
+      </div>
+      <div class="wb-grid">
+        <div><div class="wb-head b">スキ率 ベスト（読まれて、かつ刺さった）</div><div class="rank-list" id="rank-best-eta"><div class="loading">loading</div></div></div>
+        <div><div class="wb-head b">View数 ベスト（最も読まれた記事）</div><div class="rank-list" id="rank-best-views"><div class="loading">loading</div></div></div>
+      </div>
+    </div>
+
+    <!-- 4象限マップ -->
+    <div class="panel full">
+      <div class="panel-header">
+        <div class="panel-title"><span class="ptdot" style="background:var(--violet)"></span>4象限マップ｜PV × スキ率</div>
+        <span class="panel-badge">SCATTER</span>
+      </div>
+      <div class="chart-wrap tall"><canvas id="chart-quad"></canvas></div>
+    </div>
+
+    <!-- 資産記事分析 -->
+    <div class="panel full">
+      <div class="panel-header">
+        <div class="panel-title"><span class="ptdot" style="background:var(--gold)"></span>資産記事分析｜バースト後の定着確認</div>
+        <span class="panel-badge" style="color:var(--gold);border-color:var(--gold-dim)">ASSET</span>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th style="width:44px">#</th><th>タイトル</th><th>期間 PV 増加</th><th style="width:80px">稼働日数</th><th>推移</th></tr></thead>
+          <tbody id="asset-body"><tr><td colspan="5" class="loading">スキャン中</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- トレンド動態 -->
+    <div class="panel full">
+      <div class="panel-header">
+        <div class="panel-title"><span class="ptdot" style="background:var(--pink)"></span>トレンド動態｜7日間詳細</div>
+        <span class="panel-badge">← SCROLL →</span>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th style="width:80px">状態</th><th>タイトル</th><th>累計PV</th><th>スコア</th><th>-1日</th><th>-2日</th><th>-3日</th><th>-4日</th><th>-5日</th><th>-6日</th><th>-7日</th></tr></thead>
+          <tbody id="trend-body"><tr><td colspan="11" class="loading">読み込み中</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Asset Intelligence ── -->
+    <div class="section-div panel full" style="background:linear-gradient(90deg,rgba(0,229,160,0.04)0%,transparent 60%)">
+      <span class="section-div-label" style="color:var(--green)"><span style="color:var(--green)">—</span> Asset Intelligence｜資産発掘エンジン</span>
+      <div class="section-div-line" style="background:linear-gradient(90deg,rgba(0,229,160,0.3),transparent)"></div>
+      <span class="panel-badge" style="color:var(--green);border-color:rgba(0,229,160,0.2)">AI SCORE</span>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title"><span class="ptdot" style="background:var(--green)"></span>v1｜稼働の質スコア</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="ai-formula">平均PV × 稼働日数 × 安定性</span>
+          <span class="panel-badge" style="color:var(--green);border-color:rgba(0,229,160,0.2)">TOP 10</span>
         </div>
       </div>
-      <div class="card">
-        <div class="card-header"><span class="card-title">カテゴリ別 η 平均</span></div>
-        <div class="card-body">
-          <div class="chart-wrap"><canvas id="categoryEtaChart" style="height:220px"></canvas></div>
+      <div style="margin-bottom:12px;font-size:10px;color:var(--green);letter-spacing:0.08em">■ 直近コンスタントに読まれている記事</div>
+      <div class="p-rank-list" id="ai-v1-ranking"><div class="loading">loading</div></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title"><span class="ptdot" style="background:var(--gold)"></span>v2｜累積資産＋利回りスコア</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="ai-formula">log(累計PV)×10 + 平均PV×安定性</span>
+          <span class="panel-badge" style="color:var(--gold);border-color:rgba(255,201,71,0.2)">TOP 10</span>
+        </div>
+      </div>
+      <div style="margin-bottom:12px;font-size:10px;color:var(--gold);letter-spacing:0.08em">■ 積み上げた資産価値が高い長寿記事</div>
+      <div class="p-rank-list" id="ai-v2-ranking"><div class="loading">loading</div></div>
+    </div>
+
+    <div class="panel full">
+      <div class="panel-header">
+        <div class="panel-title"><span class="ptdot" style="background:var(--violet)"></span>v1 × v2 クロス分析｜両指標で高いのが「真の資産記事」</div>
+        <span class="panel-badge" style="color:var(--violet);border-color:var(--violet-dim)">COMPARE</span>
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+        <span class="ai-quad-badge qq-both">💎 両方上位</span>
+        <span class="ai-quad-badge qq-v1">🔥 直近急上昇</span>
+        <span class="ai-quad-badge qq-v2">🏛️ 長期資産</span>
+        <span class="ai-quad-badge qq-none">💤 休眠</span>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th style="width:44px">#</th><th>タイトル</th><th style="width:70px;text-align:center">経過日数</th><th style="width:90px;text-align:center">累計PV</th><th style="width:130px">v1スコア</th><th style="width:130px">v2スコア</th><th style="width:90px;text-align:center">判定</th></tr></thead>
+          <tbody id="ai-compare-body"><tr><td colspan="7" class="loading">解析中</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Asset Map ── -->
+    <div class="section-div panel full" style="background:linear-gradient(90deg,rgba(255,77,141,0.04)0%,transparent 60%)">
+      <span class="section-div-label" style="color:var(--pink)"><span style="color:var(--pink)">—</span> Asset Map｜記事資産マップ</span>
+      <div class="section-div-line" style="background:linear-gradient(90deg,rgba(255,77,141,0.3),transparent)"></div>
+      <span class="panel-badge" style="color:var(--pink);border-color:rgba(255,77,141,0.2)">BUBBLE</span>
+    </div>
+
+    <div class="panel full">
+      <div class="panel-header">
+        <div class="panel-title"><span class="ptdot" style="background:var(--pink)"></span>記事資産マップ｜Age × v2スコア × 累計PV</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span class="bubble-axis">バブル大きさ＝累計PV</span>
+          <span class="bubble-axis">色＝安定性スコア</span>
+        </div>
+      </div>
+      <div class="bq-grid">
+        <div class="bq-item bq-tl"><div class="bq-label">🌱 若手資産候補</div>経過日数が少ない × v2スコア高め</div>
+        <div class="bq-item bq-tr"><div class="bq-label">💎 真の資産記事</div>経過日数が多い × v2スコア高め</div>
+        <div class="bq-item bq-bl"><div class="bq-label">💤 眠れる記事</div>経過日数が少ない × v2スコア低め</div>
+        <div class="bq-item bq-br"><div class="bq-label">📦 過去の遺産</div>経過日数が多い × v2スコア低め</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:20px;margin-bottom:24px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:10px;font-size:10px;color:var(--text3);letter-spacing:0.08em">
+          <span>安定性スコア:</span>
+          <span style="color:var(--red);font-size:11px">低</span>
+          <span class="bubble-legend-bar"></span>
+          <span style="color:var(--cyan);font-size:11px">高</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:10px;color:var(--text3);letter-spacing:0.06em">
+          <span>🖱 ホイール or ピンチ：ズーム　ドラッグ：パン</span>
+          <button id="bubble-reset-btn" onclick="resetBubbleZoom()" style="padding:3px 12px;border:1px solid rgba(255,77,141,0.35);border-radius:3px;background:rgba(255,77,141,0.08);color:var(--pink);font-family:var(--mono);font-size:10px;letter-spacing:0.1em;cursor:pointer;transition:all 0.15s" onmouseover="this.style.background='rgba(255,77,141,0.18)'" onmouseout="this.style.background='rgba(255,77,141,0.08)'">RESET ZOOM</button>
+        </div>
+        <div id="bubble-stats" style="margin-left:auto;font-size:10px;color:var(--text3)">—</div>
+      </div>
+      <div class="chart-wrap" style="height:520px"><canvas id="chart-bubble"></canvas></div>
+    </div>
+
+    <!-- ── Decay Analysis ── -->
+    <div class="section-div panel full" style="background:linear-gradient(90deg,rgba(157,111,255,0.05)0%,transparent 60%)">
+      <span class="section-div-label" style="color:var(--violet)"><span style="color:var(--violet)">—</span> Decay Analysis｜消費期限分析</span>
+      <div class="section-div-line" style="background:linear-gradient(90deg,rgba(157,111,255,0.3),transparent)"></div>
+      <span class="panel-badge" style="color:var(--violet);border-color:rgba(157,111,255,0.2)">BOXPLOT</span>
+    </div>
+
+    <div class="panel full">
+      <div class="panel-header">
+        <div class="panel-title"><span class="ptdot" style="background:var(--violet)"></span>記事の『消費期限』｜経過日数ごとの日次ビュー減衰</div>
+        <span class="panel-badge" style="color:var(--violet);border-color:var(--violet-dim)">BOXPLOT</span>
+      </div>
+      <div class="decay-summary-cards">
+        <div class="decay-card"><div class="decay-card-label">分析対象記事</div><div class="decay-card-val" id="dc-count">—</div><div class="decay-card-sub">TOP N 記事</div></div>
+        <div class="decay-card"><div class="decay-card-label">中央値ピーク日</div><div class="decay-card-val" id="dc-peak">—</div><div class="decay-card-sub">最も視聴が集まる日</div></div>
+        <div class="decay-card"><div class="decay-card-label">半減期</div><div class="decay-card-val" id="dc-half">—</div><div class="decay-card-sub">中央値がピークの50%になる日</div></div>
+        <div class="decay-card"><div class="decay-card-label">死の谷到達日</div><div class="decay-card-val" id="dc-valley">—</div><div class="decay-card-sub">中央値が1に近づく日</div></div>
+      </div>
+      <div class="decay-filter-bar">
+        <div class="decay-filter-group">
+          <span class="filter-label">TOP_N</span>
+          <input type="range" class="decay-range" id="decay-topn" min="5" max="50" value="25" step="5">
+          <span class="filter-val" id="decay-topn-val">25</span>
+        </div>
+        <div class="filter-div"></div>
+        <div class="decay-filter-group">
+          <span class="filter-label">最大経過日数</span>
+          <input type="range" class="decay-range" id="decay-maxday" min="7" max="60" value="14" step="1">
+          <span class="filter-val" id="decay-maxday-val">14</span>
+        </div>
+        <div class="filter-div"></div>
+        <div class="decay-filter-group">
+          <span class="filter-label">ソート順</span>
+          <button class="metric-btn on-violet" id="dsort-firstday"   onclick="decayUI.setSort('firstday')">初日ジャンプ</button>
+          <button class="metric-btn"           id="dsort-totalviews" onclick="decayUI.setSort('totalviews')">累計PV</button>
+        </div>
+        <div class="filter-div"></div>
+        <div class="decay-filter-group">
+          <span class="filter-label">対象記事タイプ</span>
+          <button class="metric-btn on-violet" id="dtype-new" onclick="decayUI.setType('new')">新規記事</button>
+          <button class="metric-btn"           id="dtype-all" onclick="decayUI.setType('all')">全記事</button>
+        </div>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+          <span class="filter-label">データ数</span>
+          <span class="filter-val cyan" id="decay-data-count">—</span>
+        </div>
+      </div>
+      <div class="decay-chart-area" id="decay-chart-area">
+        <div id="decay-svg-wrap"><div class="loading" style="height:460px">loading</div></div>
+      </div>
+      <div class="decay-legend">
+        <div class="decay-legend-item"><span class="dl-dot" style="background:rgba(157,111,255,0.55);border:1px solid rgba(157,111,255,0.8)"></span>個別記事の日次ビュー</div>
+        <div class="decay-legend-item"><span class="dl-rect" style="background:rgba(0,229,255,0.1);border:1px solid rgba(0,229,255,0.5)"></span>四分位範囲（Q1〜Q3）</div>
+        <div class="decay-legend-item"><span class="dl-line" style="background:rgba(0,229,255,0.9)"></span>中央値（各日）</div>
+        <div class="decay-legend-item"><span class="dl-line" style="background:#ff4d6a"></span>中央値トレンド（平均的な寿命曲線）</div>
+        <div class="decay-legend-item"><span class="dl-rect" style="background:rgba(255,230,50,0.12);border:1px solid rgba(255,230,50,0.35)"></span>3〜5日の壁（死の谷）</div>
+      </div>
+    </div>
+
+    <!-- ── Article Trend ── -->
+    <div class="section-div panel full" style="background:linear-gradient(90deg,rgba(0,229,255,0.04)0%,transparent 60%)">
+      <span class="section-div-label" style="color:var(--cyan)"><span style="color:var(--cyan)">—</span> Article Trend｜記事推移分析</span>
+      <div class="section-div-line"></div>
+      <span class="panel-badge" style="color:var(--cyan);border-color:rgba(0,229,255,0.2)">LINE</span>
+    </div>
+
+    <div class="panel full">
+      <div class="panel-header">
+        <div class="panel-title"><span class="ptdot" style="background:var(--cyan)"></span>記事推移グラフ｜日付軸 &amp; 経過日数軸</div>
+        <span id="trend-badge" class="panel-badge" style="color:var(--cyan);border-color:var(--cyan-dim)">—</span>
+      </div>
+      <div class="trend-filter-bar">
+        <div class="trend-filter-group">
+          <span class="filter-label">ソート順</span>
+          <div class="tabs-wrap" style="margin-bottom:0">
+            <button class="tab-btn active" data-sort="firstday" onclick="articleTrendUI.setSortMode('firstday')">初日ドカーン</button>
+            <button class="tab-btn" data-sort="total"    onclick="articleTrendUI.setSortMode('total')">累計PV</button>
+            <button class="tab-btn" data-sort="peak"     onclick="articleTrendUI.setSortMode('peak')">ピーク増加</button>
+            <button class="tab-btn" data-sort="initial"  onclick="articleTrendUI.setSortMode('initial')">初速(7日)</button>
+          </div>
+        </div>
+        <div class="filter-div"></div>
+        <div class="trend-filter-group">
+          <span class="filter-label">上位 N 件</span>
+          <div class="tabs-wrap" style="margin-bottom:0">
+            <button class="tab-btn active" data-topn="5"  onclick="articleTrendUI.setTopN(5)">5</button>
+            <button class="tab-btn"        data-topn="10" onclick="articleTrendUI.setTopN(10)">10</button>
+            <button class="tab-btn"        data-topn="15" onclick="articleTrendUI.setTopN(15)">15</button>
+            <button class="tab-btn"        data-topn="20" onclick="articleTrendUI.setTopN(20)">20</button>
+          </div>
+        </div>
+        <div class="filter-div"></div>
+        <div class="trend-filter-group">
+          <span class="filter-label">対象</span>
+          <div class="tabs-wrap" style="margin-bottom:0">
+            <button class="tab-btn active" id="trend-filter-new" onclick="articleTrendUI.setFilterNew(true)">新規のみ</button>
+            <button class="tab-btn"        id="trend-filter-all" onclick="articleTrendUI.setFilterNew(false)">全記事</button>
+          </div>
+        </div>
+        <span id="trend-count" style="margin-left:auto;font-size:10px;color:var(--text3);letter-spacing:0.08em">— 記事</span>
+      </div>
+      <div class="chart-pair">
+        <div>
+          <div class="chart-sub-label">① カレンダー日付軸</div>
+          <div class="chart-wrap" style="height:340px"><canvas id="chart-trend-date"></canvas></div>
+        </div>
+        <div>
+          <div class="chart-sub-label">② 投稿日 0日目 基準の経過日数軸</div>
+          <div class="chart-wrap" style="height:340px"><canvas id="chart-trend-rel"></canvas></div>
         </div>
       </div>
     </div>
 
-    <!-- AI Report -->
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">📋 週次 AI 診断レポート</span>
-        <span class="card-sub">ビュー・スキ・η の前期間比をもとに自動生成</span>
+    <!-- ── Comment Intelligence ── -->
+    <div class="section-div panel full" style="background:linear-gradient(90deg,rgba(255,77,141,0.05)0%,transparent 60%)">
+      <span class="section-div-label" style="color:var(--pink)"><span style="color:var(--pink)">—</span> Comment Intelligence｜コメント分析</span>
+      <div class="section-div-line" style="background:linear-gradient(90deg,rgba(255,77,141,0.3),transparent)"></div>
+      <span class="panel-badge" style="color:var(--pink);border-color:rgba(255,77,141,0.2)">COMMENT</span>
+    </div>
+
+    <div class="panel full">
+      <div class="panel-header">
+        <div class="panel-title"><span class="ptdot" style="background:var(--pink)"></span>Comment KPI</div>
+        <span class="panel-badge" style="color:var(--pink);border-color:var(--pink-dim)">SUMMARY</span>
       </div>
-      <div class="card-body">
-        <div class="report-body" id="aiReport">データを読み込むと、自動診断レポートが生成されます。</div>
-        <button class="report-copy-btn" onclick="copyReport()">📋 コピー</button>
+      <div class="comment-kpi-strip">
+        <div class="comment-kpi-card"><div class="ckpi-label">Total Comments</div><div class="ckpi-val c-cyan" id="ckpi-total">—</div><div class="ckpi-sub" id="ckpi-total-sub">集計中…</div></div>
+        <div class="comment-kpi-card"><div class="ckpi-label">Engaged Articles</div><div class="ckpi-val c-pink" id="ckpi-engaged">—</div><div class="ckpi-sub" id="ckpi-engaged-sub">コメント≥1の記事数</div></div>
+        <div class="comment-kpi-card"><div class="ckpi-label">Avg Comment Rate</div><div class="ckpi-val c-gold" id="ckpi-rate">—</div><div class="ckpi-sub">コメント÷PV×100（PV≥50）</div></div>
+        <div class="comment-kpi-card"><div class="ckpi-label">Most Commented</div><div class="ckpi-val c-violet" id="ckpi-max">—</div><div class="ckpi-sub" id="ckpi-max-title">—</div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title"><span class="ptdot" style="background:var(--pink)"></span>コメント数 ランキング TOP 10</div>
+        <span class="panel-badge" style="color:var(--pink);border-color:var(--pink-dim)">COUNT</span>
+      </div>
+      <div class="rank-list" id="ranking-comments"><div class="loading">loading</div></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title"><span class="ptdot" style="background:var(--gold)"></span>コメント率 ランキング TOP 10</div>
+        <span class="panel-badge" style="color:var(--gold);border-color:var(--gold-dim)">RATE</span>
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-bottom:14px;letter-spacing:0.06em">コメント ÷ PV × 100（PV ≥ 50 の記事のみ）</div>
+      <div class="rank-list" id="ranking-comment-rate"><div class="loading">loading</div></div>
+    </div>
+
+    <div class="panel full">
+      <div class="panel-header">
+        <div class="panel-title"><span class="ptdot" style="background:var(--pink)"></span>PV × コメント 分布｜「議論を呼んだ記事」を発見する</div>
+        <span class="panel-badge" style="color:var(--pink);border-color:var(--pink-dim)">SCATTER</span>
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-bottom:14px;letter-spacing:0.06em">
+        X軸：累計PV　／　Y軸：コメント数　／　色：コメント率（高いほど<span style="color:var(--pink)">ピンク</span>）
+      </div>
+      <div class="chart-wrap tall"><canvas id="chart-comment-scatter"></canvas></div>
+      <div class="scatter-legend">
+        <div style="display:flex;align-items:center;gap:6px"><span class="scatter-legend-dot" style="background:var(--pink)"></span>コメント率 高（≥0.5%）</div>
+        <div style="display:flex;align-items:center;gap:6px"><span class="scatter-legend-dot" style="background:var(--gold)"></span>コメント率 中（0.1〜0.5%）</div>
+        <div style="display:flex;align-items:center;gap:6px"><span class="scatter-legend-dot" style="background:var(--cyan)"></span>コメント率 低（＜0.1%）</div>
+        <span style="margin-left:auto;font-size:10px;color:var(--text3)">ホバーで記事タイトルを表示</span>
       </div>
     </div>
 
   </div>
+</div><!-- /tab-deepdive -->
+
+</div><!-- /dashboard -->
+
+<!-- Decay tooltip -->
+<div class="decay-tooltip" id="decay-tooltip">
+  <div class="tt-title" id="tt-title"></div>
+  <div class="tt-row"><span class="tt-key">経過日数</span><span class="tt-val" id="tt-day"></span></div>
+  <div class="tt-row"><span class="tt-key">日次ビュー</span><span class="tt-val" id="tt-views"></span></div>
 </div>
 
-
-<!-- ===================== JAVASCRIPT ===================== -->
 <script>
-// ==========================================================
-// STATE
-// ==========================================================
-const S = {
-  articles: [],
-  dailySummary: [],
-  weeklySummary: [],
-  monthlySummary: [],
-  periodRanking: [],
-  followers: [],
-  articleQuality: [],
-  articleTrend: [],
-  assetArticles: [],
-  assetScore: [],
-  trendAnalysis: [],
+/* ================================================================
+   ① CONFIG
+   ここだけ編集すればダッシュボードの動作が変わります
+   ================================================================ */
+const CONFIG = {
+  // CSVファイルの配置先URL（末尾スラッシュ必須）
+  dataBase: 'https://raw.githubusercontent.com/Goo-dev0505/note-stats-public/main/data/',
 
-  loadedFiles: new Set(),
-  currentPeriod: 'weekly',
-  isPro: false,
+  // 集計から除外するタイトル（完全一致 or 前方一致）
+  excludedTitles: [
+    'ナイキ エア ヴェイパーマックス 360', '自作PC#2', 'メモ', 'スターバックス記事#1',
+    'みんなが貪欲になっているときこそ恐怖心を抱き、みんなが恐怖心を抱いているとき…',
+    'はたらくこと', '気になるレシピ#1', 'This is US', '"50',
+  ],
 
-  // sort state for each table
-  summarySort: { col: 'views', dir: 'desc' },
-  articlesSort: { col: 'views', dir: 'desc' },
+  // ランキング表示件数
+  rankingTopN:   20,
+  periodRankN:   10,
 
-  // chart instances
-  charts: {},
+  // スキ率計算の最低PV（これ未満の記事はスキ率計算対象外）
+  minPvForEta:   50,
+
+  // 前日比の矢印が変わるしきい値（0.01 = 1%）
+  arrowThreshold: 0.01,
+
+  // チャート共通色
+  gridColor: 'rgba(255,255,255,0.05)',
+  tickColor: 'rgba(255,255,255,0.85)',
 };
 
-// ==========================================================
-// CSV PARSER
-// ==========================================================
-function parseCSV(text) {
-  text = text.replace(/^\uFEFF/, ''); // remove BOM
-  const lines = text.trim().split(/\r?\n/);
-  if (lines.length < 2) return [];
-  const headers = parseCSVLine(lines[0]).map(h => h.trim().replace(/^"|"$/g, ''));
-  return lines.slice(1).filter(l => l.trim()).map(line => {
-    const vals = parseCSVLine(line);
-    const obj = {};
-    headers.forEach((h, i) => {
-      obj[h] = (vals[i] || '').trim().replace(/^"|"$/g, '');
-    });
-    return obj;
-  });
-}
-
-function parseCSVLine(line) {
-  const result = [];
-  let cur = '';
-  let inQ = false;
-  for (let i = 0; i < line.length; i++) {
-    const c = line[i];
-    if (c === '"') { inQ = !inQ; continue; }
-    if (c === ',' && !inQ) { result.push(cur); cur = ''; continue; }
-    cur += c;
-  }
-  result.push(cur);
-  return result;
-}
-
-function parseAndStore(name, text) {
-  const data = parseCSV(text);
-  if (!data.length) return;
-  const k = name.replace(/-/g, '_').toLowerCase();
-  if (k === 'articles')          S.articles = data;
-  else if (k === 'daily_summary')   S.dailySummary = data;
-  else if (k === 'weekly_summary')  S.weeklySummary = data;
-  else if (k === 'monthly_summary') S.monthlySummary = data;
-  else if (k === 'period_ranking')  S.periodRanking = data;
-  else if (k === 'followers')        S.followers = data;
-  else if (k === 'article_quality')  S.articleQuality = data;
-  else if (k === 'article_trend')    S.articleTrend = data;
-  else if (k === 'asset_articles')   S.assetArticles = data;
-  else if (k === 'asset_score_v2' || k === 'asset_score_v1') S.assetScore = data;
-  else if (k === 'trend_analysis')   S.trendAnalysis = data;
-  S.loadedFiles.add(k);
-  updateStatus();
-}
-
-// ==========================================================
-// DATA LOADING — GitHub Pages auto-load + D&D
-// ==========================================================
-const CSV_FILES = [
-  'articles', 'daily_summary', 'weekly_summary', 'monthly_summary',
-  'period_ranking', 'followers', 'article_quality', 'article_trend',
-  'asset_articles', 'asset_score_v2', 'trend_analysis'
-];
-
-async function loadFromRepo() {
-  setStatus('loading', '読込中...');
-  let loaded = 0;
-  for (const f of CSV_FILES) {
-    try {
-      const res = await fetch(`https://raw.githubusercontent.com/Goo-dev0505/note-stats-public/main/data/${f}.csv`);
-      if (res.ok) {
-        const text = await res.text();
-        parseAndStore(f, text);
-        loaded++;
-      }
-    } catch (_) {}
-  }
-  if (loaded > 0) {
-    renderAll();
-    setStatus('loaded', `${loaded}ファイル読込済`);
-    // Collapse drop zone
-    const dz = document.getElementById('dropZone');
-    dz.querySelector('span:not(.dz-icon)').innerHTML =
-      `✅ ${loaded}ファイル自動読込完了 <span style="color:var(--text-muted)">(追加ファイルをドロップして更新可)</span>`;
-  } else {
-    setStatus('none', 'CSVをドロップしてください');
-  }
-}
-
-// Drag & Drop
-function handleDragOver(e)  { e.preventDefault(); document.getElementById('dropZone').classList.add('drag-over'); }
-function handleDragLeave()  { document.getElementById('dropZone').classList.remove('drag-over'); }
-function handleDrop(e)      { e.preventDefault(); handleDragLeave(); processFiles(e.dataTransfer.files); }
-function handleFileSelect(e){ processFiles(e.target.files); }
-
-function processFiles(files) {
-  let count = 0;
-  Array.from(files).forEach(file => {
-    if (!file.name.endsWith('.csv')) return;
-    const reader = new FileReader();
-    reader.onload = e2 => {
-      const name = file.name.replace('.csv', '');
-      parseAndStore(name, e2.target.result);
-      count++;
-      renderAll();
-    };
-    reader.readAsText(file, 'UTF-8');
-  });
-}
-
-// ==========================================================
-// STATUS
-// ==========================================================
-function setStatus(state, text) {
-  const dot = document.getElementById('statusDot');
-  const txt = document.getElementById('statusText');
-  dot.className = 'status-dot' + (state === 'loaded' ? ' loaded' : state === 'loading' ? ' loading' : state === 'error' ? ' error' : '');
-  txt.innerHTML = state === 'loading' ? '<span class="spin"></span> ' + text : text;
-}
-function updateStatus() {
-  setStatus('loaded', `${S.loadedFiles.size}ファイル`);
-}
-
-// ==========================================================
-// HELPERS
-// ==========================================================
-const n  = v => parseFloat(v) || 0;
-const fmt = v => {
-  v = n(v);
-  if (v >= 10000) return (v / 10000).toFixed(1) + '万';
-  return v.toLocaleString();
-};
-const fmtDate = s => {
-  if (!s) return '';
-  const d = new Date(s.replace(/_/g, '-'));
-  if (isNaN(d)) return s;
-  return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
-};
-// ── articles.csv: read_count / like_count / comment_count ──────────────
-// ── daily_summary.csv: 日付 / ビュー合計 / スキ合計 / スキ率(%) ────────
-// ── followers.csv: 日付 / フォロワー数 ────────────────────────────────
-// ── weekly_summary.csv: key, title, 年, 週, 期間増加PV, 期間増加スキ, 累計PV, PVランク, スキランク
-// ── monthly_summary.csv: key, title, 年, 月, 期間増加PV, 期間増加スキ, 累計PV, PVランク, スキランク
-
-// articles.csv – cumulative read_count / like_count per article per day
-const getV = r => n(r.read_count  || r.views || r.view_count || r.pv || 0);
-const getL = r => n(r.like_count  || r.likes || r.suki || 0);
-const getC = r => n(r.comment_count || r.comments || 0);
-const getEta = r => {
-  // daily_summary has スキ率(%) directly
-  if (r['スキ率(%)'] !== undefined) return n(r['スキ率(%)']);
-  if (r.eta) return n(r.eta);
-  const v = getV(r), l = getL(r);
-  return v > 0 ? (l / v * 100) : 0;
-};
-
-// daily_summary.csv uses 日付 (YYYY/MM/DD), not 'date'
-const getDateKey = r => r['日付'] || r.date || '';
-
-// weekly_summary.csv: aggregate key = 年 + "W" + 週
-const getWeekKey = r => {
-  if (r['年'] && r['週']) return `${r['年']}-W${String(r['週']).padStart(2,'0')}`;
-  return r.week || r.week_start || r['日付'] || r.date || '';
-};
-
-// monthly_summary.csv: aggregate key = 年 + "-" + 月
-const getMonthKey = r => {
-  if (r['年'] && r['月']) return `${r['年']}-${String(r['月']).padStart(2,'0')}`;
-  return r.month || r.year_month || '';
-};
-
-// daily_summary.csv field aliases
-const getDailyViews     = r => n(r['ビュー合計'] || r.views || r.view_count || 0);
-const getDailyLikes     = r => n(r['スキ合計']   || r.likes || 0);
-const getDailyComments  = r => n(r['コメント合計'] || r.comments || 0);
-const getDailyEta       = r => n(r['スキ率(%)']  || r.eta || 0);
-const getDailyFollowers = r => n(r['フォロワー数'] || r.followers || r.follower_count || 0);
-
-// followers.csv: 日付 / フォロワー数
-const getFollowCount = r => n(r['フォロワー数'] || r.followers || r.follower_count || 0);
-
-function etaBadge(eta) {
-  const v = parseFloat(eta) || 0;
-  const cls = v >= 15 ? 'eta-hi' : v >= 7 ? 'eta-mid' : 'eta-lo';
-  return `<span class="eta-badge ${cls}">${v.toFixed(1)}%</span>`;
-}
-
-function diffChip(curr, prev) {
-  if (prev === 0 || prev == null) return '<span class="diff-chip flat">—</span>';
-  const d = curr - prev;
-  const pct = ((d / prev) * 100).toFixed(1);
-  const cls = d > 0 ? 'up' : d < 0 ? 'down' : 'flat';
-  const arrow = d > 0 ? '↑' : d < 0 ? '↓' : '→';
-  return `<span class="diff-chip ${cls}">${arrow}${Math.abs(d).toLocaleString()} (${d >= 0 ? '+' : ''}${pct}%)</span>`;
-}
-
-function kpiDiff(curr, prev, label = '前期間比') {
-  if (prev === 0 || prev == null) return `<span class="kpi-diff flat">${label} —</span>`;
-  const d = curr - prev;
-  const pct = ((d / prev) * 100).toFixed(1);
-  const cls = d > 0 ? 'up' : d < 0 ? 'down' : 'flat';
-  const arrow = d > 0 ? '↑' : d < 0 ? '↓' : '→';
-  return `<span class="kpi-diff ${cls}">${arrow} ${Math.abs(d).toLocaleString()} (${d >= 0 ? '+' : ''}${pct}%)</span>`;
-}
-
-// ==========================================================
-// PERIOD DATA COMPUTATION
-// ==========================================================
-// daily_summary の日付を正規化（YYYY/MM/DD → YYYY-MM-DD）
-function normDate(s) {
-  return (s || '').replace(/\//g, '-');
-}
-
-// daily_summary を日付昇順でソート
-function sortedDailySummary() {
-  return [...S.dailySummary].sort((a, b) => normDate(getDateKey(a)) < normDate(getDateKey(b)) ? -1 : 1);
-}
-
-// weekly_summary / monthly_summary は「記事×期間」の長形式
-// → 同じ期間キーを持つ行をまとめて期間合計を作る
-function aggregateSummary(rows, keyFn) {
-  const agg = {};
-  rows.forEach(r => {
-    const k = keyFn(r);
-    if (!k) return;
-    if (!agg[k]) agg[k] = { views: 0, likes: 0, comments: 0 };
-    agg[k].views += n(r['期間増加PV'] || 0);
-    agg[k].likes += n(r['期間増加スキ'] || 0);
-    // コメントは weekly/monthly_summary にないため 0
-  });
-  return agg; // { "2025-W01": {views, likes, comments}, ... }
-}
-
-function getPeriodData() {
-  const p = S.currentPeriod;
-  let curr = { views: 0, likes: 0, comments: 0 };
-  let prev = { views: 0, likes: 0, comments: 0 };
-  let labels = [], vData = [], lData = [];
-
-  if (p === 'weekly') {
-    // weekly_summary.csv: aggregate per week
-    if (S.weeklySummary.length > 0) {
-      const agg = aggregateSummary(S.weeklySummary, getWeekKey);
-      const keys = Object.keys(agg).sort();
-      const last = keys.slice(-12);
-      last.forEach(k => { labels.push(k); vData.push(agg[k].views); lData.push(agg[k].likes); });
-      if (keys.length >= 1) curr = agg[keys[keys.length-1]];
-      if (keys.length >= 2) prev = agg[keys[keys.length-2]];
-    } else {
-      // fallback: last 7 days from daily_summary
-      const daily = sortedDailySummary().slice(-14);
-      daily.forEach(r => { labels.push(normDate(getDateKey(r))); vData.push(getDailyViews(r)); lData.push(getDailyLikes(r)); });
-      const last7  = daily.slice(-7);
-      const prev7  = daily.slice(-14, -7);
-      curr = { views: last7.reduce((s,r)=>s+getDailyViews(r),0), likes: last7.reduce((s,r)=>s+getDailyLikes(r),0), comments: 0 };
-      prev = { views: prev7.reduce((s,r)=>s+getDailyViews(r),0), likes: prev7.reduce((s,r)=>s+getDailyLikes(r),0), comments: 0 };
+/* ================================================================
+   ② DATA LAYER
+   fetch と CSV パースのみ。副作用なし
+   ================================================================ */
+const DataLayer = {
+  parseLine(line) {
+    const vals = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') {
+        if (inQ && line[i+1] === '"') { cur += '"'; i++; }
+        else inQ = !inQ;
+      } else if (c === ',' && !inQ) {
+        vals.push(cur.trim()); cur = '';
+      } else cur += c;
     }
+    vals.push(cur.trim());
+    return vals;
+  },
 
-  } else if (p === 'monthly') {
-    if (S.monthlySummary.length > 0) {
-      const agg = aggregateSummary(S.monthlySummary, getMonthKey);
-      const keys = Object.keys(agg).sort();
-      const last = keys.slice(-13);
-      last.forEach(k => { labels.push(k); vData.push(agg[k].views); lData.push(agg[k].likes); });
-      if (keys.length >= 1) curr = agg[keys[keys.length-1]];
-      if (keys.length >= 2) prev = agg[keys[keys.length-2]];
-    } else {
-      // fallback: aggregate daily by month
-      const byMonth = {};
-      sortedDailySummary().forEach(r => {
-        const m = normDate(getDateKey(r)).slice(0,7);
-        if (!m) return;
-        if (!byMonth[m]) byMonth[m] = { views: 0, likes: 0, comments: 0 };
-        byMonth[m].views += getDailyViews(r);
-        byMonth[m].likes += getDailyLikes(r);
+  async fetchCSV(name) {
+    const url = CONFIG.dataBase + name + '.csv?t=' + Date.now();
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`${name} not found (${res.status})`);
+    const text = await res.text();
+    const lines = text.trim().split('\n');
+    const headers = this.parseLine(lines[0]);
+    return lines.slice(1).filter(l => l.trim()).map(line => {
+      const vals = this.parseLine(line);
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = vals[i] ?? '');
+      return obj;
+    });
+  },
+
+  async loadAll() {
+    const required = ['daily_summary','articles','followers','trend_analysis','asset_articles'];
+    const optional = ['weekly_summary','monthly_summary','asset_score_v1','asset_score_v2','article_trend'];
+    const [req, opt] = await Promise.all([
+      Promise.all(required.map(n => this.fetchCSV(n))),
+      Promise.all(optional.map(n => this.fetchCSV(n).catch(() => []))),
+    ]);
+    const [summary, articles, followers, trend, assets] = req;
+    const [weekly, monthly, assetV1, assetV2, articleTrend] = opt;
+    return { summary, articles, followers, trend, assets, weekly, monthly, assetV1, assetV2, articleTrend };
+  },
+};
+
+/* ================================================================
+   ③ STORE
+   純粋な変換関数群。DOMもChartも触らない
+   ================================================================ */
+const Store = {
+  isExcluded(title) {
+    if (!title) return true;
+    return CONFIG.excludedTitles.some(ex => title === ex || title.startsWith(ex));
+  },
+
+  // 最新日付の行を取得
+  latestDate(rows) {
+    return rows.reduce((a, b) => a.date > b.date ? a : b, rows[0]);
+  },
+
+  // 前日比の矢印判定
+  arrow(now, prev) {
+    const d = now - prev;
+    if (d >  prev * CONFIG.arrowThreshold) return { s: '↑', c: 'up' };
+    if (d < -prev * CONFIG.arrowThreshold) return { s: '↓', c: 'down' };
+    return { s: '→', c: 'flat' };
+  },
+
+  // ステータスバンドの指標を計算
+  calcStatusBand(summary) {
+    if (summary.length < 2) return null;
+    const t  = summary[summary.length - 1];
+    const y  = summary[summary.length - 2];
+    const ac  = Number(t['記事数']) || 1;
+    const acY = Number(y['記事数']) || 1;
+    const reach  = Number(t['ビュー合計']) / ac;
+    const reachY = Number(y['ビュー合計']) / acY;
+    const action  = Number(t['スキ合計']) / ac;
+    const actionY = Number(y['スキ合計']) / acY;
+    const eta  = Number(t['スキ合計']) / (Number(t['ビュー合計']) || 1) * 100;
+    const etaY = Number(y['スキ合計']) / (Number(y['ビュー合計']) || 1) * 100;
+    return {
+      reach: { val: reach, arrow: this.arrow(reach, reachY) },
+      action: { val: action, arrow: this.arrow(action, actionY) },
+      eta: { val: eta, arrow: this.arrow(eta, etaY) },
+    };
+  },
+
+  // 記事一覧から最新日の全記事を取得
+  latestArticles(articles) {
+    if (!articles.length) return [];
+    const latest = articles.reduce((a, b) => (a.date > b.date ? a : b)).date;
+    return articles.filter(r => r.date === latest && !this.isExcluded(r.title));
+  },
+
+  // Top N ランキング
+  ranking(articles, key, n = CONFIG.rankingTopN) {
+    return [...this.latestArticles(articles)]
+      .sort((a, b) => Number(b[key]) - Number(a[key]))
+      .slice(0, n);
+  },
+
+  // スキ率ランキング（ワースト/ベスト）
+  etaRanking(articles, mode, n = 10) {
+    const items = this.latestArticles(articles)
+      .filter(r => Number(r['read_count']) >= CONFIG.minPvForEta)
+      .map(r => ({ ...r, eta: Number(r['like_count']) / Number(r['read_count']) * 100 }));
+    items.sort((a, b) => mode === 'worst' ? a.eta - b.eta : b.eta - a.eta);
+    return items.slice(0, n);
+  },
+
+  // Decay 分析データ生成
+  decayData(articles, { topN, maxDay, sortMode, typeMode }) {
+    const byTitle = {};
+    articles.forEach(r => {
+      const title = r.title || r['タイトル'];
+      const date  = r.date;
+      const pv    = Number(r.read_count) || 0;
+      if (!title || !date || this.isExcluded(title)) return;
+      if (!byTitle[title]) byTitle[title] = [];
+      byTitle[title].push({ date, pv });
+    });
+
+    const meta = [], relRecs = [];
+    Object.entries(byTitle).forEach(([title, entries]) => {
+      if (entries.length < 2) return;
+      entries.sort((a, b) => a.date.localeCompare(b.date));
+      const daily = entries.map((e, i) => ({
+        date: e.date,
+        daily: i === 0 ? e.pv : Math.max(0, e.pv - entries[i-1].pv),
+      }));
+      const firstIdx = daily.findIndex(e => e.daily > 0);
+      if (firstIdx < 0) return;
+      const isNew = entries[0].pv === 0 || firstIdx > 0;
+      if (typeMode === 'new' && !isNew) return;
+      meta.push({ title, firstDayJump: daily[firstIdx].daily, totalViews: entries[entries.length-1].pv });
+      daily.slice(firstIdx).forEach((e, rel) => {
+        if (rel > maxDay) return;
+        relRecs.push({ title, day: rel, views: Math.max(1, e.daily) });
       });
-      const keys = Object.keys(byMonth).sort();
-      keys.forEach(k => { labels.push(k); vData.push(byMonth[k].views); lData.push(byMonth[k].likes); });
-      if (keys.length >= 1) curr = byMonth[keys[keys.length-1]];
-      if (keys.length >= 2) prev = byMonth[keys[keys.length-2]];
-    }
-
-  } else if (p === 'yearly') {
-    // aggregate daily_summary by year
-    const byYear = {};
-    sortedDailySummary().forEach(r => {
-      const y = normDate(getDateKey(r)).slice(0,4);
-      if (!y) return;
-      if (!byYear[y]) byYear[y] = { views: 0, likes: 0, comments: 0 };
-      byYear[y].views += getDailyViews(r);
-      byYear[y].likes += getDailyLikes(r);
     });
-    const keys = Object.keys(byYear).sort();
-    keys.forEach(k => { labels.push(k); vData.push(byYear[k].views); lData.push(byYear[k].likes); });
-    if (keys.length >= 1) curr = byYear[keys[keys.length-1]];
-    if (keys.length >= 2) prev = byYear[keys[keys.length-2]];
+    meta.sort((a, b) => sortMode === 'firstday' ? b.firstDayJump - a.firstDayJump : b.totalViews - a.totalViews);
+    const topTitles = new Set(meta.slice(0, topN).map(a => a.title));
+    return { records: relRecs.filter(r => topTitles.has(r.title)), count: topTitles.size };
+  },
 
-  } else {
-    // all: daily trend
-    const daily = sortedDailySummary();
-    daily.forEach(r => { labels.push(normDate(getDateKey(r))); vData.push(getDailyViews(r)); lData.push(getDailyLikes(r)); });
-    curr = { views: vData.reduce((s,v)=>s+v,0), likes: lData.reduce((s,v)=>s+v,0), comments: 0 };
-    const half = Math.floor(daily.length / 2);
-    prev = {
-      views: daily.slice(0, half).reduce((s,r)=>s+getDailyViews(r),0),
-      likes: daily.slice(0, half).reduce((s,r)=>s+getDailyLikes(r),0),
-      comments: 0
-    };
-  }
-  return { curr, prev, labels, vData, lData };
-}
+  // Decay 統計量（boxplot用）
+  decayStats(records) {
+    const days  = [...new Set(records.map(r => r.day))].sort((a, b) => a - b);
+    const byDay = {};
+    days.forEach(d => byDay[d] = []);
+    records.forEach(r => byDay[r.day].push(r.views));
+    return days.map(day => {
+      const vals = [...byDay[day]].sort((a, b) => a - b);
+      if (!vals.length) return null;
+      const n = vals.length;
+      const q1 = vals[Math.floor(n * 0.25)];
+      const med = vals[Math.floor(n * 0.5)];
+      const q3 = vals[Math.floor(n * 0.75)];
+      const iqr = q3 - q1;
+      return { day, q1, median: med, q3, wLo: Math.max(vals[0], q1-1.5*iqr), wHi: Math.min(vals[n-1], q3+1.5*iqr), vals, n };
+    }).filter(Boolean);
+  },
 
-function getPeriodArticles() {
-  const p = S.currentPeriod;
+  // 安定性スコア → 色変換（赤→金→シアン）
+  stabToColor(stab, minStab, maxStab, alpha) {
+    const t = Math.max(0, Math.min(1, (stab - minStab) / (maxStab - minStab + 1e-9)));
+    let r, g, b;
+    if (t < 0.5) { const s = t/0.5; r=255; g=Math.round(77+(201-77)*s); b=Math.round(106+(71-106)*s); }
+    else          { const s = (t-0.5)/0.5; r=Math.round(255*(1-s)); g=Math.round(201+(229-201)*s); b=Math.round(71+(255-71)*s); }
+    return `rgba(${r},${g},${b},${alpha})`;
+  },
+};
 
-  // weekly: use weekly_summary — latest week, sorted by 期間増加PV
-  if (p === 'weekly' && S.weeklySummary.length > 0) {
-    const agg = aggregateSummary(S.weeklySummary, getWeekKey);
-    const latestWeek = Object.keys(agg).sort().pop();
-    const rows = S.weeklySummary.filter(r => getWeekKey(r) === latestWeek);
-    return rows
-      .sort((a,b) => n(b['期間増加PV']) - n(a['期間増加PV']))
-      .map(r => ({
-        title:    r.title || '',
-        url:      r.url || '',
-        views:    n(r['期間増加PV']  || 0),
-        likes:    n(r['期間増加スキ'] || 0),
-        comments: 0,
-        eta:      n(r['累計PV']) > 0
-                    ? (n(r['累計スキ'] || 0) / n(r['累計PV']) * 100)
-                    : 0,
-        published_at: '',
-      }));
-  }
+/* ================================================================
+   ④ CHART MANAGER
+   Chart.js インスタンスを一元管理。再描画前に自動破棄
+   ================================================================ */
+const ChartManager = {
+  _charts: {},
+  set(key, chart) {
+    if (this._charts[key]) { this._charts[key].destroy(); }
+    this._charts[key] = chart;
+    return chart;
+  },
+  destroy(key) {
+    if (this._charts[key]) { this._charts[key].destroy(); delete this._charts[key]; }
+  },
+  destroyAll() { Object.keys(this._charts).forEach(k => this.destroy(k)); },
+};
 
-  // monthly: use monthly_summary — latest month
-  if (p === 'monthly' && S.monthlySummary.length > 0) {
-    const agg = aggregateSummary(S.monthlySummary, getMonthKey);
-    const latestMonth = Object.keys(agg).sort().pop();
-    const rows = S.monthlySummary.filter(r => getMonthKey(r) === latestMonth);
-    return rows
-      .sort((a,b) => n(b['期間増加PV']) - n(a['期間増加PV']))
-      .map(r => ({
-        title:    r.title || '',
-        url:      r.url || '',
-        views:    n(r['期間増加PV']  || 0),
-        likes:    n(r['期間増加スキ'] || 0),
-        comments: 0,
-        eta:      0,
-        published_at: '',
-      }));
-  }
+/* ================================================================
+   ⑤ STATUS MEMO テキスト
+   ================================================================ */
+const STATUS_MEMOS = {
+  'up_up_up':'🔥 全指標上昇。コンテンツ・タイトル・スキ率すべて好調',
+  'up_up_flat':'📈 リーチもアクションも増加。スキ率は維持で安定成長',
+  'up_up_down':'⚠️ 露出とスキは増えたがスキ率は低下。量で稼いでいる状態',
+  'up_flat_up':'✅ リーチ増・スキ率改善。質の高い流入が増えている',
+  'up_flat_flat':'📊 リーチだけ増加。スキ率は変わらず。タイトル効果の可能性',
+  'up_flat_down':'⚠️ 露出は増えたが刺さってない。タイトル勝ちの可能性',
+  'up_down_up':'🤔 PV増・スキ減・スキ率上昇。データ確認推奨',
+  'up_down_flat':'📉 リーチ増だがスキ横ばい。内容が刺さっていない',
+  'up_down_down':'❌ 露出は増えたが全く刺さってない。内容またはターゲットの見直しを',
+  'flat_up_up':'✨ PV横ばいでスキとスキ率が上昇。コアなファンに届いている',
+  'flat_up_flat':'👍 アクション力が上がっている。スキしやすい記事が増えた可能性',
+  'flat_up_down':'🔄 スキは増えたがスキ率は低下。PVも増えた可能性',
+  'flat_flat_up':'💡 全体横ばいだがスキ率改善。静かに質が上がっている',
+  'flat_flat_flat':'😐 全指標横ばい。変化なし。新しいアクションを検討',
+  'flat_flat_down':'😶 スキ率だけ低下。最近の記事の質を確認',
+  'flat_down_up':'🤔 スキ減・スキ率上昇は矛盾。データ確認推奨',
+  'flat_down_flat':'📉 アクション力低下。スキしにくい記事が続いている',
+  'flat_down_down':'⚠️ アクション・スキ率ともに低下。内容の見直しタイミング',
+  'down_up_up':'🌱 PV減でもスキとスキ率が上昇。少数精鋭に届いている',
+  'down_up_flat':'🔄 PV減だがスキは増加。ファン向け記事が増えた可能性',
+  'down_up_down':'📉 PV減による相対効果の可能性。実態確認を',
+  'down_flat_up':'💤 PV減・スキ率改善。深いファンには刺さっている',
+  'down_flat_flat':'📉 リーチのみ低下。スキ率は維持。コンテンツ質は悪くない',
+  'down_flat_down':'⚠️ リーチ低下・スキ率も低下。発信ペースや内容を見直し',
+  'down_down_up':'💤 PV減による相対効果の可能性',
+  'down_down_flat':'😔 リーチ・アクション低下。停滞期の可能性',
+  'down_down_down':'🚨 全指標低下。内容・頻度・タイトルを総見直し',
+};
 
-  // yearly / all: use articles.csv latest snapshot (latest date per article)
-  if (S.articles.length > 0) {
-    // articles.csv is cumulative; pick latest row per article key
-    const latestByKey = {};
-    S.articles.forEach(r => {
-      const k = r.key || r.note_id || r.title;
-      const d = normDate(r.date || '');
-      if (!latestByKey[k] || d > normDate(latestByKey[k].date || '')) {
-        latestByKey[k] = r;
-      }
-    });
-    return Object.values(latestByKey)
-      .sort((a,b) => getV(b) - getV(a));
-  }
+/* ================================================================
+   ⑥ CHART HELPERS
+   ================================================================ */
+Chart.defaults.color = '#3d4466';
+Chart.defaults.font.family = "'JetBrains Mono', monospace";
+Chart.defaults.font.size = 11;
 
-  // period_ranking fallback
-  if (S.periodRanking.length > 0) return S.periodRanking;
-  return [];
-}
-
-function getFollowerStats() {
-  // followers.csv: 日付 / フォロワー数
-  // daily_summary.csv also has フォロワー数 — use whichever is available
-  const src = S.followers.length > 0 ? S.followers : S.dailySummary;
-  if (!src.length) return { curr: 0, diff: 0 };
-
-  const sorted = [...src].sort((a, b) => normDate(getDateKey(a)) < normDate(getDateKey(b)) ? -1 : 1);
-  // Filter only rows that have a follower count
-  const withFollowers = sorted.filter(r => getFollowCount(r) > 0);
-  if (!withFollowers.length) return { curr: 0, diff: 0 };
-
-  const last = withFollowers[withFollowers.length - 1];
-  const prev = withFollowers.length > 1 ? withFollowers[withFollowers.length - 2] : null;
-  const curr = getFollowCount(last);
-  const p    = prev ? getFollowCount(prev) : curr;
-  return { curr, diff: curr - p };
-}
-
-// ==========================================================
-// RENDER ALL
-// ==========================================================
-function renderAll() {
-  renderSummary();
-  if (document.getElementById('page-articles').classList.contains('active')) renderArticlesPage();
-  if (document.getElementById('page-readers').classList.contains('active'))  renderReadersPage();
-  if (document.getElementById('page-strategy').classList.contains('active')) renderStrategyPage();
-  updateProGates();
-}
-
-// ==========================================================
-// TAB 1: SUMMARY
-// ==========================================================
-function renderSummary() {
-  const { curr, prev, labels, vData, lData } = getPeriodData();
-  const eta     = curr.views > 0 ? (curr.likes / curr.views * 100) : 0;
-  const prevEta = prev.views > 0 ? (prev.likes / prev.views * 100) : 0;
-
-  document.getElementById('kpiViews').textContent    = fmt(curr.views);
-  document.getElementById('kpiLikes').textContent    = fmt(curr.likes);
-  document.getElementById('kpiComments').textContent = fmt(curr.comments);
-  document.getElementById('kpiEta').textContent      = eta.toFixed(2) + '%';
-  document.getElementById('kpiViewsDiff').innerHTML    = kpiDiff(curr.views, prev.views);
-  document.getElementById('kpiLikesDiff').innerHTML    = kpiDiff(curr.likes, prev.likes);
-  document.getElementById('kpiCommentsDiff').innerHTML = kpiDiff(curr.comments, prev.comments);
-  document.getElementById('kpiEtaDiff').innerHTML      = kpiDiff(eta, prevEta);
-
-  const { curr: fc, diff: fd } = getFollowerStats();
-  document.getElementById('kpiFollowers').textContent = fc.toLocaleString();
-  const fCls = fd > 0 ? 'up' : fd < 0 ? 'down' : 'flat';
-  document.getElementById('kpiFollowersDiff').innerHTML =
-    `<span class="kpi-diff ${fCls}">純増 ${fd >= 0 ? '+' : ''}${fd}</span>`;
-
-  renderMainChart(labels, vData, lData);
-  renderSummaryTable();
-}
-
-function renderMainChart(labels, vData, lData) {
-  const ctx = document.getElementById('mainChart');
-  if (!ctx) return;
-  if (S.charts.main) S.charts.main.destroy();
-
-  const dark = isDark();
-  const gridC = dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
-  const textC = dark ? '#5a5a70' : '#aaaaaa';
-
-  const dispLabels = labels.map(l => {
-    if (/^\d{4}-\d{2}-\d{2}$/.test(l)) return `${parseInt(l.slice(5,7))}/${parseInt(l.slice(8,10))}`;
-    if (/^\d{4}-\d{2}$/.test(l))       return `${parseInt(l.slice(5,7))}月`;
-    return l;
-  });
-
-  S.charts.main = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: dispLabels,
-      datasets: [
-        {
-          label: 'ビュー', data: vData,
-          borderColor: '#3EC19C', backgroundColor: 'rgba(62,193,156,0.08)',
-          borderWidth: 2.5, pointRadius: labels.length > 40 ? 0 : 3,
-          tension: 0.35, fill: true, yAxisID: 'y',
-        },
-        {
-          label: 'スキ', data: lData,
-          borderColor: '#ff7043', backgroundColor: 'rgba(255,112,67,0.05)',
-          borderWidth: 2, pointRadius: labels.length > 40 ? 0 : 3,
-          tension: 0.35, fill: false, yAxisID: 'y2',
-        }
-      ]
+function baseOpts() {
+  return {
+    responsive: true, maintainAspectRatio: false,
+    animation: { duration: 1000, easing: 'easeOutQuart' },
+    plugins: {
+      legend: { display: true, labels: { boxWidth: 8, padding: 16, color: 'rgba(255,255,255,0.85)', usePointStyle: true } },
+      tooltip: { backgroundColor: '#0f1221', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1, titleColor: '#e8ecf8', bodyColor: '#8891b0', padding: 12, cornerRadius: 6 },
     },
+    scales: {
+      x: { grid: { color: CONFIG.gridColor }, ticks: { maxTicksLimit: 10, color: CONFIG.tickColor } },
+      y: { grid: { color: CONFIG.gridColor }, ticks: { color: CONFIG.tickColor } },
+    },
+  };
+}
+
+function makeScrollableBar(key, canvasId, innerId, labels, dataset, barW = 52, tooltipCb) {
+  const W = Math.max(labels.length * barW, 400);
+  const inner = document.getElementById(innerId);
+  if (inner) inner.style.width = W + 'px';
+  return ChartManager.set(key, new Chart(document.getElementById(canvasId), {
+    type: 'bar',
+    data: { labels, datasets: [dataset] },
     options: {
-      responsive: true, maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
+      responsive: true, maintainAspectRatio: false, animation: { duration: 800 },
       plugins: {
         legend: { display: false },
-        tooltip: {
-          backgroundColor: dark ? '#181b27' : '#fff',
-          titleColor: dark ? '#e8e8e8' : '#333',
-          bodyColor:  dark ? '#9494aa' : '#666',
-          borderColor: dark ? '#252838' : '#e8e8e8',
-          borderWidth: 1,
-        }
+        tooltip: { backgroundColor: '#0f1221', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1, titleColor: '#e8ecf8', bodyColor: '#8891b0', padding: 12, cornerRadius: 6, callbacks: tooltipCb ? { label: tooltipCb } : {} },
       },
       scales: {
-        x: { grid: { color: gridC }, ticks: { color: textC, maxTicksLimit: 12, font: { size: 11 } } },
-        y:  { position: 'left',  grid: { color: gridC }, ticks: { color: '#3EC19C', font: { size: 11 }, callback: v => v >= 1000 ? (v/1000).toFixed(0)+'k' : v } },
-        y2: { position: 'right', grid: { display: false }, ticks: { color: '#ff7043', font: { size: 11 } } },
-      }
-    }
-  });
-}
-
-let sumSortCol = 'views', sumSortDir = 'desc';
-function sortSummaryTable(col) {
-  sumSortDir = sumSortCol === col ? (sumSortDir === 'desc' ? 'asc' : 'desc') : 'desc';
-  sumSortCol = col;
-  document.querySelectorAll('#page-summary thead th').forEach(th => th.classList.remove('sort-asc','sort-desc'));
-  renderSummaryTable();
-}
-
-function renderSummaryTable() {
-  const articles = getPeriodArticles();
-  const tbody = document.getElementById('summaryArticleTable');
-  if (!articles.length) {
-    tbody.innerHTML = `<tr><td colspan="6"><div class="empty">
-      <div class="empty-icon">📊</div>
-      <div class="empty-text">データを読み込んでください</div>
-      <div class="empty-sub">CSVをドロップ、またはGitHub Pages で自動読込</div>
-    </div></td></tr>`;
-    return;
-  }
-  const norm = articles.map(r => ({
-    title: r.title || r.article_title || '',
-    url:   r.url   || r.article_url   || '',
-    views:    getV(r), likes: getL(r), comments: getC(r),
-    eta:      getEta(r),
-    published_at: r.published_at || r.publish_date || '',
+        x: { grid: { color: CONFIG.gridColor }, ticks: { color: 'rgba(255,255,255,0.75)', maxRotation: 0 } },
+        y: { grid: { color: CONFIG.gridColor }, ticks: { color: CONFIG.tickColor } },
+      },
+    },
   }));
-  norm.sort((a, b) => {
-    const av = a[sumSortCol], bv = b[sumSortCol];
-    return sumSortDir === 'desc' ? bv - av : av - bv;
+}
+
+/* ================================================================
+   ⑦ UI RENDERERS — DOM / Chart 操作はここだけ
+   ================================================================ */
+
+/* ─ medal ─ */
+function medal(i) { return i===0?'gold':i===1?'silver':i===2?'bronze':''; }
+
+/* ─ KPI strip ─ */
+function renderKPIs(summary) {
+  const latest = summary[summary.length - 1];
+  document.getElementById('kpi-views').textContent     = Number(latest['ビュー合計']).toLocaleString();
+  document.getElementById('kpi-likes').textContent     = Number(latest['スキ合計']).toLocaleString();
+  document.getElementById('kpi-articles').textContent  = Number(latest['記事数']).toLocaleString();
+  document.getElementById('kpi-followers').textContent = latest['フォロワー数'] || '—';
+  document.getElementById('last-updated').textContent  = `updated ${latest['日付']} ${latest['更新時刻'] || ''}`;
+
+  const setDiff = (id, v) => {
+    if (isNaN(v)) return;
+    const el = document.getElementById(id);
+    el.textContent = (v >= 0 ? '▲' : '▼') + ' ' + Math.abs(v).toFixed(1) + '% 前日比';
+    el.className = 'kpi-diff ' + (v >= 0 ? 'up' : 'down');
+  };
+  setDiff('kpi-views-diff', parseFloat(latest['ビュー前日比(%)']));
+  setDiff('kpi-likes-diff', parseFloat(latest['スキ前日比(%)']));
+}
+
+/* ─ Status band ─ */
+function renderStatusBand(summary) {
+  const s = Store.calcStatusBand(summary);
+  if (!s) return;
+  document.getElementById('k3-reach').textContent  = s.reach.val.toFixed(1);
+  document.getElementById('k3-action').textContent = s.action.val.toFixed(2);
+  document.getElementById('k3-eta').textContent    = s.eta.val.toFixed(2) + '%';
+  [['reach', s.reach], ['action', s.action], ['eta', s.eta]].forEach(([id, d]) => {
+    const el = document.getElementById(`k3-${id}-arrow`);
+    el.textContent = d.arrow.s;
+    el.className = `kpi3-arrow ${d.arrow.c}`;
   });
-  tbody.innerHTML = norm.slice(0, 30).map((r, i) => `
-    <tr>
-      <td class="rank-num ${i===0?'top1':i===1?'top2':i===2?'top3':''}">${i+1}</td>
-      <td>
-        ${r.url
-          ? `<a class="art-link art-title" href="${r.url}" target="_blank" title="${r.title}">${r.title}</a>`
-          : `<span class="art-title" title="${r.title}">${r.title}</span>`}
-      </td>
-      <td class="td-right">${fmt(r.views)}</td>
-      <td class="td-right">${fmt(r.likes)}</td>
-      <td class="td-right">${r.comments > 0 ? fmt(r.comments) : '<span class="td-muted">—</span>'}</td>
-      <td class="td-right">${etaBadge(r.eta)}</td>
-    </tr>
-  `).join('');
+  const key = `${s.reach.arrow.c}_${s.action.arrow.c}_${s.eta.arrow.c}`;
+  document.getElementById('memo-text').textContent = STATUS_MEMOS[key] || '状態を解析中...';
 }
 
-// ==========================================================
-// TAB 2: ARTICLES
-// ==========================================================
-let artSortCol = 'views', artSortDir = 'desc';
-function sortArticlesTable(col) {
-  artSortDir = artSortCol === col ? (artSortDir === 'desc' ? 'asc' : 'desc') : 'desc';
-  artSortCol = col;
-  renderAllRankingTable();
+/* ─ Daily chart ─ */
+function renderDailyChart(summary) {
+  const rows = summary.slice(-60);
+  const labels = rows.map(d => (d['日付'] || '').slice(5));
+  ChartManager.set('daily', new Chart(document.getElementById('chart-daily'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { type:'bar',  label:'スキ合計',  data: rows.map(d => Number(d['スキ合計'])),  backgroundColor:'rgba(255,77,141,0.35)', borderColor:'rgba(255,77,141,0.8)', borderWidth:1, yAxisID:'y1', borderRadius:2 },
+        { type:'line', label:'ビュー合計', data: rows.map(d => Number(d['ビュー合計'])), borderColor:'#00e5ff', backgroundColor:'rgba(0,229,255,0.04)', fill:true, tension:0.35, pointRadius:0, pointHoverRadius:4, borderWidth:2, yAxisID:'y' },
+      ],
+    },
+    options: { ...baseOpts(), scales: {
+      x:  { grid:{color:CONFIG.gridColor}, ticks:{maxTicksLimit:10,color:CONFIG.tickColor} },
+      y:  { position:'left',  grid:{color:CONFIG.gridColor}, ticks:{color:CONFIG.tickColor} },
+      y1: { position:'right', grid:{display:false}, ticks:{color:CONFIG.tickColor} },
+    }},
+  }));
 }
 
-function renderArticlesPage() {
-  renderAllRankingTable();
-  renderDecayChart();
-  renderEtaTrendChart();
-  renderLongTailList();
-  renderScatterChart();
+/* ─ Followers chart ─ */
+function renderFollowersChart(summary, followers) {
+  const src = followers.filter(r => r['フォロワー数']).length > 1
+    ? followers.filter(r => r['フォロワー数'])
+    : summary.filter(r => r['フォロワー数']);
+  ChartManager.set('followers', new Chart(document.getElementById('chart-followers'), {
+    type: 'line',
+    data: { labels: src.map(r => (r['日付'] || '').slice(5)), datasets: [{ label:'フォロワー数', data: src.map(r => Number(r['フォロワー数'])), borderColor:'#9d6fff', backgroundColor:'rgba(157,111,255,0.06)', fill:true, tension:0.35, pointRadius:0, pointHoverRadius:4, borderWidth:2 }] },
+    options: baseOpts(),
+  }));
 }
 
-function getLatestArticleSnapshot() {
-  // articles.csv is cumulative daily — pick the latest date's row per article key
-  const latestByKey = {};
-  S.articles.forEach(r => {
-    const k = r.key || r.note_id || r.title || '';
-    const d = normDate(r.date || '');
-    if (!latestByKey[k] || d > normDate(latestByKey[k].date || '')) {
-      latestByKey[k] = r;
-    }
-  });
-  return Object.values(latestByKey);
+/* ─ Quad chart ─ */
+function renderQuadChart(summary) {
+  ChartManager.set('quad', new Chart(document.getElementById('chart-quad'), {
+    type: 'scatter',
+    data: { datasets: [{ label:'日次動態', data: summary.map(r => ({ x: parseFloat(r['ビュー/記事'])||0, y: parseFloat(r['スキ率(%)'])||0 })), backgroundColor:'rgba(157,111,255,0.5)', pointRadius:5, pointHoverRadius:7 }] },
+    options: { ...baseOpts(), scales: {
+      x: { grid:{color:CONFIG.gridColor}, ticks:{maxTicksLimit:10,color:CONFIG.tickColor}, title:{display:true,text:'Views / Article',color:CONFIG.tickColor} },
+      y: { grid:{color:CONFIG.gridColor}, ticks:{color:CONFIG.tickColor}, title:{display:true,text:'Like Rate (%)',color:CONFIG.tickColor} },
+    }},
+  }));
 }
 
-function renderAllRankingTable() {
-  const tbody = document.getElementById('allRankingTable');
-  if (!S.articles.length) return;
-  const snapshot = getLatestArticleSnapshot();
-  snapshot.sort((a, b) => {
-    const av = artSortCol === 'eta' ? getEta(a) : (artSortCol === 'views' ? getV(a) : getL(a));
-    const bv = artSortCol === 'eta' ? getEta(b) : (artSortCol === 'views' ? getV(b) : getL(b));
-    return artSortDir === 'desc' ? bv - av : av - bv;
-  });
-  tbody.innerHTML = snapshot.slice(0, 50).map((r, i) => {
-    const views = getV(r), likes = getL(r), eta = getEta(r);
-    const cat = r.category || r.cat || '';
+/* ─ ランキングリスト ─ */
+function renderRankList(id, rows, valueKey, barFillClass, valClass) {
+  const max = Number(rows[0]?.[valueKey] || 1);
+  document.getElementById(id).innerHTML = rows.map((r, i) => `
+    <div class="rank-item">
+      <span class="rank-num ${medal(i)}">${String(i+1).padStart(2,'0')}</span>
+      <span class="rank-title" title="${r.title}">${r.title}</span>
+      <div class="rank-right">
+        <div class="rank-bar"><div class="rank-bar-fill ${barFillClass}" style="width:${(Number(r[valueKey])/max*100).toFixed(1)}%"></div></div>
+        <span class="rank-val ${valClass}">${Number(r[valueKey]).toLocaleString()}</span>
+      </div>
+    </div>`).join('');
+}
+
+function renderEtaRankList(id, rows, isWorst) {
+  const max = Math.max(...rows.map(r => r.eta), 1);
+  const fc = isWorst ? 'fill-red' : 'fill-green';
+  const vc = isWorst ? 'val-red'  : 'val-green';
+  document.getElementById(id).innerHTML = rows.map((r, i) => `
+    <div class="rank-item">
+      <span class="rank-num ${isWorst ? '' : medal(i)}">${String(i+1).padStart(2,'0')}</span>
+      <span class="rank-title" title="${r.title}">${r.title}</span>
+      <div class="rank-right">
+        <div class="rank-bar"><div class="rank-bar-fill ${fc}" style="width:${(r.eta/max*100).toFixed(1)}%"></div></div>
+        <span class="rank-val ${vc}">${r.eta.toFixed(1)}%</span>
+      </div>
+    </div>`).join('');
+}
+
+/* ─ Asset table ─ */
+function renderAssetTable(rows) {
+  const tbody = document.getElementById('asset-body');
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="5" style="color:var(--text3);padding:20px">No data</td></tr>'; return; }
+  const max = Math.max(...rows.map(r => Number(r['期間増加PV']||0)), 1);
+  tbody.innerHTML = rows.slice(0,15).map((r, i) => {
+    const gain = Number(r['期間増加PV']||0);
     return `<tr>
-      <td class="rank-num ${i===0?'top1':i===1?'top2':i===2?'top3':''}">${i+1}</td>
-      <td><span class="art-title" title="${r.title||''}">${r.title||''}</span></td>
-      <td>${cat ? `<span class="cat-badge">${cat}</span>` : '<span class="td-muted">—</span>'}</td>
-      <td class="td-right">${fmt(views)}</td>
-      <td class="td-right">${fmt(likes)}</td>
-      <td class="td-right">${etaBadge(eta)}</td>
-      <td class="td-right td-muted">${fmtDate(r.published_at || r.publish_date || '')}</td>
+      <td class="num-m" style="text-align:center">${i+1}</td>
+      <td style="max-width:320px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text2)">${r.title}</td>
+      <td><div class="bar-cell"><div class="inline-bar"><div class="inline-bar-fill" style="width:${(gain/max*100).toFixed(1)}%"></div></div><span class="num-c" style="font-weight:700;font-size:16px">${gain.toLocaleString()}</span></div></td>
+      <td class="num-r" style="color:var(--gold);font-size:16px;font-weight:700;text-align:center">${r['稼働日数']}</td>
+      <td style="font-size:15px;color:var(--text3);white-space:nowrap">${r['推移PV']||'---'}</td>
     </tr>`;
   }).join('');
 }
 
-function renderDecayChart() {
-  const ctx = document.getElementById('decayChart');
-  if (!ctx) return;
-  if (S.charts.decay) S.charts.decay.destroy();
-  if (!S.articleTrend.length) return;
+/* ─ Trend table ─ */
+function renderTrendTable(rows) {
+  const tbody = document.getElementById('trend-body');
+  tbody.innerHTML = rows.slice(0,20).map(r => {
+    const state = r['状態']||'';
+    const bc = state.includes('🔥') ? 'badge-hot' : state.includes('🟢') ? 'badge-grow' : 'badge-idle';
+    const cells = [1,2,3,4,5,6,7].map(i => {
+      const v = Number(r[`-${i}日PV`]||0);
+      return `<td style="text-align:right;${v>0?'color:var(--text);font-weight:600':'color:var(--text3)'}">${v||'—'}</td>`;
+    }).join('');
+    return `<tr>
+      <td><span class="status-badge ${bc}">${state}</span></td>
+      <td style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text2);max-width:280px">${r['title']}</td>
+      <td class="num-r">${Number(r['累計PV']).toLocaleString()}</td>
+      <td class="num-c" style="text-align:center;font-weight:700">${r['トレンドスコア']}</td>
+      ${cells}
+    </tr>`;
+  }).join('');
+}
 
-  const byDay = {};
-  S.articleTrend.forEach(r => {
-    const d = parseInt(r.days_since_pub || r.day_number || r.day || 0);
-    const v = n(r.views || r.pv || r.daily_views || r.view_count);
-    if (!byDay[d]) byDay[d] = [];
-    byDay[d].push(v);
-  });
-  const days = Object.keys(byDay).map(Number).sort((a,b)=>a-b).slice(0, 15);
-  const medians = days.map(d => {
-    const arr = [...byDay[d]].sort((a,b)=>a-b);
-    return arr[Math.floor(arr.length/2)] || 0;
-  });
+/* ─ ピリオドランクリスト ─ */
+function renderPeriodRankList(id, rows, metric, color) {
+  const pvKey  = '期間増加PV';
+  const likeKey = '期間増加スキ';
+  const sortKey = metric === 'pv' ? pvKey : likeKey;
+  const filtered = [...rows].filter(r => !Store.isExcluded(r.title));
+  filtered.sort((a, b) => Number(b[sortKey]||0) - Number(a[sortKey]||0));
+  const top = filtered.slice(0, CONFIG.periodRankN);
+  const max = Math.max(...top.map(r => Number(r[sortKey]||0)), 1);
+  document.getElementById(id).innerHTML = top.map((r, i) => {
+    const main = Number(r[pvKey]||0);
+    const sub  = Number(r[likeKey]||0);
+    return `<div class="p-rank-item" style="animation-delay:${i*0.04}s">
+      <span class="p-rank-num ${medal(i)}">${String(i+1).padStart(2,'0')}</span>
+      <div class="p-rank-info">
+        <div class="p-rank-title" title="${r.title}">${r.title}</div>
+        <div class="p-bar-row"><div class="p-bar"><div class="p-bar-fill" style="width:${(Number(r[sortKey]||0)/max*100).toFixed(1)}%;background:var(--${color})"></div></div></div>
+      </div>
+      <div class="p-rank-stat">
+        <span class="p-stat-main" style="color:var(--${color})">${main.toLocaleString()}</span>
+        <span class="p-stat-sub">🩷 ${sub.toLocaleString()}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
 
-  S.charts.decay = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: days.map(d => `Day${d}`),
-      datasets: [{
-        label: '中央値PV',
-        data: medians,
-        backgroundColor: days.map((_, i) => `rgba(62,193,156,${Math.max(0.15, 0.85 - i * 0.05)})`),
-        borderRadius: 4,
-      }]
-    },
+/* ─ Asset v1 ランキング ─ */
+function renderAssetV1(rows) {
+  const top = rows.slice(0, 10);
+  const maxS = Math.max(...top.map(r => Number(r['資産スコア']||0)), 1);
+  document.getElementById('ai-v1-ranking').innerHTML = top.map((r, i) => {
+    const score = Number(r['資産スコア']||0);
+    const pct   = (score/maxS*100).toFixed(1);
+    return `<div class="p-rank-item">
+      <span class="p-rank-num ${medal(i)}">${String(i+1).padStart(2,'0')}</span>
+      <div class="p-rank-info">
+        <div class="p-rank-title" title="${r['タイトル']}">${r['タイトル']}<span class="ai-age-tag">${Number(r['Age']||0)}日</span></div>
+        <div class="p-bar-row"><div class="p-bar"><div class="p-bar-fill" style="width:${pct}%;background:var(--green)"></div></div></div>
+        <div class="ai-sub-row"><span>平均PV: <b style="color:var(--green)">${Number(r['平均日次ビュー']||0).toFixed(1)}</b></span><span>稼働: <b style="color:var(--text2)">${Number(r['稼働日数']||0)}日</b></span><span>安定性: <b style="color:var(--text2)">${Number(r['安定性']||0).toFixed(2)}</b></span></div>
+      </div>
+      <div class="p-rank-stat"><span class="p-stat-main" style="color:var(--green)">${score.toFixed(1)}</span><span class="p-stat-sub" style="color:var(--text3)">score</span></div>
+    </div>`;
+  }).join('');
+}
+
+/* ─ Asset v2 ランキング ─ */
+function renderAssetV2(rows) {
+  const top = rows.slice(0, 10);
+  const maxS = Math.max(...top.map(r => Number(r['資産スコア']||0)), 1);
+  document.getElementById('ai-v2-ranking').innerHTML = top.map((r, i) => {
+    const score = Number(r['資産スコア']||0);
+    const pct   = (score/maxS*100).toFixed(1);
+    return `<div class="p-rank-item">
+      <span class="p-rank-num ${medal(i)}">${String(i+1).padStart(2,'0')}</span>
+      <div class="p-rank-info">
+        <div class="p-rank-title" title="${r['タイトル']}">${r['タイトル']}<span class="ai-age-tag">${Number(r['Age']||0)}日</span></div>
+        <div class="p-bar-row"><div class="p-bar"><div class="p-bar-fill gold-fill" style="width:${pct}%"></div></div></div>
+        <div class="ai-sub-row"><span>累計PV: <b style="color:var(--gold)">${Number(r['TotalView']||0).toLocaleString()}</b></span><span>安定性: <b style="color:var(--text2)">${Number(r['安定性']||0).toFixed(2)}</b></span></div>
+      </div>
+      <div class="p-rank-stat"><span class="p-stat-main" style="color:var(--gold)">${score.toFixed(1)}</span><span class="p-stat-sub" style="color:var(--text3)">score</span></div>
+    </div>`;
+  }).join('');
+}
+
+/* ─ Asset compare table ─ */
+function renderAssetCompare(v1rows, v2rows) {
+  const v1top20 = new Set(v1rows.slice(0,20).map(r => r['key']));
+  const merged = [];
+  v2rows.slice(0,20).forEach(r => {
+    const v1 = v1rows.find(r1 => r1['key'] === r['key']);
+    merged.push({ key:r['key'], title:r['タイトル'], age:Number(r['Age']||0), totalPV:Number(r['TotalView']||0), v1score:v1?Number(v1['資産スコア']||0):0, v2score:Number(r['資産スコア']||0), inV1:v1top20.has(r['key']), inV2:true });
+  });
+  v1rows.slice(0,20).forEach(r => {
+    if (!merged.find(m => m.key===r['key'])) merged.push({ key:r['key'], title:r['タイトル'], age:Number(r['Age']||0), totalPV:Number(r['TotalView']||0), v1score:Number(r['資産スコア']||0), v2score:0, inV1:true, inV2:false });
+  });
+  const classify = m => m.inV1&&m.inV2?{cls:'qq-both',label:'💎 両方上位'}:m.inV1?{cls:'qq-v1',label:'🔥 直近急上昇'}:m.inV2?{cls:'qq-v2',label:'🏛️ 長期資産'}:{cls:'qq-none',label:'💤 休眠'};
+  const maxV1 = Math.max(...merged.map(m=>m.v1score),1);
+  const maxV2 = Math.max(...merged.map(m=>m.v2score),1);
+  document.getElementById('ai-compare-body').innerHTML = merged.map((m, i) => {
+    const { cls, label } = classify(m);
+    return `<tr>
+      <td class="num-m" style="text-align:center">${i+1}</td>
+      <td style="max-width:300px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text2)">${m.title}</td>
+      <td style="text-align:center;color:var(--text3)">${m.age}日</td>
+      <td style="text-align:center">${m.totalPV.toLocaleString()}</td>
+      <td><div class="bar-cell"><div class="inline-bar"><div class="inline-bar-fill" style="width:${(m.v1score/maxV1*100).toFixed(1)}%;background:var(--green)"></div></div><span style="color:var(--green);font-weight:700;font-size:13px;min-width:36px;text-align:right;display:inline-block">${m.v1score>0?m.v1score.toFixed(1):'—'}</span></div></td>
+      <td><div class="bar-cell"><div class="inline-bar"><div class="inline-bar-fill" style="width:${(m.v2score/maxV2*100).toFixed(1)}%;background:var(--gold)"></div></div><span style="color:var(--gold);font-weight:700;font-size:13px;min-width:36px;text-align:right;display:inline-block">${m.v2score>0?m.v2score.toFixed(1):'—'}</span></div></td>
+      <td style="text-align:center"><span class="ai-quad-badge ${cls}">${label}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+/* ─ Bubble chart ─ */
+function renderBubbleChart(v1rows, v2rows) {
+  const merged = v2rows.map(r => {
+    const r1 = v1rows.find(x => x['key']===r['key']);
+    return { title:r['タイトル'], age:Number(r['Age']||0), totalView:Number(r['TotalView']||0), v2score:Number(r['資産スコア']||0), v1score:r1?Number(r1['資産スコア']||0):0, stability:Number(r['安定性']||0) };
+  }).filter(r => !Store.isExcluded(r.title) && r.totalView > 0);
+  if (!merged.length) return;
+  const maxView = Math.max(...merged.map(r => r.totalView), 1);
+  const stabs = merged.map(r => r.stability);
+  const minS = Math.min(...stabs), maxS = Math.max(...stabs, minS+1e-9);
+  document.getElementById('bubble-stats').textContent = `${merged.length} 記事をプロット`;
+  const bg = merged.map(r => Store.stabToColor(r.stability, minS, maxS, 0.62));
+  const bd = merged.map(r => Store.stabToColor(r.stability, minS, maxS, 0.92));
+  ChartManager.set('bubble', new Chart(document.getElementById('chart-bubble'), {
+    type: 'bubble',
+    data: { datasets: [{ label:'記事', data: merged.map(r => ({ x:r.age, y:r.v2score, r:Math.max(4,Math.sqrt(r.totalView/maxView)*32), _t:r.title, _pv:r.totalView, _v1:r.v1score, _v2:r.v2score, _age:r.age, _s:r.stability })), backgroundColor:bg, borderColor:bd, borderWidth:1.5, hoverBorderWidth:2.5, hoverBorderColor:'rgba(255,255,255,0.9)', hoverBackgroundColor:bg.map(c=>c.replace(/[\d.]+\)$/,'0.85)')) }] },
     options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
+      responsive:true, maintainAspectRatio:false, animation:{duration:1100,easing:'easeOutQuart'},
+      plugins: {
+        legend:{display:false},
+        tooltip:{ backgroundColor:'#0d1020', borderColor:'rgba(255,77,141,0.25)', borderWidth:1, titleColor:'#f0f4ff', bodyColor:'#8891b0', padding:14, cornerRadius:6, callbacks:{ title:ctx=>ctx[0].raw._t, label:ctx=>[` 経過日数: ${ctx.raw._age}日`, ` v2スコア: ${ctx.raw._v2.toFixed(1)}`, ` v1スコア: ${ctx.raw._v1.toFixed(1)}`, ` 累計PV:   ${ctx.raw._pv.toLocaleString()}`, ` 安定性:   ${ctx.raw._s.toFixed(3)}`] } },
+        zoom: {
+          zoom: {
+            wheel: { enabled: true, speed: 0.08 },
+            pinch: { enabled: true },
+            mode: 'x',
+            onZoomComplete: ({ chart }) => updateBubbleZoomHint(chart),
+          },
+          pan: {
+            enabled: true,
+            mode: 'x',
+            onPanComplete: ({ chart }) => updateBubbleZoomHint(chart),
+          },
+          limits: {
+            x: { min: 'original', max: 'original', minRange: 30 },
+          },
+        },
+      },
       scales: {
-        x: { ticks: { color: isDark() ? '#5a5a70' : '#aaa', font: { size: 11 } } },
-        y: { ticks: { color: isDark() ? '#5a5a70' : '#aaa', font: { size: 11 } } }
-      }
-    }
-  });
-}
-
-function renderEtaTrendChart() {
-  const ctx = document.getElementById('etaTrendChart');
-  if (!ctx) return;
-  if (S.charts.eta) S.charts.eta.destroy();
-  if (!S.weeklySummary.length) return;
-
-  const sorted = [...S.weeklySummary].sort((a, b) => getWeekKey(a) < getWeekKey(b) ? -1 : 1);
-  const last = sorted.slice(-16);
-  const labels = last.map(r => {
-    const k = getWeekKey(r);
-    return /^\d{4}-\d{2}-\d{2}$/.test(k) ? `${parseInt(k.slice(5,7))}/${parseInt(k.slice(8,10))}` : k;
-  });
-  const etaData = last.map(r => {
-    const v = getV(r), l = getL(r);
-    return v > 0 ? parseFloat((l / v * 100).toFixed(2)) : 0;
-  });
-
-  S.charts.eta = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [{
-        label: 'η(%)',
-        data: etaData,
-        borderColor: '#3EC19C',
-        backgroundColor: 'rgba(62,193,156,0.1)',
-        borderWidth: 2.5,
-        pointRadius: 4,
-        tension: 0.35,
-        fill: true,
-      }]
+        x: { grid:{color:CONFIG.gridColor}, ticks:{color:'rgba(255,255,255,0.75)',maxTicksLimit:10}, title:{display:true,text:'Age（経過日数）',color:'rgba(255,255,255,0.45)',font:{size:11}} },
+        y: { grid:{color:CONFIG.gridColor}, ticks:{color:'rgba(255,255,255,0.75)'}, title:{display:true,text:'v2スコア（累積資産）',color:'rgba(255,255,255,0.45)',font:{size:11}} },
+      },
     },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { ticks: { color: isDark() ? '#5a5a70' : '#aaa', font: { size: 11 }, maxTicksLimit: 8 } },
-        y: { ticks: { color: '#3EC19C', callback: v => v + '%', font: { size: 11 } } }
-      }
-    }
-  });
-}
-
-function renderLongTailList() {
-  const el = document.getElementById('longTailList');
-  if (!el) return;
-  if (!S.articleTrend.length) return;
-
-  // Articles where Day7+ PV > Day1 PV
-  const byArticle = {};
-  S.articleTrend.forEach(r => {
-    const id = r.article_id || r.id || r.title || '';
-    if (!byArticle[id]) byArticle[id] = { title: r.title || id, days: {} };
-    const d = parseInt(r.days_since_pub || r.day || 0);
-    byArticle[id].days[d] = n(r.views || r.pv || 0);
-  });
-
-  const longTail = Object.values(byArticle).filter(a => {
-    const d1 = a.days[1] || a.days[0] || 0;
-    const d7up = Object.entries(a.days).filter(([k]) => parseInt(k) >= 6).reduce((s,[,v])=>s+v,0);
-    return d7up > d1 * 0.5 && d1 > 0;
-  }).slice(0, 10);
-
-  if (!longTail.length) {
-    el.innerHTML = '<div class="empty"><div class="empty-sub">ロングテール記事は検出されませんでした</div></div>';
-    return;
-  }
-  el.innerHTML = longTail.map(a => `
-    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);">
-      <span style="font-size:16px">📈</span>
-      <span style="font-size:13px;font-weight:500;color:var(--text-primary)">${a.title}</span>
-    </div>
-  `).join('');
-}
-
-function renderScatterChart() {
-  const ctx = document.getElementById('scatterChart');
-  if (!ctx || !S.articles.length) return;
-  if (S.charts.scatter) S.charts.scatter.destroy();
-
-  const points = S.articles.map(r => ({
-    x: getV(r),
-    y: parseFloat(getEta(r).toFixed(2)),
-    label: r.title || '',
   }));
-  const avgV = points.reduce((s,p)=>s+p.x,0) / points.length;
-  const avgE = points.reduce((s,p)=>s+p.y,0) / points.length;
+}
 
-  S.charts.scatter = new Chart(ctx, {
+function resetBubbleZoom() {
+  const chart = ChartManager._charts['bubble'];
+  if (chart) chart.resetZoom();
+}
+
+function updateBubbleZoomHint(chart) {
+  const { min, max } = chart.scales.x;
+  document.getElementById('bubble-stats').textContent =
+    `表示範囲: ${Math.round(min)} 〜 ${Math.round(max)} 日`;
+}
+
+/* ================================================================
+   ⑧ WEEKLY UI
+   ================================================================ */
+const weeklyUI = {
+  data: [], current: '', metric: 'pv',
+
+  init(rows) {
+    this.data = rows;
+    const weeks = [...new Set(rows.map(r => r['週']))].sort();
+    if (!weeks.length) return;
+    document.getElementById('weekly-tabs').innerHTML = weeks.map(w =>
+      `<button class="tab-btn" data-week="${w}" onclick="weeklyUI.select('${w}')">${w}</button>`
+    ).join('');
+    const totals = weeks.map(w => ({
+      label: w,
+      pv:   rows.filter(r=>r['週']===w).reduce((s,r)=>s+Number(r['期間増加PV']||0),0),
+      like: rows.filter(r=>r['週']===w).reduce((s,r)=>s+Number(r['期間増加スキ']||0),0),
+    }));
+    this._buildTrendCharts(totals);
+    this.select(weeks[weeks.length-1]);
+  },
+
+  select(week) {
+    this.current = week;
+    document.querySelectorAll('#weekly-tabs .tab-btn').forEach(t => t.classList.toggle('active', t.dataset.week===week));
+    const rows = this.data.filter(r => r['週']===week);
+    if (!rows.length) return;
+    document.getElementById('weekly-badge').textContent = week;
+    document.getElementById('weekly-range').textContent = `${rows[0]['週開始日']} 〜 ${rows[0]['週終了日']}`;
+    document.getElementById('weekly-pv').textContent    = rows.reduce((s,r)=>s+Number(r['期間増加PV']||0),0).toLocaleString();
+    document.getElementById('weekly-like').textContent  = rows.reduce((s,r)=>s+Number(r['期間増加スキ']||0),0).toLocaleString();
+    document.getElementById('weekly-count').textContent = rows.length + ' 記事';
+    renderPeriodRankList('weekly-ranking', rows, this.metric, 'cyan');
+  },
+
+  setMetric(m) {
+    this.metric = m;
+    document.getElementById('wbtn-pv').className   = 'metric-btn' + (m==='pv'   ? ' on-cyan' : '');
+    document.getElementById('wbtn-like').className = 'metric-btn' + (m==='like' ? ' on-pink' : '');
+    if (this.current) this.select(this.current);
+  },
+
+  _buildTrendCharts(totals) {
+    const labels = totals.map((t, i) => {
+      const [y, w] = t.label.split('-');
+      const prevY = i > 0 ? totals[i-1].label.split('-')[0] : null;
+      return (i===0||y!==prevY) ? `'${y.slice(2)}\n${w}` : w;
+    });
+    const mkColors = (data, base) => { const max = Math.max(...data); return data.map(v => v===max ? base.replace('0.35','0.9') : base); };
+    const pvData   = totals.map(t => t.pv);
+    const likeData = totals.map(t => t.like);
+    makeScrollableBar('weekly-pv',   'chart-weekly-pv',   'wi-pv',   labels, { label:'週間PV増加',   data:pvData,   backgroundColor:mkColors(pvData,'rgba(0,229,255,0.35)'),   borderColor:mkColors(pvData,'rgba(0,229,255,0.8)'),   borderWidth:1, borderRadius:3, barPercentage:0.7 }, 52, c=>` ${c.raw.toLocaleString()} PV`);
+    makeScrollableBar('weekly-like', 'chart-weekly-like', 'wi-like', labels, { label:'週間スキ増加', data:likeData, backgroundColor:mkColors(likeData,'rgba(255,77,141,0.35)'), borderColor:mkColors(likeData,'rgba(255,77,141,0.8)'), borderWidth:1, borderRadius:3, barPercentage:0.7 }, 52, c=>` ${c.raw.toLocaleString()} スキ`);
+    setTimeout(() => {
+      ['wi-pv','wi-like'].forEach(id => { const el = document.getElementById(id); if (el) el.parentElement.scrollLeft = el.parentElement.scrollWidth; });
+    }, 120);
+  },
+};
+
+/* ================================================================
+   ⑨ MONTHLY UI
+   ================================================================ */
+const monthlyUI = {
+  data: [], current: '', metric: 'pv',
+
+  init(rows) {
+    this.data = rows;
+    const months = [...new Set(rows.map(r => r['月']))].sort();
+    if (!months.length) return;
+    document.getElementById('monthly-tabs').innerHTML = months.map(m =>
+      `<button class="tab-btn gold" data-month="${m}" onclick="monthlyUI.select('${m}')">${m}</button>`
+    ).join('');
+    const totals = months.map(m => ({
+      label: m,
+      pv:   rows.filter(r=>r['月']===m).reduce((s,r)=>s+Number(r['期間増加PV']||0),0),
+      like: rows.filter(r=>r['月']===m).reduce((s,r)=>s+Number(r['期間増加スキ']||0),0),
+    }));
+    this._buildTrendCharts(totals);
+    this.select(months[months.length-1]);
+  },
+
+  select(month) {
+    this.current = month;
+    document.querySelectorAll('#monthly-tabs .tab-btn').forEach(t => t.classList.toggle('active', t.dataset.month===month));
+    const rows = this.data.filter(r => r['月']===month);
+    if (!rows.length) return;
+    document.getElementById('monthly-badge').textContent = month;
+    document.getElementById('monthly-range').textContent = `${rows[0]['月開始日']} 〜 ${rows[0]['月終了日']}`;
+    document.getElementById('monthly-pv').textContent    = rows.reduce((s,r)=>s+Number(r['期間増加PV']||0),0).toLocaleString();
+    document.getElementById('monthly-like').textContent  = rows.reduce((s,r)=>s+Number(r['期間増加スキ']||0),0).toLocaleString();
+    document.getElementById('monthly-count').textContent = rows.length + ' 記事';
+    renderPeriodRankList('monthly-ranking', rows, this.metric, 'gold');
+  },
+
+  setMetric(m) {
+    this.metric = m;
+    document.getElementById('mbtn-pv').className   = 'metric-btn' + (m==='pv'   ? ' on-gold' : '');
+    document.getElementById('mbtn-like').className = 'metric-btn' + (m==='like' ? ' on-pink' : '');
+    if (this.current) this.select(this.current);
+  },
+
+  _buildTrendCharts(totals) {
+    const labels = totals.map(t => t.label);
+    const mkColors = (data, base) => { const max = Math.max(...data); return data.map(v => v===max ? base.replace('0.35','0.85') : base); };
+    const pvData   = totals.map(t => t.pv);
+    const likeData = totals.map(t => t.like);
+    makeScrollableBar('monthly-pv',   'chart-monthly-pv',   'mi-pv',   labels, { label:'月間PV増加',   data:pvData,   backgroundColor:mkColors(pvData,'rgba(255,201,71,0.35)'),   borderColor:mkColors(pvData,'rgba(255,201,71,0.8)'),   borderWidth:1, borderRadius:4, barPercentage:0.65 }, 80, c=>` ${c.raw.toLocaleString()} PV`);
+    makeScrollableBar('monthly-like', 'chart-monthly-like', 'mi-like', labels, { label:'月間スキ増加', data:likeData, backgroundColor:mkColors(likeData,'rgba(255,77,141,0.35)'), borderColor:mkColors(likeData,'rgba(255,77,141,0.8)'), borderWidth:1, borderRadius:4, barPercentage:0.65 }, 80, c=>` ${c.raw.toLocaleString()} スキ`);
+    setTimeout(() => {
+      ['mi-pv','mi-like'].forEach(id => { const el = document.getElementById(id); if (el) el.parentElement.scrollLeft = el.parentElement.scrollWidth; });
+    }, 120);
+  },
+};
+
+/* ================================================================
+   ⑩ DECAY UI
+   ================================================================ */
+const decayUI = {
+  articles: [],
+  topN: 25, maxDay: 14, sortMode: 'firstday', typeMode: 'new',
+  _timer: null,
+
+  init(articles) {
+    this.articles = articles;
+    document.getElementById('decay-topn').addEventListener('input', e => {
+      this.topN = Number(e.target.value);
+      document.getElementById('decay-topn-val').textContent = this.topN;
+      this._schedule();
+    });
+    document.getElementById('decay-maxday').addEventListener('input', e => {
+      this.maxDay = Number(e.target.value);
+      document.getElementById('decay-maxday-val').textContent = this.maxDay;
+      this._schedule();
+    });
+    this._initScroll();
+    this.render();
+  },
+
+  setSort(mode) {
+    this.sortMode = mode;
+    document.getElementById('dsort-firstday').className   = 'metric-btn' + (mode==='firstday'   ? ' on-violet' : '');
+    document.getElementById('dsort-totalviews').className = 'metric-btn' + (mode==='totalviews' ? ' on-violet' : '');
+    this._schedule();
+  },
+
+  setType(type) {
+    this.typeMode = type;
+    document.getElementById('dtype-new').className = 'metric-btn' + (type==='new' ? ' on-violet' : '');
+    document.getElementById('dtype-all').className = 'metric-btn' + (type==='all' ? ' on-violet' : '');
+    this._schedule();
+  },
+
+  _schedule() { clearTimeout(this._timer); this._timer = setTimeout(() => this.render(), 200); },
+
+  render() {
+    const { records, count } = Store.decayData(this.articles, { topN: this.topN, maxDay: this.maxDay, sortMode: this.sortMode, typeMode: this.typeMode });
+    document.getElementById('dc-count').textContent      = count;
+    document.getElementById('decay-data-count').textContent = records.length + ' pts';
+    if (!records.length) { document.getElementById('decay-svg-wrap').innerHTML = '<div class="loading" style="height:460px">データがありません</div>'; return; }
+    const stats = Store.decayStats(records);
+    this._updateCards(stats);
+    this._renderSVG(records, stats);
+  },
+
+  _updateCards(stats) {
+    const peak = stats.reduce((a, b) => a.median > b.median ? a : b);
+    document.getElementById('dc-peak').textContent   = `Day ${peak.day}`;
+    const half = stats.find(s => s.day > peak.day && s.median <= peak.median / 2);
+    document.getElementById('dc-half').textContent   = half ? `Day ${half.day}` : 'Day 14+';
+    const valley = stats.find(s => s.day > peak.day && s.median <= 2);
+    document.getElementById('dc-valley').textContent = valley ? `Day ${valley.day}` : '—';
+  },
+
+  /* SVG描画を責務ごとに分割 */
+  _renderSVG(records, stats) {
+    const margin = { top:40, right:40, bottom:60, left:76 };
+    const H = 460;
+    const scrollEl   = document.getElementById('decay-chart-area');
+    const containerW = scrollEl.clientWidth || 880;
+    const days = [...new Set(records.map(r => r.day))].sort((a,b)=>a-b);
+    const W = Math.max(containerW - 2, days.length * 44 + margin.left + margin.right);
+    const w = W - margin.left - margin.right;
+    const h = H - margin.top  - margin.bottom;
+
+    const xPos  = day => margin.left + (days.indexOf(day) / Math.max(days.length-1, 1)) * w;
+    const bandW = (w / Math.max(days.length,1)) * 0.52;
+    const allV  = records.map(r => r.views);
+    const yMax  = Math.max(...allV) * 2;
+    const logMax = Math.log10(Math.max(yMax,10));
+    const yScale = val => { if (val<=0) return margin.top+h; return margin.top+h-((Math.log10(Math.max(1,val))/logMax)*h); };
+
+    const ns   = 'http://www.w3.org/2000/svg';
+    const svg  = document.createElementNS(ns, 'svg');
+    svg.setAttribute('width',  W);
+    svg.setAttribute('height', H);
+    svg.style.display = 'block';
+
+    const mk = (tag, attrs) => { const el = document.createElementNS(ns, tag); Object.entries(attrs).forEach(([k,v]) => el.setAttribute(k,v)); return el; };
+
+    this._svgGrid(svg, mk, margin, w, h, yMax, yScale);
+    this._svgZone(svg, mk, margin, h, days, xPos, bandW);
+    this._svgPoints(svg, mk, stats, xPos, yScale, bandW);
+    this._svgBoxPlots(svg, mk, stats, xPos, yScale, bandW);
+    this._svgTrendLine(svg, mk, stats, xPos, yScale);
+    this._svgAxes(svg, mk, margin, w, h, H, W, days, xPos);
+
+    const wrap = document.getElementById('decay-svg-wrap');
+    wrap.innerHTML = '';
+    wrap.style.width = W + 'px';
+    wrap.appendChild(svg);
+  },
+
+  _svgGrid(svg, mk, margin, w, h, yMax, yScale) {
+    const gridVals = [1,2,5,10,20,50,100,200,500,1000,2000,5000,10000];
+    gridVals.forEach(v => {
+      if (v > yMax*1.1) return;
+      const y = yScale(v);
+      svg.appendChild(mk('line',{ x1:margin.left, x2:margin.left+w, y1:y, y2:y, stroke:'rgba(255,255,255,0.05)', 'stroke-width':1 }));
+      const t = mk('text',{ x:margin.left-10, y:y+4, 'text-anchor':'end', fill:'rgba(255,255,255,0.3)', 'font-size':10, 'font-family':"'JetBrains Mono',monospace" });
+      t.textContent = v>=1000 ? (v/1000)+'k' : v;
+      svg.appendChild(t);
+    });
+  },
+
+  _svgZone(svg, mk, margin, h, days, xPos, bandW) {
+    const i3 = days.includes(3) ? days.indexOf(3) : days.findIndex(d=>d>=3);
+    const i5 = days.includes(5) ? days.indexOf(5) : days.findLastIndex(d=>d<=5);
+    if (i3<0||i5<0) return;
+    const zx1 = xPos(days[i3])-bandW;
+    const zx2 = xPos(days[i5])+bandW;
+    svg.appendChild(mk('rect',{ x:Math.max(margin.left,zx1), y:margin.top, width:Math.min(zx2,margin.left+999)-(Math.max(margin.left,zx1)), height:h, fill:'rgba(255,230,50,0.07)', stroke:'rgba(255,230,50,0.18)', 'stroke-width':1 }));
+    const t = mk('text',{ x:Math.max(margin.left+4,zx1+6), y:margin.top+16, fill:'rgba(255,230,50,0.55)', 'font-size':9, 'font-family':"'JetBrains Mono',monospace" });
+    t.textContent = '3〜5日の壁（死の谷）';
+    svg.appendChild(t);
+  },
+
+  _svgPoints(svg, mk, stats, xPos, yScale, bandW) {
+    const jitter = (day, i) => (Math.sin(i*13.7+day*9.3)*0.5)*bandW*0.7;
+    stats.forEach(s => {
+      s.vals.forEach((v, i) => {
+        const c = mk('circle',{ cx:xPos(s.day)+jitter(s.day,i), cy:yScale(v), r:2.8, fill:'rgba(157,111,255,0.35)', stroke:'rgba(157,111,255,0.65)', 'stroke-width':0.5 });
+        c.addEventListener('mouseenter', () => {
+          document.getElementById('tt-title').textContent = '';
+          document.getElementById('tt-day').textContent   = `Day ${s.day}`;
+          document.getElementById('tt-views').textContent = v.toLocaleString();
+          document.getElementById('decay-tooltip').classList.add('show');
+        });
+        c.addEventListener('mousemove', e => {
+          const tt = document.getElementById('decay-tooltip');
+          tt.style.left = (e.clientX+14)+'px'; tt.style.top = (e.clientY-36)+'px';
+        });
+        c.addEventListener('mouseleave', () => document.getElementById('decay-tooltip').classList.remove('show'));
+        svg.appendChild(c);
+      });
+    });
+  },
+
+  _svgBoxPlots(svg, mk, stats, xPos, yScale, bandW) {
+    stats.forEach(s => {
+      const cx = xPos(s.day); const bw = bandW;
+      svg.appendChild(mk('line',{ x1:cx, x2:cx, y1:yScale(s.wHi), y2:yScale(s.q3), stroke:'rgba(0,229,255,0.35)', 'stroke-width':1.5, 'stroke-dasharray':'3,2' }));
+      svg.appendChild(mk('line',{ x1:cx, x2:cx, y1:yScale(s.q1),  y2:yScale(s.wLo), stroke:'rgba(0,229,255,0.35)', 'stroke-width':1.5, 'stroke-dasharray':'3,2' }));
+      [yScale(s.wHi), yScale(s.wLo)].forEach(y => svg.appendChild(mk('line',{ x1:cx-bw/3, x2:cx+bw/3, y1:y, y2:y, stroke:'rgba(0,229,255,0.45)', 'stroke-width':1.5 })));
+      const bTop = Math.min(yScale(s.q3), yScale(s.q1));
+      const bH   = Math.abs(yScale(s.q1)-yScale(s.q3));
+      svg.appendChild(mk('rect',{ x:cx-bw/2, y:bTop, width:bw, height:Math.max(2,bH), fill:'rgba(0,229,255,0.09)', stroke:'rgba(0,229,255,0.55)', 'stroke-width':1.5, rx:2 }));
+      svg.appendChild(mk('line',{ x1:cx-bw/2, x2:cx+bw/2, y1:yScale(s.median), y2:yScale(s.median), stroke:'rgba(0,229,255,0.95)', 'stroke-width':2.5 }));
+    });
+  },
+
+  _svgTrendLine(svg, mk, stats, xPos, yScale) {
+    if (stats.length < 2) return;
+    const d = stats.map((s,i)=>`${i===0?'M':'L'}${xPos(s.day)},${yScale(s.median)}`).join(' ');
+    svg.appendChild(mk('path',{ d, fill:'none', stroke:'#ff4d6a', 'stroke-width':2.5, 'stroke-linejoin':'round', 'stroke-linecap':'round' }));
+    stats.forEach(s => {
+      const dot = mk('circle',{ cx:xPos(s.day), cy:yScale(s.median), r:4.5, fill:'#ff4d6a', stroke:'rgba(6,8,15,0.85)', 'stroke-width':1.5 });
+      dot.style.cursor = 'pointer';
+      dot.addEventListener('mouseenter', () => {
+        document.getElementById('tt-title').textContent = `中央値 (n=${s.n})`;
+        document.getElementById('tt-day').textContent   = `Day ${s.day}`;
+        document.getElementById('tt-views').textContent = s.median.toFixed(0);
+        document.getElementById('decay-tooltip').classList.add('show');
+      });
+      dot.addEventListener('mousemove', e => {
+        const tt = document.getElementById('decay-tooltip');
+        tt.style.left = (e.clientX+14)+'px'; tt.style.top = (e.clientY-36)+'px';
+      });
+      dot.addEventListener('mouseleave', () => document.getElementById('decay-tooltip').classList.remove('show'));
+      svg.appendChild(dot);
+    });
+  },
+
+  _svgAxes(svg, mk, margin, w, h, H, W, days, xPos) {
+    days.forEach((day) => {
+      if (days.length>30 && day%5!==0) return;
+      if (days.length>15 && days.length<=30 && day%2!==0 && day!==0) return;
+      const t = mk('text',{ x:xPos(day), y:margin.top+h+22, 'text-anchor':'middle', fill:'rgba(255,255,255,0.4)', 'font-size':11, 'font-family':"'JetBrains Mono',monospace" });
+      t.textContent = day; svg.appendChild(t);
+    });
+    const xl = mk('text',{ x:margin.left+w/2, y:H-8, 'text-anchor':'middle', fill:'rgba(255,255,255,0.3)', 'font-size':11, 'font-family':"'JetBrains Mono',monospace", 'letter-spacing':'0.1em' });
+    xl.textContent = '経過日数 (Day)'; svg.appendChild(xl);
+    const yl = mk('text',{ transform:'rotate(-90)', x:-(margin.top+h/2), y:18, 'text-anchor':'middle', fill:'rgba(255,255,255,0.3)', 'font-size':11, 'font-family':"'JetBrains Mono',monospace" });
+    yl.textContent = '日次ビュー数（対数スケール）'; svg.appendChild(yl);
+    const tl = mk('text',{ x:margin.left, y:22, fill:'rgba(255,255,255,0.5)', 'font-size':11, 'font-family':"'JetBrains Mono',monospace", 'letter-spacing':'0.12em' });
+    tl.textContent = `TOP ${this.topN} 記事（${this.sortMode==='firstday'?'初日ジャンプ順':'累計PV順'}） / 0〜${this.maxDay}日`;
+    svg.appendChild(tl);
+  },
+
+  _initScroll() {
+    const el = document.getElementById('decay-chart-area');
+    if (!el) return;
+    let down=false, startX=0, scrollStart=0, vel=0, lastX=0, lastT=0, raf=null;
+    el.addEventListener('mousedown', e => { down=true; startX=e.pageX; scrollStart=el.scrollLeft; vel=0; lastX=e.pageX; lastT=Date.now(); el.style.cursor='grabbing'; if(raf)cancelAnimationFrame(raf); });
+    window.addEventListener('mousemove', e => { if(!down)return; el.scrollLeft=scrollStart-(e.pageX-startX); const dt=Math.max(Date.now()-lastT,1); vel=(e.pageX-lastX)/dt*16; lastX=e.pageX; lastT=Date.now(); });
+    window.addEventListener('mouseup', () => { if(!down)return; down=false; el.style.cursor='grab'; const run=()=>{if(Math.abs(vel)<0.5)return; el.scrollLeft-=vel; vel*=0.92; raf=requestAnimationFrame(run);}; raf=requestAnimationFrame(run); });
+  },
+};
+
+/* ================================================================
+   ⑪ ARTICLE TREND UI
+   ================================================================ */
+const TREND_COLORS = [
+  '#00e5ff','#ff4d8d','#ffc947','#9d6fff','#00e5a0',
+  '#ff7c4d','#4dc8ff','#ff4d6a','#c8ff4d','#e04dff',
+  '#4dffb8','#ff9d4d','#7c9dff','#ff4d4d','#4dffe0',
+  '#ffdf4d','#b84dff','#4dff7c','#ff6e9d','#9dffcf',
+];
+
+const articleTrendUI = {
+  _matrix: [], _allDates: [],
+  _opts: { sortMode:'firstday', topN:5, filterNew:true, earlyDays:7 },
+  _timer: null,
+
+  init(rows) {
+    this._buildMatrix(rows);
+    this._render();
+  },
+
+  setSortMode(mode) {
+    this._opts.sortMode = mode;
+    document.querySelectorAll('[data-sort]').forEach(t => t.classList.toggle('active', t.dataset.sort===mode));
+    this._schedule();
+  },
+  setTopN(n) {
+    this._opts.topN = Number(n);
+    document.querySelectorAll('[data-topn]').forEach(t => t.classList.toggle('active', Number(t.dataset.topn)===Number(n)));
+    this._schedule();
+  },
+  setFilterNew(isNew) {
+    this._opts.filterNew = isNew;
+    document.getElementById('trend-filter-new').classList.toggle('active',  isNew);
+    document.getElementById('trend-filter-all').classList.toggle('active', !isNew);
+    this._schedule();
+  },
+  _schedule() { clearTimeout(this._timer); this._timer = setTimeout(() => this._render(), 200); },
+
+  _trimTrailingZeros(arr) {
+    const a = [...arr];
+    while (a.length>1 && a[a.length-1]===0) a.pop();
+    return a;
+  },
+
+  _buildMatrix(rows) {
+    const dayColRe = /^day(\d+)$/;
+    this._matrix = rows
+      .filter(r => !Store.isExcluded(r.title) && r.first_day)
+      .map(r => {
+        const dayEntries = Object.keys(r).filter(k=>dayColRe.test(k)).sort((a,b)=>parseInt(a.slice(3))-parseInt(b.slice(3))).map(k=>({ day:parseInt(k.slice(3)), diff:Math.max(0,Number(r[k])||0) }));
+        if (!dayEntries.length) return null;
+        const rawDiffs  = dayEntries.map(e=>e.diff);
+        const diffVals  = this._trimTrailingZeros(rawDiffs);
+        const trimmed   = dayEntries.slice(0, diffVals.length);
+        const cumVals   = diffVals.reduce((acc,v)=>{ acc.push((acc.length?acc[acc.length-1]:0)+v); return acc; },[]);
+        let isNew       = r.is_new==='True'||r.is_new==='true'||r.is_new===true;
+        let firstDayJump = Number(r.first_day_jump)||0;
+        const totalViews = Number(r.total_views)||0;
+        // 途中参加記事ノイズを除去
+        if (firstDayJump>=50 && totalViews>0 && firstDayJump/totalViews>0.85) { diffVals[0]=0; cumVals[0]=0; firstDayJump=0; isNew=false; }
+        const peakJump  = Math.max(...diffVals);
+        const initialVel = diffVals.slice(0, this._opts.earlyDays).reduce((s,v)=>s+v,0);
+        return { title:r.title, firstDay:r.first_day, isNew, firstDayJump, totalViews, peakJump, initialVel, dayEntries:trimmed, diffVals, cumVals };
+      }).filter(Boolean);
+    this._buildDateRange();
+  },
+
+  _buildDateRange() {
+    if (!this._matrix.length) { this._allDates = []; return; }
+    const firstDays  = this._matrix.map(r=>r.firstDay).filter(Boolean);
+    const minDate    = firstDays.reduce((a,b)=>a<b?a:b);
+    const maxDate    = firstDays.reduce((a,b)=>a>b?a:b);
+    const maxDayCount = Math.max(...this._matrix.map(r=>r.dayEntries.length));
+    const end = new Date(maxDate.replace(/\//g,'-')); end.setDate(end.getDate()+maxDayCount);
+    const dates = []; const cur = new Date(minDate.replace(/\//g,'-'));
+    while (cur<=end) { dates.push(cur.toISOString().slice(0,10).replace(/-/g,'/')); cur.setDate(cur.getDate()+1); }
+    this._allDates = dates;
+  },
+
+  _render() {
+    const { sortMode, topN, filterNew } = this._opts;
+    let records = [...this._matrix];
+    if (filterNew) { const n = records.filter(r=>r.isNew); if (n.length) records = n; }
+    const sortKey = { firstday:'firstDayJump', total:'totalViews', peak:'peakJump', initial:'initialVel' }[sortMode] || 'totalViews';
+    records.sort((a,b)=>b[sortKey]-a[sortKey]);
+    records = records.slice(0, topN);
+    document.getElementById('trend-badge').textContent = `TOP ${records.length}`;
+    document.getElementById('trend-count').textContent = `${records.length} 記事を表示`;
+    ChartManager.destroy('trend-date'); ChartManager.destroy('trend-rel');
+
+    const commonOpts = {
+      responsive:true, maintainAspectRatio:false, animation:{duration:600,easing:'easeOutQuart'},
+      plugins: {
+        legend: { display:true, position:'right', labels:{ boxWidth:8, padding:12, color:'rgba(255,255,255,0.75)', usePointStyle:true, font:{size:10} } },
+        tooltip: { backgroundColor:'#0f1221', borderColor:'rgba(255,255,255,0.1)', borderWidth:1, titleColor:'#e8ecf8', bodyColor:'#8891b0', padding:12, cornerRadius:6, mode:'index', intersect:false, callbacks:{ label: ctx => ctx.raw!=null ? ` ${ctx.dataset.label}: ${ctx.raw.toLocaleString()} PV` : null } },
+      },
+      scales: {
+        x: { grid:{color:CONFIG.gridColor}, ticks:{maxTicksLimit:12,color:'rgba(255,255,255,0.65)',maxRotation:0} },
+        y: { grid:{color:CONFIG.gridColor}, ticks:{color:CONFIG.tickColor}, beginAtZero:true, title:{display:true,text:'累積 PV',color:'rgba(255,255,255,0.4)',font:{size:10}} },
+      },
+      interaction: { mode:'index', intersect:false },
+    };
+    const label = t => t.length>20 ? t.slice(0,20)+'…' : t;
+    const dateLabels = this._allDates.map(d=>d.slice(5));
+
+    ChartManager.set('trend-date', new Chart(document.getElementById('chart-trend-date'), {
+      type: 'line',
+      data: { labels: dateLabels, datasets: records.map((r,i) => {
+        const dateMap = {};
+        r.dayEntries.forEach((e,idx) => { const d=new Date(r.firstDay.replace(/\//g,'-')); d.setDate(d.getDate()+e.day); dateMap[d.toISOString().slice(0,10).replace(/-/g,'/')]=r.cumVals[idx]; });
+        return { label:label(r.title), data:this._allDates.map(d=>dateMap[d]??null), borderColor:TREND_COLORS[i%TREND_COLORS.length], backgroundColor:'transparent', borderWidth:1.8, pointRadius:0, pointHoverRadius:4, tension:0.3, fill:false, spanGaps:false };
+      })},
+      options: commonOpts,
+    }));
+
+    const maxDays = Math.max(...records.map(r=>r.cumVals.length));
+    ChartManager.set('trend-rel', new Chart(document.getElementById('chart-trend-rel'), {
+      type: 'line',
+      data: { labels: Array.from({length:maxDays},(_,i)=>i), datasets: records.map((r,i) => ({
+        label:label(r.title), data:[...r.cumVals,...Array(maxDays-r.cumVals.length).fill(null)],
+        borderColor:TREND_COLORS[i%TREND_COLORS.length], backgroundColor:'transparent', borderWidth:1.8, pointRadius:0, pointHoverRadius:4, tension:0.3, fill:false, spanGaps:false,
+      }))},
+      options: { ...commonOpts, scales: { ...commonOpts.scales, x: { ...commonOpts.scales.x, ticks:{...commonOpts.scales.x.ticks, callback:v=>v+'日'}, title:{display:true,text:'投稿日からの経過日数（Day）',color:'rgba(255,255,255,0.4)',font:{size:10}} } } },
+    }));
+  },
+};
+
+/* ================================================================
+   ⑭ Comment Intelligence
+   ================================================================ */
+const CommentStore = {
+  // articles から記事keyごとに「最新かつcomment_countが有効な行」を1行ずつ取得
+  build(articles) {
+    // keyごとに最新のcomment_count有効行を探す
+    const byKey = {};
+    for (const r of articles) {
+      if (Store.isExcluded(r.title)) continue;
+      const cc = r.comment_count;
+      if (cc === '' || cc === undefined || cc === null || isNaN(Number(cc))) continue;
+      const key = r.key || r.title; // keyがなければtitleでグループ化
+      if (!byKey[key] || r.date > byKey[key].date) {
+        byKey[key] = r;
+      }
+    }
+    return Object.values(byKey).map(r => ({
+      title:         r.title,
+      read_count:    Number(r.read_count)    || 0,
+      like_count:    Number(r.like_count)    || 0,
+      comment_count: Number(r.comment_count) || 0,
+      comment_rate:  (Number(r.read_count) >= CONFIG.minPvForEta && Number(r.read_count) > 0)
+        ? Number(r.comment_count) / Number(r.read_count) * 100
+        : null,
+    }));
+  },
+
+  kpis(rows) {
+    const total    = rows.reduce((s, r) => s + r.comment_count, 0);
+    const engaged  = rows.filter(r => r.comment_count >= 1).length;
+    const rateRows = rows.filter(r => r.comment_rate !== null);
+    const avgRate  = rateRows.length
+      ? rateRows.reduce((s, r) => s + r.comment_rate, 0) / rateRows.length
+      : 0;
+    const maxRow   = rows.reduce((a, b) => a.comment_count >= b.comment_count ? a : b, rows[0] || {});
+    return { total, engaged, avgRate, maxRow };
+  },
+
+  rankByCount(rows, n = 10) {
+    return [...rows].sort((a, b) => b.comment_count - a.comment_count).slice(0, n);
+  },
+
+  rankByRate(rows, n = 10) {
+    return [...rows]
+      .filter(r => r.comment_rate !== null)
+      .sort((a, b) => b.comment_rate - a.comment_rate)
+      .slice(0, n);
+  },
+};
+
+function renderCommentKPIs(rows) {
+  const { total, engaged, avgRate, maxRow } = CommentStore.kpis(rows);
+  document.getElementById('ckpi-total').textContent    = total.toLocaleString();
+  document.getElementById('ckpi-total-sub').textContent = `${rows.length} 記事中 ${engaged} 記事にコメントあり`;
+  document.getElementById('ckpi-engaged').textContent  = engaged.toLocaleString();
+  document.getElementById('ckpi-rate').textContent     = avgRate.toFixed(3) + '%';
+  document.getElementById('ckpi-max').textContent      = (maxRow.comment_count || 0).toLocaleString();
+  const maxTitle = maxRow.title || '—';
+  document.getElementById('ckpi-max-title').textContent = maxTitle.length > 22 ? maxTitle.slice(0, 22) + '…' : maxTitle;
+}
+
+function renderCommentRankList(elId, rows, valueKey, fillClass, valClass, fmt) {
+  const el  = document.getElementById(elId);
+  if (!el) return;
+  const max = rows[0] ? (rows[0][valueKey] || 0) : 1;
+  el.innerHTML = rows.map((r, i) => {
+    const val   = r[valueKey] || 0;
+    const pct   = max > 0 ? (val / max * 100) : 0;
+    const numCls = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+    const disp  = fmt ? fmt(val) : val.toLocaleString();
+    const t     = r.title || '—';
+    const title = t.length > 28 ? t.slice(0, 28) + '…' : t;
+    return `<div class="rank-item">
+      <div class="rank-num ${numCls}">${i + 1}</div>
+      <div class="rank-title" title="${t}">${title}</div>
+      <div class="rank-right">
+        <div class="rank-bar"><div class="${fillClass} rank-bar-fill" style="width:${pct}%"></div></div>
+        <div class="${valClass} rank-val">${disp}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderCommentScatter(rows) {
+  const canvas = document.getElementById('chart-comment-scatter');
+  if (!canvas) return;
+  ChartManager.destroy('comment-scatter');
+
+  // コメント率でポイント色を決定
+  const colorOf = rate => {
+    if (rate === null || rate === undefined) return 'rgba(0,229,255,0.7)';
+    if (rate >= 0.5) return 'rgba(255,77,141,0.85)';
+    if (rate >= 0.1) return 'rgba(255,201,71,0.85)';
+    return 'rgba(0,229,255,0.7)';
+  };
+
+  const points = rows.filter(r => r.read_count > 0 && r.comment_count > 0);
+  const dataset = {
+    label: '記事',
+    data: points.map(r => ({ x: r.read_count, y: r.comment_count, title: r.title, rate: r.comment_rate })),
+    backgroundColor: points.map(r => colorOf(r.comment_rate)),
+    pointRadius: 5,
+    pointHoverRadius: 8,
+  };
+
+  ChartManager.set('comment-scatter', new Chart(canvas, {
     type: 'scatter',
-    data: {
-      datasets: [{
-        label: '記事',
-        data: points,
-        backgroundColor: points.map(p =>
-          p.x >= avgV && p.y >= avgE ? 'rgba(62,193,156,0.7)' :
-          p.x <  avgV && p.y >= avgE ? 'rgba(74,144,217,0.7)' :
-          p.x >= avgV && p.y <  avgE ? 'rgba(255,193,7,0.7)'  :
-          'rgba(150,150,150,0.4)'
-        ),
-        pointRadius: 7,
-        pointHoverRadius: 9,
-      }]
-    },
+    data: { datasets: [dataset] },
     options: {
-      responsive: true, maintainAspectRatio: false,
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 600, easing: 'easeOutQuart' },
       plugins: {
         legend: { display: false },
         tooltip: {
+          backgroundColor: '#0f1221',
+          borderColor: 'rgba(255,255,255,0.1)',
+          borderWidth: 1,
+          titleColor: '#e8ecf8',
+          bodyColor: '#8891b0',
+          padding: 12,
+          cornerRadius: 6,
           callbacks: {
-            label: c => `${c.raw.label} — ビュー:${c.raw.x.toLocaleString()} η:${c.raw.y}%`
-          }
-        }
+            title: items => {
+              const d = items[0]?.raw;
+              if (!d) return '';
+              const t = d.title || '';
+              return t.length > 30 ? t.slice(0, 30) + '…' : t;
+            },
+            label: item => {
+              const d = item.raw;
+              const lines = [
+                ` PV: ${d.x.toLocaleString()}`,
+                ` コメント: ${d.y}件`,
+              ];
+              if (d.rate !== null && d.rate !== undefined) {
+                lines.push(` コメント率: ${d.rate.toFixed(3)}%`);
+              }
+              return lines;
+            },
+          },
+        },
       },
       scales: {
         x: {
-          title: { display: true, text: 'ビュー数', color: isDark() ? '#9494aa' : '#666', font: { size: 12 } },
-          ticks: { color: isDark() ? '#5a5a70' : '#aaa' },
-          grid:  { color: isDark() ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)' }
+          grid: { color: CONFIG.gridColor },
+          ticks: { color: CONFIG.tickColor, maxTicksLimit: 8, callback: v => v >= 1000 ? (v/1000).toFixed(0)+'k' : v },
+          title: { display: true, text: '累計 PV', color: 'rgba(255,255,255,0.4)', font: { size: 10 } },
+          beginAtZero: true,
         },
         y: {
-          title: { display: true, text: 'η スキ率 (%)', color: isDark() ? '#9494aa' : '#666', font: { size: 12 } },
-          ticks: { color: isDark() ? '#5a5a70' : '#aaa', callback: v => v + '%' },
-          grid:  { color: isDark() ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)' }
-        }
-      }
-    }
-  });
-}
-
-// ==========================================================
-// TAB 3: READERS
-// ==========================================================
-function renderReadersPage() {
-  renderWeeklyTable();
-  renderSukiRankTable();
-  renderFollowerChart();
-}
-
-function renderWeeklyTable() {
-  const tbody = document.getElementById('weeklyTable');
-  if (!tbody || !S.weeklySummary.length) return;
-
-  // weekly_summary is article×week: aggregate per week first
-  const agg = aggregateSummary(S.weeklySummary, getWeekKey);
-  const keys = Object.keys(agg).sort().reverse(); // newest first
-
-  tbody.innerHTML = keys.slice(0, 20).map((k, i) => {
-    const r    = agg[k];
-    const prev = agg[keys[i + 1]];
-    const eta  = r.views > 0 ? (r.likes / r.views * 100).toFixed(2) : 0;
-    const prevV = prev ? prev.views : 0;
-    return `<tr>
-      <td style="font-size:12px;color:var(--text-secondary)">${k}</td>
-      <td class="td-right">${fmt(r.views)}</td>
-      <td class="td-right">${fmt(r.likes)}</td>
-      <td class="td-right">${etaBadge(eta)}</td>
-      <td class="td-right td-muted">—</td>
-      <td class="td-right">${diffChip(r.views, prevV)}</td>
-    </tr>`;
-  }).join('');
-}
-
-function renderSukiRankTable() {
-  const tbody = document.getElementById('sukiRankTable');
-  if (!tbody || !S.articles.length) return;
-  const sorted = getLatestArticleSnapshot().sort((a,b) => getL(b) - getL(a));
-  tbody.innerHTML = sorted.slice(0, 20).map((r, i) => {
-    const views = getV(r), likes = getL(r), eta = getEta(r);
-    return `<tr>
-      <td class="rank-num ${i===0?'top1':i===1?'top2':i===2?'top3':''}">${i+1}</td>
-      <td><span class="art-title" title="${r.title||''}">${r.title||''}</span></td>
-      <td class="td-right">${fmt(likes)}</td>
-      <td class="td-right">${etaBadge(eta)}</td>
-      <td class="td-right">${fmt(views)}</td>
-    </tr>`;
-  }).join('');
-}
-
-function renderFollowerChart() {
-  const ctx = document.getElementById('followerChart');
-  const src = S.followers.length > 0 ? S.followers : S.dailySummary;
-  if (!ctx || !src.length) return;
-  if (S.charts.follower) S.charts.follower.destroy();
-
-  const sorted = [...src]
-    .filter(r => getFollowCount(r) > 0)
-    .sort((a,b) => normDate(getDateKey(a)) < normDate(getDateKey(b)) ? -1 : 1);
-  if (!sorted.length) return;
-
-  const labels = sorted.map(r => {
-    const d = normDate(getDateKey(r));
-    return /^\d{4}-\d{2}-\d{2}$/.test(d) ? `${parseInt(d.slice(5,7))}/${parseInt(d.slice(8,10))}` : d;
-  });
-  const data = sorted.map(r => getFollowCount(r));
-
-  S.charts.follower = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [{
-        label: 'フォロワー',
-        data,
-        borderColor: '#4a90d9',
-        backgroundColor: 'rgba(74,144,217,0.08)',
-        borderWidth: 2.5,
-        pointRadius: data.length > 80 ? 0 : 3,
-        tension: 0.3,
-        fill: true,
-      }]
+          grid: { color: CONFIG.gridColor },
+          ticks: { color: CONFIG.tickColor, maxTicksLimit: 8, stepSize: 1 },
+          title: { display: true, text: 'コメント数', color: 'rgba(255,255,255,0.4)', font: { size: 10 } },
+          beginAtZero: true,
+        },
+      },
     },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { ticks: { color: isDark() ? '#5a5a70' : '#aaa', maxTicksLimit: 10, font: { size: 11 } } },
-        y: { ticks: { color: '#4a90d9', font: { size: 11 } } }
-      }
-    }
-  });
+  }));
 }
 
-// ==========================================================
-// TAB 4: STRATEGY
-// ==========================================================
-function renderStrategyPage() {
-  renderCategoryCharts();
-  renderAIReport();
-}
+function renderCommentSection(articles) {
+  const rows = CommentStore.build(articles);
 
-const PALETTE = ['#3EC19C','#ff7043','#4a90d9','#9d6fff','#ffc947','#ff4d8d','#00bcd4','#66bb6a','#ef9a9a','#80cbc4'];
-
-function renderCategoryCharts() {
-  if (!S.articles.length) return;
-  ['categoryChart','categoryEtaChart'].forEach(id => { if (S.charts[id]) S.charts[id].destroy(); });
-
-  const catCount = {}, catEta = {};
-  getLatestArticleSnapshot().forEach(r => {
-    const cat = r.category || r.cat || 'その他';
-    catCount[cat] = (catCount[cat] || 0) + 1;
-    if (!catEta[cat]) catEta[cat] = [];
-    const v = getV(r), l = getL(r);
-    if (v > 0) catEta[cat].push(l / v * 100);
-  });
-  const cats = Object.keys(catCount).sort();
-
-  const c1 = document.getElementById('categoryChart');
-  if (c1) {
-    S.charts.categoryChart = new Chart(c1, {
-      type: 'doughnut',
-      data: {
-        labels: cats,
-        datasets: [{ data: cats.map(c => catCount[c]), backgroundColor: PALETTE }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { position: 'right', labels: { color: isDark() ? '#e8e8e8' : '#333', font: { size: 11 }, padding: 12 } } }
-      }
+  // データなし時はローディング表示をクリアして終了
+  if (!rows.length) {
+    ['ranking-comments','ranking-comment-rate'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = '<div style="padding:20px;font-size:11px;color:var(--text3);letter-spacing:0.08em">コメントデータがありません</div>';
     });
-  }
-
-  const c2 = document.getElementById('categoryEtaChart');
-  if (c2) {
-    S.charts.categoryEtaChart = new Chart(c2, {
-      type: 'bar',
-      data: {
-        labels: cats,
-        datasets: [{
-          label: 'η平均(%)',
-          data: cats.map(c => {
-            const arr = catEta[c] || [];
-            return arr.length > 0 ? parseFloat((arr.reduce((s,v)=>s+v,0)/arr.length).toFixed(2)) : 0;
-          }),
-          backgroundColor: PALETTE,
-          borderRadius: 4,
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { ticks: { color: isDark() ? '#5a5a70' : '#aaa', font: { size: 11 } } },
-          y: { ticks: { color: isDark() ? '#5a5a70' : '#aaa', callback: v => v + '%', font: { size: 11 } } }
-        }
-      }
+    ['ckpi-total','ckpi-engaged','ckpi-rate','ckpi-max'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = '—';
     });
+    return;
   }
+
+  renderCommentKPIs(rows);
+
+  // コメント数ランキング
+  renderCommentRankList(
+    'ranking-comments',
+    CommentStore.rankByCount(rows),
+    'comment_count',
+    'fill-pink', 'val-pink',
+    v => v + '件'
+  );
+
+  // コメント率ランキング
+  renderCommentRankList(
+    'ranking-comment-rate',
+    CommentStore.rankByRate(rows),
+    'comment_rate',
+    'fill-gold', 'val-gold',
+    v => v.toFixed(3) + '%'
+  );
+
+  // 散布図
+  renderCommentScatter(rows);
 }
 
-function renderAIReport() {
-  const el = document.getElementById('aiReport');
-  if (!el) return;
-  if (!S.dailySummary.length && !S.weeklySummary.length && !S.articles.length) return;
 
-  const { curr, prev } = getPeriodData();
-  const eta     = curr.views > 0 ? (curr.likes / curr.views * 100).toFixed(2) : '0.00';
-  const prevEta = prev.views > 0 ? (prev.likes / prev.views * 100).toFixed(2) : '0.00';
-
-  const vTrend = curr.views > prev.views ? '↑' : curr.views < prev.views ? '↓' : '→';
-  const lTrend = curr.likes > prev.likes ? '↑' : curr.likes < prev.likes ? '↓' : '→';
-  const eTrend = parseFloat(eta) > parseFloat(prevEta) ? '↑' : parseFloat(eta) < parseFloat(prevEta) ? '↓' : '→';
-
-  const diagnosis = getDiagnosis(vTrend, lTrend, eTrend);
-  const topArt = [...S.articles].sort((a,b) => getV(b) - getV(a))[0];
-  const { curr: fc, diff: fd } = getFollowerStats();
-
-  const vDiff = prev.views > 0 ? ` (${curr.views > prev.views ? '+' : ''}${((curr.views - prev.views)/prev.views*100).toFixed(1)}%)` : '';
-  const lDiff = prev.likes > 0 ? ` (${curr.likes > prev.likes ? '+' : ''}${((curr.likes - prev.likes)/prev.likes*100).toFixed(1)}%)` : '';
-
-  el.textContent =
-`■ KPI サマリー
-・全体ビュー : ${fmt(curr.views)}${vTrend}${vDiff}
-・スキ数     : ${fmt(curr.likes)}${lTrend}${lDiff}
-・η スキ率   : ${eta}%（${eTrend} 前期間 ${prevEta}%）
-・フォロワー : ${fc.toLocaleString()}（純増 ${fd >= 0 ? '+' : ''}${fd}）
-
-■ AI 診断コメント
-${diagnosis}
-
-${topArt ? `■ 最多ビュー記事\n「${topArt.title}」\nビュー: ${fmt(getV(topArt))}  スキ: ${fmt(getL(topArt))}  η: ${getEta(topArt).toFixed(1)}%` : ''}
-
-━━━━━━━━━━━━━━━━━━━━━
-Generated by KITAcore Note Analytics`;
+function initMomentumScroll(scrollEl, dragEl) {
+  dragEl = dragEl || scrollEl;
+  let down=false, startX=0, scrollStart=0, vel=0, lastX=0, lastT=0, raf=null;
+  const onDown = e => { down=true; const px=e.touches?e.touches[0].pageX:e.pageX; startX=px; scrollStart=scrollEl.scrollLeft; vel=0; lastX=px; lastT=Date.now(); dragEl.style.cursor='grabbing'; scrollEl.style.userSelect='none'; if(raf)cancelAnimationFrame(raf); };
+  const onMove = e => { if(!down)return; if(e.cancelable)e.preventDefault(); const px=e.touches?e.touches[0].pageX:e.pageX; scrollEl.scrollLeft=scrollStart-(px-startX)*1.2; const dt=Math.max(Date.now()-lastT,1); vel=(px-lastX)/dt*16; lastX=px; lastT=Date.now(); };
+  const onUp   = () => { if(!down)return; down=false; dragEl.style.cursor='grab'; scrollEl.style.userSelect=''; const run=()=>{ if(Math.abs(vel)<0.5)return; scrollEl.scrollLeft-=vel; vel*=0.92; raf=requestAnimationFrame(run); }; raf=requestAnimationFrame(run); };
+  dragEl.addEventListener('mousedown', onDown);
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+  dragEl.addEventListener('touchstart', onDown, {passive:true});
+  dragEl.addEventListener('touchmove', onMove, {passive:false});
+  dragEl.addEventListener('touchend', onUp);
 }
 
-const DIAGNOSIS_MAP = {
-  '↑↑↑': '🎉 リーチ・エンゲージメント全指標が改善。この週の戦略・テーマを分析して横展開を検討しましょう。',
-  '↑↑↓': '📈 ビュー・スキは伸びましたが η は低下。新規読者は増えているため、導入とCTAを見直すと改善できます。',
-  '↑↓↑': '🔍 ビュー増・スキ減でも η は維持。外部流入の増加かも。記事末尾のスキ誘導を強化しましょう。',
-  '↑↓↓': '⚠️ ビューは増えたが質が低下傾向。サムネ・タイトル先行の流入を分析し、コンテンツとの一致を確認。',
-  '↓↑↑': '💎 ビュー減もスキ率が改善。コアファンに刺さっています。タイトル改善・外部拡散でビュー回復を。',
-  '↓↑↓': '🤔 ビュー低下・スキのみ増。リピーター中心の週。新規流入施策を打ちましょう。',
-  '↓↓↑': '📉 ビュー・スキともに低下。η 横ばいは質が安定している証拠。投稿頻度を上げて露出を増やしましょう。',
-  '↓↓↓': '🔧 全指標低下。内容・頻度・タイトルを総点検。過去ヒット記事の要素を抽出して分析しましょう。',
-  '→→→': '🎯 全指標フラット。安定期です。次のブレイクスルーに向けて実験的な記事テーマを試してみましょう。',
-};
-function getDiagnosis(v, l, e) {
-  return DIAGNOSIS_MAP[`${v}${l}${e}`] ||
-    `ビュー${v} スキ${l} η${e}。継続してデータを蓄積し、パターンを分析してください。`;
-}
-
-function copyReport() {
-  const text = document.getElementById('aiReport').textContent;
-  navigator.clipboard.writeText(text).then(() => {
-    const btn = event.currentTarget;
-    btn.textContent = '✓ コピー済';
-    setTimeout(() => { btn.textContent = '📋 コピー'; }, 2000);
+function initAllScrolls() {
+  [['wi-pv','wo-pv'],['wi-like','wo-like'],['mi-pv','mo-pv'],['mi-like','mo-like']].forEach(([innerId, overlayId]) => {
+    const inner = document.getElementById(innerId);
+    const overlay = document.getElementById(overlayId);
+    if (inner && overlay) initMomentumScroll(inner.parentElement, overlay);
   });
 }
 
-// ==========================================================
-// PRO GATE
-// ==========================================================
-function updateProGates() {
-  ['articles','readers','strategy'].forEach(p => {
-    const gate = document.getElementById(`${p}Gate`);
-    if (!gate) return;
-    let overlay = gate.querySelector('.pro-overlay');
-    if (S.isPro) {
-      if (overlay) overlay.remove();
-    } else {
-      if (!overlay) {
-        overlay = document.createElement('div');
-        overlay.className = 'pro-overlay';
-        overlay.innerHTML = `
-          <div class="pro-overlay-icon">🔒</div>
-          <div class="pro-overlay-title">Pro 機能</div>
-          <div class="pro-overlay-sub">ヘッダーの「Pro」トグルで試せます</div>
-        `;
-        gate.appendChild(overlay);
-      }
-    }
-  });
-}
+/* ================================================================
+   ⑬ INIT — 全体の組み立て
+   ================================================================ */
+async function init() {
+  try {
+    const data = await DataLayer.loadAll();
+    const { summary, articles, followers, trend, assets, weekly, monthly, assetV1, assetV2, articleTrend } = data;
 
-function togglePro(checked) {
-  S.isPro = checked;
-  updateProGates();
-  // Trigger renders for newly visible tabs
-  if (checked) {
-    renderArticlesPage();
-    renderReadersPage();
-    renderStrategyPage();
+    // KPI & ステータスバンド
+    renderKPIs(summary);
+    renderStatusBand(summary);
+
+    // チャート
+    renderDailyChart(summary);
+    renderFollowersChart(summary, followers);
+    renderQuadChart(summary);
+
+    // ランキング
+    renderRankList('ranking-views', Store.ranking(articles, 'read_count'), 'read_count', 'fill-cyan', 'val-cyan');
+    renderRankList('ranking-likes', Store.ranking(articles, 'like_count'),  'like_count',  'fill-pink', 'val-pink');
+
+    // ワースト/ベスト
+    renderEtaRankList('rank-worst-eta',   Store.etaRanking(articles,'worst'), true);
+    renderEtaRankList('rank-best-eta',    Store.etaRanking(articles,'best'),  false);
+    renderRankList('rank-worst-views', Store.ranking(articles,'read_count',10).reverse().slice(0,10), 'read_count', 'fill-red',   'val-red');
+    renderRankList('rank-best-views',  Store.ranking(articles,'read_count',10), 'read_count', 'fill-green', 'val-green');
+
+    // テーブル
+    renderAssetTable(assets);
+    renderTrendTable(trend);
+
+    // 週次・月次
+    if (weekly.length)  weeklyUI.init(weekly);
+    if (monthly.length) monthlyUI.init(monthly);
+
+    // Asset Intelligence
+    if (assetV1.length) renderAssetV1(assetV1);
+    if (assetV2.length) renderAssetV2(assetV2);
+    if (assetV1.length && assetV2.length) { renderAssetCompare(assetV1, assetV2); renderBubbleChart(assetV1, assetV2); }
+
+    // Decay & Article Trend
+    if (articles.length)     decayUI.init(articles);
+    if (articleTrend.length) articleTrendUI.init(articleTrend);
+
+    // Comment Intelligence
+    if (articles.length) renderCommentSection(articles);
+
+    // Daily タブ — mini ランキング（TOP3）
+    renderRankList('ranking-likes-mini', Store.ranking(articles, 'like_count', 3), 'like_count', 'fill-pink', 'val-pink');
+    renderEtaRankList('ranking-worst-mini', Store.etaRanking(articles, 'worst', 3), true);
+
+    // 全チャートをリサイズ（隠しタブのチャートを正しいサイズで描画）
+    setTimeout(() => window.dispatchEvent(new Event('resize')), 200);
+
+  } catch (e) {
+    console.error(e);
+    document.getElementById('last-updated').textContent = 'error: ' + e.message;
   }
 }
 
-// ==========================================================
-// NAVIGATION
-// ==========================================================
-function switchTab(tab, el) {
+/* ================================================================
+   タブ切替
+   ================================================================ */
+function switchTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById(`page-${tab}`).classList.add('active');
-  if (tab === 'articles') renderArticlesPage();
-  if (tab === 'readers')  renderReadersPage();
-  if (tab === 'strategy') renderStrategyPage();
+  const panel = document.getElementById('tab-' + name);
+  const btn   = document.querySelector('.main-tab[data-tab="' + name + '"]');
+  if (panel) panel.classList.add('active');
+  if (btn)   btn.classList.add('active');
+  // タブが表示された後にチャートをリサイズ
+  setTimeout(() => {
+    Object.values(ChartManager._charts).forEach(c => { try { c.resize(); } catch(e){} });
+  }, 40);
+  // スクロールバーを上へ
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function switchPeriod(period, el) {
-  document.querySelectorAll('.period-tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
-  S.currentPeriod = period;
-  const labels = { weekly: '週間', monthly: '月間', yearly: '年間', all: '全期間' };
-  document.getElementById('chartTitle').textContent = `ビュー推移（${labels[period]}）`;
-  document.getElementById('tablePeriodLabel').textContent = labels[period];
-  renderSummary();
-}
-
-function switchSubTab(page, sub, el) {
-  document.querySelectorAll(`#page-${page} .sub-tab`).forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
-  const subNames = {
-    articles: ['ranking','trend','map'],
-    readers:  ['weekly','suki','followers'],
-    strategy: [],
-  };
-  (subNames[page] || []).forEach(s => {
-    const div = document.getElementById(`${page}-${s}`);
-    if (div) div.style.display = s === sub ? 'block' : 'none';
-  });
-  // Re-render charts that need canvas to be visible
-  if (sub === 'map')       renderScatterChart();
-  if (sub === 'trend')     { renderDecayChart(); renderEtaTrendChart(); renderLongTailList(); }
-  if (sub === 'followers') renderFollowerChart();
-}
-
-// ==========================================================
-// THEME
-// ==========================================================
-function isDark() { return document.documentElement.getAttribute('data-theme') === 'dark'; }
-
-function toggleTheme() {
-  const dark = isDark();
-  document.documentElement.setAttribute('data-theme', dark ? 'light' : 'dark');
-  document.getElementById('themeBtn').textContent = dark ? '🌙 ダーク' : '☀️ ライト';
-  // Redraw all charts with updated colors
-  renderAll();
-}
-
-// ==========================================================
-// INIT
-// ==========================================================
-window.addEventListener('DOMContentLoaded', () => {
-  updateProGates();
-  // Try GitHub Pages auto-load
-  loadFromRepo();
-});
+setTimeout(initAllScrolls, 600);
+init();
 </script>
 </body>
 </html>
