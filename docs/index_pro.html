@@ -813,7 +813,7 @@ async function loadFromRepo() {
   let loaded = 0;
   for (const f of CSV_FILES) {
     try {
-      const res = await fetch(`../data/${f}.csv`);
+      const res = await fetch(`https://raw.githubusercontent.com/Goo-dev0505/note-stats-public/main/data/${f}.csv`);
       if (res.ok) {
         const text = await res.text();
         parseAndStore(f, text);
