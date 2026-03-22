@@ -159,7 +159,32 @@
     .spin { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--note-green); border-radius: 50%; animation: spinanim 0.6s linear infinite; }
     @keyframes spinanim { to { transform: rotate(360deg); } }
 
-    @media (max-width: 900px) { .kpi-strip { grid-template-columns: repeat(3, 1fr); } .pro-features { grid-template-columns: 1fr; } }
+    /* ── TWO-COL GRID ── */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    /* ── RANK LIST ── */
+    .rank-list { display: flex; flex-direction: column; gap: 3px; max-height: 300px; overflow-y: auto; padding-right: 2px; }
+    .rank-row { display: grid; grid-template-columns: 26px 1fr auto; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 6px; background: var(--surface-2); border: 1px solid transparent; transition: all 0.12s; }
+    .rank-row:hover { border-color: var(--border); }
+    .rn { font-size: 11px; font-weight: 700; color: var(--text-muted); text-align: center; }
+    .rn.g1 { color: #e6a200; } .rn.g2 { color: #888; } .rn.g3 { color: #b0714a; }
+    .rt { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-secondary); }
+    .rank-row:hover .rt { color: var(--text-primary); }
+    .rv { font-size: 12px; font-weight: 700; white-space: nowrap; }
+    .rv.c-green { color: #1a9e78; } .rv.c-red { color: #c0392b; } .rv.c-cyan { color: #3EC19C; }
+    [data-theme="dark"] .rv.c-green { color: #3EC19C; } [data-theme="dark"] .rv.c-red { color: #ff6b6b; } [data-theme="dark"] .rv.c-cyan { color: #3EC19C; }
+
+    /* ── SECTION LABEL ── */
+    .sec-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
+    .sec-label::before { content: ''; width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; }
+    .sec-label.red::before { background: #e74c3c; } .sec-label.green::before { background: #3EC19C; }
+
+    /* ── WB GRID ── */
+    .wb-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .wb-divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; position: relative; }
+    .wb-divider::after { content: 'VS'; position: absolute; top: -9px; left: 50%; transform: translateX(-50%); background: var(--surface); padding: 0 12px; font-size: 9px; color: var(--text-muted); letter-spacing: 0.2em; }
+
+    @media (max-width: 900px) { .kpi-strip { grid-template-columns: repeat(3, 1fr); } .pro-features { grid-template-columns: 1fr; } .two-col { grid-template-columns: 1fr; } .wb-grid { grid-template-columns: 1fr; } }
     @media (max-width: 600px) { .kpi-strip { grid-template-columns: 1fr 1fr; } .page { padding: 14px 16px; } .header { padding: 0 16px; } .logo-sub, .lite-chip { display: none; } }
   </style>
 </head>
@@ -283,6 +308,62 @@
     </div>
   </div>
 
+  <!-- 日次推移 + フォロワー推移 -->
+  <div class="two-col mb-4">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">日次推移（直近60日）</span>
+        <div class="chart-legend">
+          <span><span class="legend-dot" style="background:#3EC19C"></span>ビュー</span>
+          <span><span class="legend-dot" style="background:#ff7043"></span>スキ</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div style="position:relative"><canvas id="dailyChart" style="height:200px"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">フォロワー推移</span>
+        <span class="card-sub">累計</span>
+      </div>
+      <div class="card-body">
+        <div style="position:relative"><canvas id="followerChart" style="height:200px"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ワースト / ベスト分析 -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <span class="card-title">改善候補 ワースト / ベスト分析</span>
+      <span class="card-sub">最新スナップショット（PV50以上でη計算）</span>
+    </div>
+    <div class="card-body">
+      <div class="wb-grid" style="margin-bottom:12px">
+        <div>
+          <div class="sec-label red">スキ率 ワースト（読まれてるのに刺さってない）</div>
+          <div class="rank-list" id="worstEta"></div>
+        </div>
+        <div>
+          <div class="sec-label red">View数 ワースト（埋もれている記事）</div>
+          <div class="rank-list" id="worstViews"></div>
+        </div>
+      </div>
+      <hr class="wb-divider">
+      <div class="wb-grid">
+        <div>
+          <div class="sec-label green">スキ率 ベスト（読まれて、かつ刺さった）</div>
+          <div class="rank-list" id="bestEta"></div>
+        </div>
+        <div>
+          <div class="sec-label green">View数 ベスト（最も読まれた記事）</div>
+          <div class="rank-list" id="bestViews"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Pro upgrade teaser -->
   <div class="pro-teaser">
     <div class="pro-teaser-header">
@@ -382,6 +463,9 @@ async function loadFromRepo() {
   }
   if (loaded > 0) {
     renderSummary();
+    renderDailyChart();
+    renderFollowerChart();
+    renderWorstBest();
     setStatus('loaded', `${loaded}ファイル読込済`);
     const dz = document.getElementById('dropZone');
     dz.querySelector('span:not(.dz-icon)').innerHTML =
@@ -398,7 +482,7 @@ function processFiles(files) {
   Array.from(files).forEach(file=>{
     if(!file.name.endsWith('.csv'))return;
     const reader=new FileReader();
-    reader.onload=e2=>{ parseAndStore(file.name.replace('.csv',''), e2.target.result); renderSummary(); };
+    reader.onload=e2=>{ parseAndStore(file.name.replace('.csv',''), e2.target.result); renderSummary(); renderDailyChart(); renderFollowerChart(); renderWorstBest(); };
     reader.readAsText(file,'UTF-8');
   });
 }
@@ -634,6 +718,60 @@ function renderTable() {
   `).join('');
 }
 
+// ── DAILY CHART ──────────────────────────────────────────────────────
+function renderDailyChart() {
+  if (!S.dailySummary.length) return;
+  const rows = sortedDaily().slice(-60);
+  const labels = rows.map(r => { const d=normDate(getDateKey(r)); return `${parseInt(d.slice(5,7))}/${parseInt(d.slice(8,10))}`; });
+  const ctx = document.getElementById('dailyChart');
+  if (!ctx) return;
+  if (S.charts.daily) S.charts.daily.destroy();
+  const dark=isDark(), gridC=dark?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)', textC=dark?'#5a5a70':'#aaaaaa';
+  S.charts.daily = new Chart(ctx, {
+    type:'bar',
+    data:{labels,datasets:[
+      {type:'bar',label:'スキ',data:rows.map(r=>getDailyLikes(r)),backgroundColor:'rgba(255,112,67,0.4)',borderColor:'rgba(255,112,67,0.8)',borderWidth:1,borderRadius:2,yAxisID:'y2'},
+      {type:'line',label:'ビュー',data:rows.map(r=>getDailyViews(r)),borderColor:'#3EC19C',backgroundColor:'rgba(62,193,156,0.06)',fill:true,tension:0.35,pointRadius:0,pointHoverRadius:4,borderWidth:2,yAxisID:'y'}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false},tooltip:{backgroundColor:dark?'#181b27':'#fff',titleColor:dark?'#e8e8e8':'#333',bodyColor:dark?'#9494aa':'#666',borderColor:dark?'#252838':'#e8e8e8',borderWidth:1}},
+      scales:{x:{grid:{color:gridC},ticks:{color:textC,maxTicksLimit:12,font:{size:11}}},y:{position:'left',grid:{color:gridC},ticks:{color:'#3EC19C',font:{size:11},callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v}},y2:{position:'right',grid:{display:false},ticks:{color:'rgba(255,112,67,0.8)',font:{size:11}}}}}
+  });
+}
+
+// ── FOLLOWER CHART ────────────────────────────────────────────────────
+function renderFollowerChart() {
+  const src=S.followers.length>0?S.followers:S.dailySummary;
+  const rows=[...src].filter(r=>getFollowCount(r)>0).sort((a,b)=>normDate(getDateKey(a))<normDate(getDateKey(b))?-1:1);
+  if(!rows.length)return;
+  const ctx=document.getElementById('followerChart');
+  if(!ctx)return;
+  if(S.charts.follower)S.charts.follower.destroy();
+  const dark=isDark(),gridC=dark?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)',textC=dark?'#5a5a70':'#aaaaaa';
+  const labels=rows.map(r=>{const d=normDate(getDateKey(r));return d.length>=10?`${parseInt(d.slice(5,7))}/${parseInt(d.slice(8,10))}`:d;});
+  S.charts.follower=new Chart(ctx,{type:'line',data:{labels,datasets:[{label:'フォロワー',data:rows.map(r=>getFollowCount(r)),borderColor:'#9d6fff',backgroundColor:'rgba(157,111,255,0.08)',fill:true,tension:0.35,pointRadius:0,pointHoverRadius:4,borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:dark?'#181b27':'#fff',titleColor:dark?'#e8e8e8':'#333',bodyColor:dark?'#9494aa':'#666',borderColor:dark?'#252838':'#e8e8e8',borderWidth:1}},scales:{x:{grid:{color:gridC},ticks:{color:textC,maxTicksLimit:10,font:{size:11}}},y:{grid:{color:gridC},ticks:{color:'#9d6fff',font:{size:11},callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v}}}}
+  });
+}
+
+// ── WORST / BEST ──────────────────────────────────────────────────────
+function renderWorstBest() {
+  if(!S.articles.length)return;
+  const latestByKey={};
+  S.articles.forEach(r=>{const k=r.key||r.note_id||r.title||'';const d=normDate(r.date||'');if(!latestByKey[k]||d>normDate(latestByKey[k].date||''))latestByKey[k]=r;});
+  const all=Object.values(latestByKey).filter(r=>getV(r)>0);
+  const withEta=all.filter(r=>getV(r)>=50).map(r=>({...r,_eta:getEta(r)}));
+  const medal=i=>i===0?'g1':i===1?'g2':i===2?'g3':'';
+  function buildList(elId,rows,valFn,valFmt,valCls){
+    const el=document.getElementById(elId);if(!el)return;
+    el.innerHTML=rows.map((r,i)=>`<div class="rank-row"><span class="rn ${medal(i)}">${String(i+1).padStart(2,'0')}</span><span class="rt" title="${r.title||''}">${r.title||''}</span><span class="rv ${valCls}">${valFmt(valFn(r))}</span></div>`).join('');
+  }
+  buildList('worstEta',[...withEta].sort((a,b)=>a._eta-b._eta).slice(0,10),r=>r._eta,v=>v.toFixed(1)+'%','c-red');
+  buildList('worstViews',[...all].sort((a,b)=>getV(a)-getV(b)).slice(0,10),getV,v=>fmt(v),'c-red');
+  buildList('bestEta',[...withEta].sort((a,b)=>b._eta-a._eta).slice(0,10),r=>r._eta,v=>v.toFixed(1)+'%','c-green');
+  buildList('bestViews',[...all].sort((a,b)=>getV(b)-getV(a)).slice(0,10),getV,v=>fmt(v),'c-cyan');
+}
+
 // ── NAVIGATION ────────────────────────────────────────────────────────
 function switchPeriod(period, el) {
   document.querySelectorAll('.period-tab').forEach(t=>t.classList.remove('active'));
@@ -652,6 +790,8 @@ function toggleTheme() {
   document.documentElement.setAttribute('data-theme',dark?'light':'dark');
   document.getElementById('themeBtn').textContent=dark?'🌙 ダーク':'☀️ ライト';
   renderSummary();
+  renderDailyChart();
+  renderFollowerChart();
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────
