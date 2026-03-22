@@ -1,0 +1,1824 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KITAcore Note Analytics</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    /* ===== CSS Custom Properties ===== */
+    :root {
+      --note-green: #3EC19C;
+      --note-green-hover: #35a886;
+      --note-blue: #4a90d9;
+      --pro-color: #ff7043;
+
+      /* Light theme */
+      --bg: #f6f6f6;
+      --surface: #ffffff;
+      --surface-2: #f9f9f9;
+      --border: #e8e8e8;
+      --text-primary: #1a1a1a;
+      --text-secondary: #555555;
+      --text-muted: #999999;
+      --kpi-num: #1a1a1a;
+      --table-hover: #f5faf8;
+      --shadow: 0 1px 3px rgba(0,0,0,0.07);
+      --shadow-md: 0 2px 10px rgba(0,0,0,0.10);
+      --positive: #27ae60;
+      --negative: #e74c3c;
+    }
+
+    [data-theme="dark"] {
+      --bg: #0e1018;
+      --surface: #181b27;
+      --surface-2: #131620;
+      --border: #252838;
+      --text-primary: #e8e8e8;
+      --text-secondary: #9494aa;
+      --text-muted: #5a5a70;
+      --kpi-num: #f0f0f0;
+      --table-hover: #1c1f2e;
+      --shadow: 0 1px 4px rgba(0,0,0,0.4);
+      --shadow-md: 0 2px 12px rgba(0,0,0,0.5);
+      --positive: #2ecc71;
+      --negative: #e74c3c;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans',
+                   'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+      background: var(--bg);
+      color: var(--text-primary);
+      font-size: 14px;
+      line-height: 1.5;
+      transition: background 0.25s, color 0.25s;
+    }
+
+    /* ===== HEADER ===== */
+    .header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      box-shadow: var(--shadow);
+    }
+    .header-left { display: flex; align-items: center; gap: 10px; }
+    .logo { font-size: 17px; font-weight: 800; color: var(--note-green); letter-spacing: -0.5px; }
+    .logo-sep { color: var(--border); font-size: 18px; }
+    .logo-sub { font-size: 13px; color: var(--text-muted); font-weight: 500; }
+
+    .header-right { display: flex; align-items: center; gap: 14px; }
+
+    .status-chip {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--text-muted);
+      padding: 4px 10px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+    }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #ccc; flex-shrink: 0; }
+    .status-dot.loaded { background: var(--note-green); }
+    .status-dot.loading { background: #ffc947; animation: pulse 1s infinite; }
+    .status-dot.error   { background: var(--negative); }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    .pro-toggle-wrap {
+      display: flex; align-items: center; gap: 7px;
+      font-size: 12px; color: var(--text-secondary); cursor: pointer;
+      user-select: none;
+    }
+    .pro-toggle-wrap input { display: none; }
+    .toggle-track {
+      width: 36px; height: 20px;
+      background: var(--border); border-radius: 10px;
+      position: relative; transition: background 0.2s;
+    }
+    .toggle-track::after {
+      content: ''; position: absolute;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: white; top: 2px; left: 2px; transition: transform 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .pro-toggle-wrap input:checked + .toggle-track { background: var(--pro-color); }
+    .pro-toggle-wrap input:checked + .toggle-track::after { transform: translateX(16px); }
+
+    .theme-btn {
+      background: none; border: 1px solid var(--border);
+      border-radius: 8px; padding: 5px 12px;
+      cursor: pointer; color: var(--text-secondary);
+      font-size: 12px; font-weight: 500;
+      transition: all 0.15s;
+    }
+    .theme-btn:hover { background: var(--surface-2); color: var(--text-primary); }
+
+    /* ===== DATA LOAD BAR ===== */
+    .data-bar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 8px 24px;
+    }
+    .drop-zone {
+      border: 1.5px dashed var(--border);
+      border-radius: 8px;
+      padding: 10px 18px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+      background: var(--surface-2);
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: var(--note-green);
+      color: var(--note-green);
+      background: rgba(62,193,156,0.04);
+    }
+    .drop-zone input { display: none; }
+    .dz-icon { font-size: 16px; }
+
+    /* ===== MAIN NAV TABS ===== */
+    .main-nav {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      display: flex; gap: 0;
+      overflow-x: auto;
+    }
+    .main-nav::-webkit-scrollbar { display: none; }
+    .main-tab {
+      padding: 15px 18px;
+      font-size: 14px; font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+      display: flex; align-items: center; gap: 7px;
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .main-tab:hover { color: var(--text-primary); }
+    .main-tab.active {
+      color: var(--text-primary);
+      border-bottom-color: var(--note-green);
+      font-weight: 600;
+    }
+    .pro-badge {
+      font-size: 9px; background: var(--pro-color); color: white;
+      padding: 1px 5px; border-radius: 3px; font-weight: 700; letter-spacing: 0.5px;
+    }
+
+    /* ===== PAGES ===== */
+    .page { display: none; padding: 22px 24px; max-width: 1180px; margin: 0 auto; }
+    .page.active { display: block; }
+
+    /* ===== PERIOD SUB-TABS ===== */
+    .period-tabs {
+      display: flex; border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+    .period-tab {
+      padding: 9px 18px; font-size: 13px; font-weight: 500;
+      color: var(--text-muted); cursor: pointer;
+      border-bottom: 2px solid transparent; transition: all 0.15s;
+    }
+    .period-tab:hover { color: var(--text-primary); }
+    .period-tab.active { color: var(--note-green); border-bottom-color: var(--note-green); font-weight: 600; }
+
+    /* ===== KPI STRIP ===== */
+    .kpi-strip {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px; margin-bottom: 20px;
+    }
+    .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px; padding: 16px 18px;
+      box-shadow: var(--shadow);
+    }
+    .kpi-label { font-size: 11px; color: var(--text-muted); margin-bottom: 5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .kpi-value { font-size: 28px; font-weight: 800; color: var(--kpi-num); letter-spacing: -0.5px; line-height: 1.1; }
+    .kpi-diff { font-size: 11px; margin-top: 5px; display: flex; align-items: center; gap: 2px; }
+    .kpi-diff.up   { color: var(--positive); }
+    .kpi-diff.down { color: var(--negative); }
+    .kpi-diff.flat { color: var(--text-muted); }
+
+    /* ===== CARDS ===== */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+    }
+    .card-header {
+      padding: 15px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .card-title { font-size: 13px; font-weight: 700; }
+    .card-sub   { font-size: 11px; color: var(--text-muted); }
+    .card-body  { padding: 18px; }
+    .card-body-flush { padding: 0; }
+
+    .mb-4 { margin-bottom: 16px; }
+    .mb-5 { margin-bottom: 20px; }
+
+    /* ===== CHART CANVAS ===== */
+    .chart-wrap { position: relative; }
+    .chart-legend {
+      display: flex; gap: 14px;
+      font-size: 11px; color: var(--text-secondary);
+    }
+    .legend-dot {
+      display: inline-block; width: 8px; height: 8px;
+      border-radius: 50%; margin-right: 4px;
+    }
+    canvas { display: block; }
+
+    /* ===== TABLE ===== */
+    .tbl-scroll { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      padding: 9px 14px;
+      text-align: left; font-size: 11px; font-weight: 700;
+      color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px;
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--border);
+      cursor: pointer; user-select: none; white-space: nowrap;
+    }
+    thead th:hover { color: var(--text-primary); }
+    thead th.sort-asc::after  { content: ' ↑'; color: var(--note-green); }
+    thead th.sort-desc::after { content: ' ↓'; color: var(--note-green); }
+    thead th.no-sort { cursor: default; }
+    thead th.no-sort:hover { color: var(--text-muted); }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--table-hover); }
+    tbody td { padding: 11px 14px; font-size: 13px; vertical-align: middle; }
+    .td-right { text-align: right; font-variant-numeric: tabular-nums; }
+    .td-muted  { color: var(--text-muted); font-size: 11px; }
+
+    .rank-num { font-size: 12px; font-weight: 700; color: var(--text-muted); width: 30px; text-align: center; }
+    .rank-num.top1 { color: #e6a200; }
+    .rank-num.top2 { color: #888; }
+    .rank-num.top3 { color: #b0714a; }
+
+    .art-title {
+      max-width: 380px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      font-weight: 500;
+    }
+    .art-link { color: var(--text-primary); text-decoration: none; }
+    .art-link:hover { color: var(--note-green); text-decoration: underline; }
+
+    /* ===== BADGES ===== */
+    .eta-badge {
+      display: inline-block; padding: 2px 7px;
+      border-radius: 4px; font-size: 11px; font-weight: 700;
+    }
+    .eta-hi  { background: rgba(62,193,156,0.12); color: #1a9e78; }
+    .eta-mid { background: rgba(255,193,7,0.15);  color: #c08000; }
+    .eta-lo  { background: rgba(231,76,60,0.12);  color: #c0392b; }
+    [data-theme="dark"] .eta-hi  { background: rgba(62,193,156,0.18); color: #3EC19C; }
+    [data-theme="dark"] .eta-mid { background: rgba(255,193,7,0.18);  color: #ffc947; }
+    [data-theme="dark"] .eta-lo  { background: rgba(231,76,60,0.18);  color: #ff6b6b; }
+
+    .cat-badge {
+      display: inline-block; padding: 1px 7px;
+      border-radius: 3px; font-size: 11px; font-weight: 600;
+      background: var(--surface-2); border: 1px solid var(--border);
+      color: var(--text-secondary);
+    }
+
+    .diff-chip {
+      display: inline-flex; align-items: center; gap: 2px;
+      font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 4px;
+    }
+    .diff-chip.up   { background: rgba(39,174,96,0.1);  color: var(--positive); }
+    .diff-chip.down { background: rgba(231,76,60,0.1);  color: var(--negative); }
+    .diff-chip.flat { background: var(--surface-2); color: var(--text-muted); }
+
+    /* ===== PRO GATE OVERLAY ===== */
+    .pro-gate { position: relative; }
+    .pro-overlay {
+      position: absolute; inset: 0;
+      background: rgba(246,246,246,0.82);
+      backdrop-filter: blur(5px) saturate(1.2);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      border-radius: 10px; z-index: 50;
+      pointer-events: auto;
+    }
+    [data-theme="dark"] .pro-overlay { background: rgba(14,16,24,0.84); }
+    .pro-overlay-icon { font-size: 36px; margin-bottom: 10px; }
+    .pro-overlay-title { font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; }
+    .pro-overlay-sub   { font-size: 12px; color: var(--text-muted); }
+
+    /* ===== SUB-TABS (inside pro pages) ===== */
+    .sub-tabs {
+      display: flex; gap: 0; width: fit-content;
+      background: var(--surface-2);
+      border: 1px solid var(--border); border-radius: 8px;
+      padding: 3px; margin-bottom: 18px;
+    }
+    .sub-tab {
+      padding: 6px 16px; font-size: 13px; font-weight: 500;
+      color: var(--text-muted); cursor: pointer; border-radius: 6px;
+      transition: all 0.15s;
+    }
+    .sub-tab.active {
+      background: var(--surface); color: var(--text-primary);
+      box-shadow: var(--shadow); font-weight: 600;
+    }
+
+    /* ===== GRID ===== */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+
+    /* ===== EMPTY / LOADING STATES ===== */
+    .empty {
+      text-align: center; padding: 52px 20px;
+      color: var(--text-muted);
+    }
+    .empty-icon { font-size: 36px; margin-bottom: 10px; }
+    .empty-text { font-size: 14px; font-weight: 500; margin-bottom: 5px; color: var(--text-secondary); }
+    .empty-sub  { font-size: 12px; }
+
+    /* ===== AI REPORT AREA ===== */
+    .report-body {
+      font-size: 13px; line-height: 1.9;
+      color: var(--text-secondary);
+      white-space: pre-wrap;
+      font-family: 'Hiragino Sans', 'Noto Sans JP', monospace;
+    }
+    .report-copy-btn {
+      margin-top: 14px; padding: 7px 16px;
+      background: var(--note-green); color: white;
+      border: none; border-radius: 7px;
+      cursor: pointer; font-size: 12px; font-weight: 700;
+      transition: background 0.15s;
+    }
+    .report-copy-btn:hover { background: var(--note-green-hover); }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 900px) {
+      .kpi-strip { grid-template-columns: repeat(3, 1fr); }
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 600px) {
+      .kpi-strip { grid-template-columns: 1fr 1fr; }
+      .page { padding: 14px 16px; }
+      .header { padding: 0 16px; }
+      .logo-sub { display: none; }
+    }
+
+    /* ===== SPINNER ===== */
+    .spin {
+      display: inline-block; width: 14px; height: 14px;
+      border: 2px solid var(--border);
+      border-top-color: var(--note-green);
+      border-radius: 50%;
+      animation: spinanim 0.6s linear infinite;
+    }
+    @keyframes spinanim { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<!-- ===================== HEADER ===================== -->
+<header class="header">
+  <div class="header-left">
+    <span class="logo">KITAcore</span>
+    <span class="logo-sep">|</span>
+    <span class="logo-sub">note Analytics</span>
+  </div>
+  <div class="header-right">
+    <div class="status-chip">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusText">データ未読込</span>
+    </div>
+    <label class="pro-toggle-wrap" title="Pro機能を表示（デモ用）">
+      <input type="checkbox" id="proToggle" onchange="togglePro(this.checked)">
+      <div class="toggle-track"></div>
+      <span>Pro</span>
+    </label>
+    <button class="theme-btn" onclick="toggleTheme()" id="themeBtn">🌙 ダーク</button>
+  </div>
+</header>
+
+<!-- ===================== DATA LOAD BAR ===================== -->
+<div class="data-bar">
+  <div class="drop-zone" id="dropZone"
+       onclick="document.getElementById('fileInput').click()"
+       ondragover="handleDragOver(event)"
+       ondragleave="handleDragLeave(event)"
+       ondrop="handleDrop(event)">
+    <input type="file" id="fileInput" multiple accept=".csv" onchange="handleFileSelect(event)">
+    <span class="dz-icon">📁</span>
+    <span>CSVファイルをドロップ <span style="color:var(--border)">|</span> または <strong style="color:var(--note-green)">クリックして選択</strong>
+    <span style="color:var(--text-muted)">（data/フォルダの全CSVをまとめて選択可）— GitHub Pages では自動読込</span></span>
+  </div>
+</div>
+
+<!-- ===================== MAIN TABS ===================== -->
+<nav class="main-nav">
+  <div class="main-tab active" onclick="switchTab('summary', this)" id="tab-summary">アクセス状況</div>
+  <div class="main-tab" onclick="switchTab('articles', this)" id="tab-articles">記事分析 <span class="pro-badge">PRO</span></div>
+  <div class="main-tab" onclick="switchTab('readers', this)" id="tab-readers">読者分析 <span class="pro-badge">PRO</span></div>
+  <div class="main-tab" onclick="switchTab('strategy', this)" id="tab-strategy">戦略レポート <span class="pro-badge">PRO</span></div>
+</nav>
+
+
+<!-- ===================== TAB 1: アクセス状況 ===================== -->
+<div class="page active" id="page-summary">
+
+  <!-- Period sub-tabs -->
+  <div class="period-tabs">
+    <div class="period-tab active" onclick="switchPeriod('weekly', this)">週</div>
+    <div class="period-tab" onclick="switchPeriod('monthly', this)">月</div>
+    <div class="period-tab" onclick="switchPeriod('yearly', this)">年</div>
+    <div class="period-tab" onclick="switchPeriod('all', this)">全期間</div>
+  </div>
+
+  <!-- KPI strip -->
+  <div class="kpi-strip">
+    <div class="kpi-card">
+      <div class="kpi-label">全体ビュー</div>
+      <div class="kpi-value" id="kpiViews">—</div>
+      <div class="kpi-diff flat" id="kpiViewsDiff">前期間比 —</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">スキ</div>
+      <div class="kpi-value" id="kpiLikes">—</div>
+      <div class="kpi-diff flat" id="kpiLikesDiff">前期間比 —</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">コメント</div>
+      <div class="kpi-value" id="kpiComments">—</div>
+      <div class="kpi-diff flat" id="kpiCommentsDiff">前期間比 —</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">η スキ率</div>
+      <div class="kpi-value" id="kpiEta">—</div>
+      <div class="kpi-diff flat" id="kpiEtaDiff">前期間比 —</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">フォロワー</div>
+      <div class="kpi-value" id="kpiFollowers">—</div>
+      <div class="kpi-diff flat" id="kpiFollowersDiff">純増 —</div>
+    </div>
+  </div>
+
+  <!-- Trend chart -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <span class="card-title" id="chartTitle">ビュー推移（週）</span>
+      <div class="chart-legend">
+        <span><span class="legend-dot" style="background:#3EC19C"></span>ビュー</span>
+        <span><span class="legend-dot" style="background:#ff7043"></span>スキ</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="chart-wrap"><canvas id="mainChart" style="height:210px"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Article ranking table -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">記事ランキング</span>
+      <span class="card-sub" id="tablePeriodLabel">週間</span>
+    </div>
+    <div class="card-body-flush tbl-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th class="no-sort" style="width:36px">#</th>
+            <th class="no-sort">タイトル</th>
+            <th class="td-right sort-desc" onclick="sortSummaryTable('views')">ビュー</th>
+            <th class="td-right" onclick="sortSummaryTable('likes')">スキ</th>
+            <th class="td-right" onclick="sortSummaryTable('comments')">コメント</th>
+            <th class="td-right" onclick="sortSummaryTable('eta')">η</th>
+          </tr>
+        </thead>
+        <tbody id="summaryArticleTable">
+          <tr><td colspan="6">
+            <div class="empty">
+              <div class="empty-icon">📊</div>
+              <div class="empty-text">データを読み込んでください</div>
+              <div class="empty-sub">CSVをドロップ、またはGitHub Pages で自動読込</div>
+            </div>
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===================== TAB 2: 記事分析 ===================== -->
+<div class="page" id="page-articles">
+  <div class="pro-gate" id="articlesGate" style="min-height:500px">
+
+    <div class="sub-tabs">
+      <div class="sub-tab active" onclick="switchSubTab('articles','ranking',this)">ランキング</div>
+      <div class="sub-tab" onclick="switchSubTab('articles','trend',this)">トレンド</div>
+      <div class="sub-tab" onclick="switchSubTab('articles','map',this)">4象限マップ</div>
+    </div>
+
+    <!-- Ranking sub-tab -->
+    <div id="articles-ranking">
+      <div class="card">
+        <div class="card-header"><span class="card-title">全記事ランキング</span></div>
+        <div class="card-body-flush tbl-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th class="no-sort" style="width:36px">#</th>
+                <th class="no-sort">タイトル</th>
+                <th class="no-sort">カテゴリ</th>
+                <th class="td-right" onclick="sortArticlesTable('views')">ビュー</th>
+                <th class="td-right" onclick="sortArticlesTable('likes')">スキ</th>
+                <th class="td-right" onclick="sortArticlesTable('eta')">η</th>
+                <th class="td-right no-sort">公開日</th>
+              </tr>
+            </thead>
+            <tbody id="allRankingTable">
+              <tr><td colspan="7"><div class="empty"><div class="empty-icon">📄</div><div class="empty-text">articles.csv を読み込んでください</div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trend sub-tab -->
+    <div id="articles-trend" style="display:none">
+      <div class="grid-2 mb-4">
+        <div class="card">
+          <div class="card-header"><span class="card-title">PV減衰カーブ（公開後 Day別）</span></div>
+          <div class="card-body">
+            <div class="chart-wrap"><canvas id="decayChart" style="height:220px"></canvas></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">η トレンド（週次）</span>
+            <div class="chart-legend">
+              <span><span class="legend-dot" style="background:#3EC19C"></span>η(%)</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="chart-wrap"><canvas id="etaTrendChart" style="height:220px"></canvas></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">ロングテール記事（Day6+ でPV増加傾向）</span></div>
+        <div class="card-body">
+          <div id="longTailList"><div class="empty"><div class="empty-sub">article_trend.csv があれば表示されます</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Map sub-tab -->
+    <div id="articles-map" style="display:none">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">4象限マップ（ビュー × η スキ率）</span>
+          <span class="card-sub">右上 = 優秀記事 ／ 左上 = 隠れ良記事 ／ 右下 = 集客力あり ／ 左下 = 要改善</span>
+        </div>
+        <div class="card-body">
+          <div class="chart-wrap"><canvas id="scatterChart" style="height:380px"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ===================== TAB 3: 読者分析 ===================== -->
+<div class="page" id="page-readers">
+  <div class="pro-gate" id="readersGate" style="min-height:500px">
+
+    <div class="sub-tabs">
+      <div class="sub-tab active" onclick="switchSubTab('readers','weekly',this)">週次サマリー</div>
+      <div class="sub-tab" onclick="switchSubTab('readers','suki',this)">スキランキング</div>
+      <div class="sub-tab" onclick="switchSubTab('readers','followers',this)">フォロワー推移</div>
+    </div>
+
+    <!-- Weekly sub-tab -->
+    <div id="readers-weekly">
+      <div class="card">
+        <div class="card-header"><span class="card-title">週次レポート</span></div>
+        <div class="card-body-flush tbl-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th class="no-sort">週</th>
+                <th class="td-right">ビュー</th>
+                <th class="td-right">スキ</th>
+                <th class="td-right">η</th>
+                <th class="td-right">コメント</th>
+                <th class="td-right">前週比</th>
+              </tr>
+            </thead>
+            <tbody id="weeklyTable">
+              <tr><td colspan="6"><div class="empty"><div class="empty-sub">weekly_summary.csv を読み込んでください</div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Suki sub-tab -->
+    <div id="readers-suki" style="display:none">
+      <div class="card">
+        <div class="card-header"><span class="card-title">スキ数ランキング</span></div>
+        <div class="card-body-flush tbl-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th class="no-sort" style="width:36px">#</th>
+                <th class="no-sort">タイトル</th>
+                <th class="td-right">スキ数</th>
+                <th class="td-right">η スキ率</th>
+                <th class="td-right">ビュー</th>
+              </tr>
+            </thead>
+            <tbody id="sukiRankTable">
+              <tr><td colspan="5"><div class="empty"><div class="empty-sub">articles.csv を読み込んでください</div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Followers sub-tab -->
+    <div id="readers-followers" style="display:none">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">フォロワー推移</span>
+          <div class="chart-legend">
+            <span><span class="legend-dot" style="background:#4a90d9"></span>累計フォロワー</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="chart-wrap"><canvas id="followerChart" style="height:240px"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ===================== TAB 4: 戦略レポート ===================== -->
+<div class="page" id="page-strategy">
+  <div class="pro-gate" id="strategyGate" style="min-height:500px">
+
+    <!-- Category charts -->
+    <div class="grid-2 mb-4">
+      <div class="card">
+        <div class="card-header"><span class="card-title">カテゴリ別 投稿数</span></div>
+        <div class="card-body">
+          <div class="chart-wrap"><canvas id="categoryChart" style="height:220px"></canvas></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">カテゴリ別 η 平均</span></div>
+        <div class="card-body">
+          <div class="chart-wrap"><canvas id="categoryEtaChart" style="height:220px"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Report -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📋 週次 AI 診断レポート</span>
+        <span class="card-sub">ビュー・スキ・η の前期間比をもとに自動生成</span>
+      </div>
+      <div class="card-body">
+        <div class="report-body" id="aiReport">データを読み込むと、自動診断レポートが生成されます。</div>
+        <button class="report-copy-btn" onclick="copyReport()">📋 コピー</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ===================== JAVASCRIPT ===================== -->
+<script>
+// ==========================================================
+// STATE
+// ==========================================================
+const S = {
+  articles: [],
+  dailySummary: [],
+  weeklySummary: [],
+  monthlySummary: [],
+  periodRanking: [],
+  followers: [],
+  articleQuality: [],
+  articleTrend: [],
+  assetArticles: [],
+  assetScore: [],
+  trendAnalysis: [],
+
+  loadedFiles: new Set(),
+  currentPeriod: 'weekly',
+  isPro: false,
+
+  // sort state for each table
+  summarySort: { col: 'views', dir: 'desc' },
+  articlesSort: { col: 'views', dir: 'desc' },
+
+  // chart instances
+  charts: {},
+};
+
+// ==========================================================
+// CSV PARSER
+// ==========================================================
+function parseCSV(text) {
+  text = text.replace(/^\uFEFF/, ''); // remove BOM
+  const lines = text.trim().split(/\r?\n/);
+  if (lines.length < 2) return [];
+  const headers = parseCSVLine(lines[0]).map(h => h.trim().replace(/^"|"$/g, ''));
+  return lines.slice(1).filter(l => l.trim()).map(line => {
+    const vals = parseCSVLine(line);
+    const obj = {};
+    headers.forEach((h, i) => {
+      obj[h] = (vals[i] || '').trim().replace(/^"|"$/g, '');
+    });
+    return obj;
+  });
+}
+
+function parseCSVLine(line) {
+  const result = [];
+  let cur = '';
+  let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') { inQ = !inQ; continue; }
+    if (c === ',' && !inQ) { result.push(cur); cur = ''; continue; }
+    cur += c;
+  }
+  result.push(cur);
+  return result;
+}
+
+function parseAndStore(name, text) {
+  const data = parseCSV(text);
+  if (!data.length) return;
+  const k = name.replace(/-/g, '_').toLowerCase();
+  if (k === 'articles')          S.articles = data;
+  else if (k === 'daily_summary')   S.dailySummary = data;
+  else if (k === 'weekly_summary')  S.weeklySummary = data;
+  else if (k === 'monthly_summary') S.monthlySummary = data;
+  else if (k === 'period_ranking')  S.periodRanking = data;
+  else if (k === 'followers')        S.followers = data;
+  else if (k === 'article_quality')  S.articleQuality = data;
+  else if (k === 'article_trend')    S.articleTrend = data;
+  else if (k === 'asset_articles')   S.assetArticles = data;
+  else if (k === 'asset_score_v2' || k === 'asset_score_v1') S.assetScore = data;
+  else if (k === 'trend_analysis')   S.trendAnalysis = data;
+  S.loadedFiles.add(k);
+  updateStatus();
+}
+
+// ==========================================================
+// DATA LOADING — GitHub Pages auto-load + D&D
+// ==========================================================
+const CSV_FILES = [
+  'articles', 'daily_summary', 'weekly_summary', 'monthly_summary',
+  'period_ranking', 'followers', 'article_quality', 'article_trend',
+  'asset_articles', 'asset_score_v2', 'trend_analysis'
+];
+
+async function loadFromRepo() {
+  setStatus('loading', '読込中...');
+  let loaded = 0;
+  for (const f of CSV_FILES) {
+    try {
+      const res = await fetch(`./data/${f}.csv`);
+      if (res.ok) {
+        const text = await res.text();
+        parseAndStore(f, text);
+        loaded++;
+      }
+    } catch (_) {}
+  }
+  if (loaded > 0) {
+    renderAll();
+    setStatus('loaded', `${loaded}ファイル読込済`);
+    // Collapse drop zone
+    const dz = document.getElementById('dropZone');
+    dz.querySelector('span:not(.dz-icon)').innerHTML =
+      `✅ ${loaded}ファイル自動読込完了 <span style="color:var(--text-muted)">(追加ファイルをドロップして更新可)</span>`;
+  } else {
+    setStatus('none', 'CSVをドロップしてください');
+  }
+}
+
+// Drag & Drop
+function handleDragOver(e)  { e.preventDefault(); document.getElementById('dropZone').classList.add('drag-over'); }
+function handleDragLeave()  { document.getElementById('dropZone').classList.remove('drag-over'); }
+function handleDrop(e)      { e.preventDefault(); handleDragLeave(); processFiles(e.dataTransfer.files); }
+function handleFileSelect(e){ processFiles(e.target.files); }
+
+function processFiles(files) {
+  let count = 0;
+  Array.from(files).forEach(file => {
+    if (!file.name.endsWith('.csv')) return;
+    const reader = new FileReader();
+    reader.onload = e2 => {
+      const name = file.name.replace('.csv', '');
+      parseAndStore(name, e2.target.result);
+      count++;
+      renderAll();
+    };
+    reader.readAsText(file, 'UTF-8');
+  });
+}
+
+// ==========================================================
+// STATUS
+// ==========================================================
+function setStatus(state, text) {
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  dot.className = 'status-dot' + (state === 'loaded' ? ' loaded' : state === 'loading' ? ' loading' : state === 'error' ? ' error' : '');
+  txt.innerHTML = state === 'loading' ? '<span class="spin"></span> ' + text : text;
+}
+function updateStatus() {
+  setStatus('loaded', `${S.loadedFiles.size}ファイル`);
+}
+
+// ==========================================================
+// HELPERS
+// ==========================================================
+const n  = v => parseFloat(v) || 0;
+const fmt = v => {
+  v = n(v);
+  if (v >= 10000) return (v / 10000).toFixed(1) + '万';
+  return v.toLocaleString();
+};
+const fmtDate = s => {
+  if (!s) return '';
+  const d = new Date(s.replace(/_/g, '-'));
+  if (isNaN(d)) return s;
+  return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
+};
+// ── articles.csv: read_count / like_count / comment_count ──────────────
+// ── daily_summary.csv: 日付 / ビュー合計 / スキ合計 / スキ率(%) ────────
+// ── followers.csv: 日付 / フォロワー数 ────────────────────────────────
+// ── weekly_summary.csv: key, title, 年, 週, 期間増加PV, 期間増加スキ, 累計PV, PVランク, スキランク
+// ── monthly_summary.csv: key, title, 年, 月, 期間増加PV, 期間増加スキ, 累計PV, PVランク, スキランク
+
+// articles.csv – cumulative read_count / like_count per article per day
+const getV = r => n(r.read_count  || r.views || r.view_count || r.pv || 0);
+const getL = r => n(r.like_count  || r.likes || r.suki || 0);
+const getC = r => n(r.comment_count || r.comments || 0);
+const getEta = r => {
+  // daily_summary has スキ率(%) directly
+  if (r['スキ率(%)'] !== undefined) return n(r['スキ率(%)']);
+  if (r.eta) return n(r.eta);
+  const v = getV(r), l = getL(r);
+  return v > 0 ? (l / v * 100) : 0;
+};
+
+// daily_summary.csv uses 日付 (YYYY/MM/DD), not 'date'
+const getDateKey = r => r['日付'] || r.date || '';
+
+// weekly_summary.csv: aggregate key = 年 + "W" + 週
+const getWeekKey = r => {
+  if (r['年'] && r['週']) return `${r['年']}-W${String(r['週']).padStart(2,'0')}`;
+  return r.week || r.week_start || r['日付'] || r.date || '';
+};
+
+// monthly_summary.csv: aggregate key = 年 + "-" + 月
+const getMonthKey = r => {
+  if (r['年'] && r['月']) return `${r['年']}-${String(r['月']).padStart(2,'0')}`;
+  return r.month || r.year_month || '';
+};
+
+// daily_summary.csv field aliases
+const getDailyViews     = r => n(r['ビュー合計'] || r.views || r.view_count || 0);
+const getDailyLikes     = r => n(r['スキ合計']   || r.likes || 0);
+const getDailyComments  = r => n(r['コメント合計'] || r.comments || 0);
+const getDailyEta       = r => n(r['スキ率(%)']  || r.eta || 0);
+const getDailyFollowers = r => n(r['フォロワー数'] || r.followers || r.follower_count || 0);
+
+// followers.csv: 日付 / フォロワー数
+const getFollowCount = r => n(r['フォロワー数'] || r.followers || r.follower_count || 0);
+
+function etaBadge(eta) {
+  const v = parseFloat(eta) || 0;
+  const cls = v >= 15 ? 'eta-hi' : v >= 7 ? 'eta-mid' : 'eta-lo';
+  return `<span class="eta-badge ${cls}">${v.toFixed(1)}%</span>`;
+}
+
+function diffChip(curr, prev) {
+  if (prev === 0 || prev == null) return '<span class="diff-chip flat">—</span>';
+  const d = curr - prev;
+  const pct = ((d / prev) * 100).toFixed(1);
+  const cls = d > 0 ? 'up' : d < 0 ? 'down' : 'flat';
+  const arrow = d > 0 ? '↑' : d < 0 ? '↓' : '→';
+  return `<span class="diff-chip ${cls}">${arrow}${Math.abs(d).toLocaleString()} (${d >= 0 ? '+' : ''}${pct}%)</span>`;
+}
+
+function kpiDiff(curr, prev, label = '前期間比') {
+  if (prev === 0 || prev == null) return `<span class="kpi-diff flat">${label} —</span>`;
+  const d = curr - prev;
+  const pct = ((d / prev) * 100).toFixed(1);
+  const cls = d > 0 ? 'up' : d < 0 ? 'down' : 'flat';
+  const arrow = d > 0 ? '↑' : d < 0 ? '↓' : '→';
+  return `<span class="kpi-diff ${cls}">${arrow} ${Math.abs(d).toLocaleString()} (${d >= 0 ? '+' : ''}${pct}%)</span>`;
+}
+
+// ==========================================================
+// PERIOD DATA COMPUTATION
+// ==========================================================
+// daily_summary の日付を正規化（YYYY/MM/DD → YYYY-MM-DD）
+function normDate(s) {
+  return (s || '').replace(/\//g, '-');
+}
+
+// daily_summary を日付昇順でソート
+function sortedDailySummary() {
+  return [...S.dailySummary].sort((a, b) => normDate(getDateKey(a)) < normDate(getDateKey(b)) ? -1 : 1);
+}
+
+// weekly_summary / monthly_summary は「記事×期間」の長形式
+// → 同じ期間キーを持つ行をまとめて期間合計を作る
+function aggregateSummary(rows, keyFn) {
+  const agg = {};
+  rows.forEach(r => {
+    const k = keyFn(r);
+    if (!k) return;
+    if (!agg[k]) agg[k] = { views: 0, likes: 0, comments: 0 };
+    agg[k].views += n(r['期間増加PV'] || 0);
+    agg[k].likes += n(r['期間増加スキ'] || 0);
+    // コメントは weekly/monthly_summary にないため 0
+  });
+  return agg; // { "2025-W01": {views, likes, comments}, ... }
+}
+
+function getPeriodData() {
+  const p = S.currentPeriod;
+  let curr = { views: 0, likes: 0, comments: 0 };
+  let prev = { views: 0, likes: 0, comments: 0 };
+  let labels = [], vData = [], lData = [];
+
+  if (p === 'weekly') {
+    // weekly_summary.csv: aggregate per week
+    if (S.weeklySummary.length > 0) {
+      const agg = aggregateSummary(S.weeklySummary, getWeekKey);
+      const keys = Object.keys(agg).sort();
+      const last = keys.slice(-12);
+      last.forEach(k => { labels.push(k); vData.push(agg[k].views); lData.push(agg[k].likes); });
+      if (keys.length >= 1) curr = agg[keys[keys.length-1]];
+      if (keys.length >= 2) prev = agg[keys[keys.length-2]];
+    } else {
+      // fallback: last 7 days from daily_summary
+      const daily = sortedDailySummary().slice(-14);
+      daily.forEach(r => { labels.push(normDate(getDateKey(r))); vData.push(getDailyViews(r)); lData.push(getDailyLikes(r)); });
+      const last7  = daily.slice(-7);
+      const prev7  = daily.slice(-14, -7);
+      curr = { views: last7.reduce((s,r)=>s+getDailyViews(r),0), likes: last7.reduce((s,r)=>s+getDailyLikes(r),0), comments: 0 };
+      prev = { views: prev7.reduce((s,r)=>s+getDailyViews(r),0), likes: prev7.reduce((s,r)=>s+getDailyLikes(r),0), comments: 0 };
+    }
+
+  } else if (p === 'monthly') {
+    if (S.monthlySummary.length > 0) {
+      const agg = aggregateSummary(S.monthlySummary, getMonthKey);
+      const keys = Object.keys(agg).sort();
+      const last = keys.slice(-13);
+      last.forEach(k => { labels.push(k); vData.push(agg[k].views); lData.push(agg[k].likes); });
+      if (keys.length >= 1) curr = agg[keys[keys.length-1]];
+      if (keys.length >= 2) prev = agg[keys[keys.length-2]];
+    } else {
+      // fallback: aggregate daily by month
+      const byMonth = {};
+      sortedDailySummary().forEach(r => {
+        const m = normDate(getDateKey(r)).slice(0,7);
+        if (!m) return;
+        if (!byMonth[m]) byMonth[m] = { views: 0, likes: 0, comments: 0 };
+        byMonth[m].views += getDailyViews(r);
+        byMonth[m].likes += getDailyLikes(r);
+      });
+      const keys = Object.keys(byMonth).sort();
+      keys.forEach(k => { labels.push(k); vData.push(byMonth[k].views); lData.push(byMonth[k].likes); });
+      if (keys.length >= 1) curr = byMonth[keys[keys.length-1]];
+      if (keys.length >= 2) prev = byMonth[keys[keys.length-2]];
+    }
+
+  } else if (p === 'yearly') {
+    // aggregate daily_summary by year
+    const byYear = {};
+    sortedDailySummary().forEach(r => {
+      const y = normDate(getDateKey(r)).slice(0,4);
+      if (!y) return;
+      if (!byYear[y]) byYear[y] = { views: 0, likes: 0, comments: 0 };
+      byYear[y].views += getDailyViews(r);
+      byYear[y].likes += getDailyLikes(r);
+    });
+    const keys = Object.keys(byYear).sort();
+    keys.forEach(k => { labels.push(k); vData.push(byYear[k].views); lData.push(byYear[k].likes); });
+    if (keys.length >= 1) curr = byYear[keys[keys.length-1]];
+    if (keys.length >= 2) prev = byYear[keys[keys.length-2]];
+
+  } else {
+    // all: daily trend
+    const daily = sortedDailySummary();
+    daily.forEach(r => { labels.push(normDate(getDateKey(r))); vData.push(getDailyViews(r)); lData.push(getDailyLikes(r)); });
+    curr = { views: vData.reduce((s,v)=>s+v,0), likes: lData.reduce((s,v)=>s+v,0), comments: 0 };
+    const half = Math.floor(daily.length / 2);
+    prev = {
+      views: daily.slice(0, half).reduce((s,r)=>s+getDailyViews(r),0),
+      likes: daily.slice(0, half).reduce((s,r)=>s+getDailyLikes(r),0),
+      comments: 0
+    };
+  }
+  return { curr, prev, labels, vData, lData };
+}
+
+function getPeriodArticles() {
+  const p = S.currentPeriod;
+
+  // weekly: use weekly_summary — latest week, sorted by 期間増加PV
+  if (p === 'weekly' && S.weeklySummary.length > 0) {
+    const agg = aggregateSummary(S.weeklySummary, getWeekKey);
+    const latestWeek = Object.keys(agg).sort().pop();
+    const rows = S.weeklySummary.filter(r => getWeekKey(r) === latestWeek);
+    return rows
+      .sort((a,b) => n(b['期間増加PV']) - n(a['期間増加PV']))
+      .map(r => ({
+        title:    r.title || '',
+        url:      r.url || '',
+        views:    n(r['期間増加PV']  || 0),
+        likes:    n(r['期間増加スキ'] || 0),
+        comments: 0,
+        eta:      n(r['累計PV']) > 0
+                    ? (n(r['累計スキ'] || 0) / n(r['累計PV']) * 100)
+                    : 0,
+        published_at: '',
+      }));
+  }
+
+  // monthly: use monthly_summary — latest month
+  if (p === 'monthly' && S.monthlySummary.length > 0) {
+    const agg = aggregateSummary(S.monthlySummary, getMonthKey);
+    const latestMonth = Object.keys(agg).sort().pop();
+    const rows = S.monthlySummary.filter(r => getMonthKey(r) === latestMonth);
+    return rows
+      .sort((a,b) => n(b['期間増加PV']) - n(a['期間増加PV']))
+      .map(r => ({
+        title:    r.title || '',
+        url:      r.url || '',
+        views:    n(r['期間増加PV']  || 0),
+        likes:    n(r['期間増加スキ'] || 0),
+        comments: 0,
+        eta:      0,
+        published_at: '',
+      }));
+  }
+
+  // yearly / all: use articles.csv latest snapshot (latest date per article)
+  if (S.articles.length > 0) {
+    // articles.csv is cumulative; pick latest row per article key
+    const latestByKey = {};
+    S.articles.forEach(r => {
+      const k = r.key || r.note_id || r.title;
+      const d = normDate(r.date || '');
+      if (!latestByKey[k] || d > normDate(latestByKey[k].date || '')) {
+        latestByKey[k] = r;
+      }
+    });
+    return Object.values(latestByKey)
+      .sort((a,b) => getV(b) - getV(a));
+  }
+
+  // period_ranking fallback
+  if (S.periodRanking.length > 0) return S.periodRanking;
+  return [];
+}
+
+function getFollowerStats() {
+  // followers.csv: 日付 / フォロワー数
+  // daily_summary.csv also has フォロワー数 — use whichever is available
+  const src = S.followers.length > 0 ? S.followers : S.dailySummary;
+  if (!src.length) return { curr: 0, diff: 0 };
+
+  const sorted = [...src].sort((a, b) => normDate(getDateKey(a)) < normDate(getDateKey(b)) ? -1 : 1);
+  // Filter only rows that have a follower count
+  const withFollowers = sorted.filter(r => getFollowCount(r) > 0);
+  if (!withFollowers.length) return { curr: 0, diff: 0 };
+
+  const last = withFollowers[withFollowers.length - 1];
+  const prev = withFollowers.length > 1 ? withFollowers[withFollowers.length - 2] : null;
+  const curr = getFollowCount(last);
+  const p    = prev ? getFollowCount(prev) : curr;
+  return { curr, diff: curr - p };
+}
+
+// ==========================================================
+// RENDER ALL
+// ==========================================================
+function renderAll() {
+  renderSummary();
+  if (document.getElementById('page-articles').classList.contains('active')) renderArticlesPage();
+  if (document.getElementById('page-readers').classList.contains('active'))  renderReadersPage();
+  if (document.getElementById('page-strategy').classList.contains('active')) renderStrategyPage();
+  updateProGates();
+}
+
+// ==========================================================
+// TAB 1: SUMMARY
+// ==========================================================
+function renderSummary() {
+  const { curr, prev, labels, vData, lData } = getPeriodData();
+  const eta     = curr.views > 0 ? (curr.likes / curr.views * 100) : 0;
+  const prevEta = prev.views > 0 ? (prev.likes / prev.views * 100) : 0;
+
+  document.getElementById('kpiViews').textContent    = fmt(curr.views);
+  document.getElementById('kpiLikes').textContent    = fmt(curr.likes);
+  document.getElementById('kpiComments').textContent = fmt(curr.comments);
+  document.getElementById('kpiEta').textContent      = eta.toFixed(2) + '%';
+  document.getElementById('kpiViewsDiff').innerHTML    = kpiDiff(curr.views, prev.views);
+  document.getElementById('kpiLikesDiff').innerHTML    = kpiDiff(curr.likes, prev.likes);
+  document.getElementById('kpiCommentsDiff').innerHTML = kpiDiff(curr.comments, prev.comments);
+  document.getElementById('kpiEtaDiff').innerHTML      = kpiDiff(eta, prevEta);
+
+  const { curr: fc, diff: fd } = getFollowerStats();
+  document.getElementById('kpiFollowers').textContent = fc.toLocaleString();
+  const fCls = fd > 0 ? 'up' : fd < 0 ? 'down' : 'flat';
+  document.getElementById('kpiFollowersDiff').innerHTML =
+    `<span class="kpi-diff ${fCls}">純増 ${fd >= 0 ? '+' : ''}${fd}</span>`;
+
+  renderMainChart(labels, vData, lData);
+  renderSummaryTable();
+}
+
+function renderMainChart(labels, vData, lData) {
+  const ctx = document.getElementById('mainChart');
+  if (!ctx) return;
+  if (S.charts.main) S.charts.main.destroy();
+
+  const dark = isDark();
+  const gridC = dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+  const textC = dark ? '#5a5a70' : '#aaaaaa';
+
+  const dispLabels = labels.map(l => {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(l)) return `${parseInt(l.slice(5,7))}/${parseInt(l.slice(8,10))}`;
+    if (/^\d{4}-\d{2}$/.test(l))       return `${parseInt(l.slice(5,7))}月`;
+    return l;
+  });
+
+  S.charts.main = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: dispLabels,
+      datasets: [
+        {
+          label: 'ビュー', data: vData,
+          borderColor: '#3EC19C', backgroundColor: 'rgba(62,193,156,0.08)',
+          borderWidth: 2.5, pointRadius: labels.length > 40 ? 0 : 3,
+          tension: 0.35, fill: true, yAxisID: 'y',
+        },
+        {
+          label: 'スキ', data: lData,
+          borderColor: '#ff7043', backgroundColor: 'rgba(255,112,67,0.05)',
+          borderWidth: 2, pointRadius: labels.length > 40 ? 0 : 3,
+          tension: 0.35, fill: false, yAxisID: 'y2',
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: dark ? '#181b27' : '#fff',
+          titleColor: dark ? '#e8e8e8' : '#333',
+          bodyColor:  dark ? '#9494aa' : '#666',
+          borderColor: dark ? '#252838' : '#e8e8e8',
+          borderWidth: 1,
+        }
+      },
+      scales: {
+        x: { grid: { color: gridC }, ticks: { color: textC, maxTicksLimit: 12, font: { size: 11 } } },
+        y:  { position: 'left',  grid: { color: gridC }, ticks: { color: '#3EC19C', font: { size: 11 }, callback: v => v >= 1000 ? (v/1000).toFixed(0)+'k' : v } },
+        y2: { position: 'right', grid: { display: false }, ticks: { color: '#ff7043', font: { size: 11 } } },
+      }
+    }
+  });
+}
+
+let sumSortCol = 'views', sumSortDir = 'desc';
+function sortSummaryTable(col) {
+  sumSortDir = sumSortCol === col ? (sumSortDir === 'desc' ? 'asc' : 'desc') : 'desc';
+  sumSortCol = col;
+  document.querySelectorAll('#page-summary thead th').forEach(th => th.classList.remove('sort-asc','sort-desc'));
+  renderSummaryTable();
+}
+
+function renderSummaryTable() {
+  const articles = getPeriodArticles();
+  const tbody = document.getElementById('summaryArticleTable');
+  if (!articles.length) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty">
+      <div class="empty-icon">📊</div>
+      <div class="empty-text">データを読み込んでください</div>
+      <div class="empty-sub">CSVをドロップ、またはGitHub Pages で自動読込</div>
+    </div></td></tr>`;
+    return;
+  }
+  const norm = articles.map(r => ({
+    title: r.title || r.article_title || '',
+    url:   r.url   || r.article_url   || '',
+    views:    getV(r), likes: getL(r), comments: getC(r),
+    eta:      getEta(r),
+    published_at: r.published_at || r.publish_date || '',
+  }));
+  norm.sort((a, b) => {
+    const av = a[sumSortCol], bv = b[sumSortCol];
+    return sumSortDir === 'desc' ? bv - av : av - bv;
+  });
+  tbody.innerHTML = norm.slice(0, 30).map((r, i) => `
+    <tr>
+      <td class="rank-num ${i===0?'top1':i===1?'top2':i===2?'top3':''}">${i+1}</td>
+      <td>
+        ${r.url
+          ? `<a class="art-link art-title" href="${r.url}" target="_blank" title="${r.title}">${r.title}</a>`
+          : `<span class="art-title" title="${r.title}">${r.title}</span>`}
+      </td>
+      <td class="td-right">${fmt(r.views)}</td>
+      <td class="td-right">${fmt(r.likes)}</td>
+      <td class="td-right">${r.comments > 0 ? fmt(r.comments) : '<span class="td-muted">—</span>'}</td>
+      <td class="td-right">${etaBadge(r.eta)}</td>
+    </tr>
+  `).join('');
+}
+
+// ==========================================================
+// TAB 2: ARTICLES
+// ==========================================================
+let artSortCol = 'views', artSortDir = 'desc';
+function sortArticlesTable(col) {
+  artSortDir = artSortCol === col ? (artSortDir === 'desc' ? 'asc' : 'desc') : 'desc';
+  artSortCol = col;
+  renderAllRankingTable();
+}
+
+function renderArticlesPage() {
+  renderAllRankingTable();
+  renderDecayChart();
+  renderEtaTrendChart();
+  renderLongTailList();
+  renderScatterChart();
+}
+
+function getLatestArticleSnapshot() {
+  // articles.csv is cumulative daily — pick the latest date's row per article key
+  const latestByKey = {};
+  S.articles.forEach(r => {
+    const k = r.key || r.note_id || r.title || '';
+    const d = normDate(r.date || '');
+    if (!latestByKey[k] || d > normDate(latestByKey[k].date || '')) {
+      latestByKey[k] = r;
+    }
+  });
+  return Object.values(latestByKey);
+}
+
+function renderAllRankingTable() {
+  const tbody = document.getElementById('allRankingTable');
+  if (!S.articles.length) return;
+  const snapshot = getLatestArticleSnapshot();
+  snapshot.sort((a, b) => {
+    const av = artSortCol === 'eta' ? getEta(a) : (artSortCol === 'views' ? getV(a) : getL(a));
+    const bv = artSortCol === 'eta' ? getEta(b) : (artSortCol === 'views' ? getV(b) : getL(b));
+    return artSortDir === 'desc' ? bv - av : av - bv;
+  });
+  tbody.innerHTML = snapshot.slice(0, 50).map((r, i) => {
+    const views = getV(r), likes = getL(r), eta = getEta(r);
+    const cat = r.category || r.cat || '';
+    return `<tr>
+      <td class="rank-num ${i===0?'top1':i===1?'top2':i===2?'top3':''}">${i+1}</td>
+      <td><span class="art-title" title="${r.title||''}">${r.title||''}</span></td>
+      <td>${cat ? `<span class="cat-badge">${cat}</span>` : '<span class="td-muted">—</span>'}</td>
+      <td class="td-right">${fmt(views)}</td>
+      <td class="td-right">${fmt(likes)}</td>
+      <td class="td-right">${etaBadge(eta)}</td>
+      <td class="td-right td-muted">${fmtDate(r.published_at || r.publish_date || '')}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderDecayChart() {
+  const ctx = document.getElementById('decayChart');
+  if (!ctx) return;
+  if (S.charts.decay) S.charts.decay.destroy();
+  if (!S.articleTrend.length) return;
+
+  const byDay = {};
+  S.articleTrend.forEach(r => {
+    const d = parseInt(r.days_since_pub || r.day_number || r.day || 0);
+    const v = n(r.views || r.pv || r.daily_views || r.view_count);
+    if (!byDay[d]) byDay[d] = [];
+    byDay[d].push(v);
+  });
+  const days = Object.keys(byDay).map(Number).sort((a,b)=>a-b).slice(0, 15);
+  const medians = days.map(d => {
+    const arr = [...byDay[d]].sort((a,b)=>a-b);
+    return arr[Math.floor(arr.length/2)] || 0;
+  });
+
+  S.charts.decay = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: days.map(d => `Day${d}`),
+      datasets: [{
+        label: '中央値PV',
+        data: medians,
+        backgroundColor: days.map((_, i) => `rgba(62,193,156,${Math.max(0.15, 0.85 - i * 0.05)})`),
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: isDark() ? '#5a5a70' : '#aaa', font: { size: 11 } } },
+        y: { ticks: { color: isDark() ? '#5a5a70' : '#aaa', font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+function renderEtaTrendChart() {
+  const ctx = document.getElementById('etaTrendChart');
+  if (!ctx) return;
+  if (S.charts.eta) S.charts.eta.destroy();
+  if (!S.weeklySummary.length) return;
+
+  const sorted = [...S.weeklySummary].sort((a, b) => getWeekKey(a) < getWeekKey(b) ? -1 : 1);
+  const last = sorted.slice(-16);
+  const labels = last.map(r => {
+    const k = getWeekKey(r);
+    return /^\d{4}-\d{2}-\d{2}$/.test(k) ? `${parseInt(k.slice(5,7))}/${parseInt(k.slice(8,10))}` : k;
+  });
+  const etaData = last.map(r => {
+    const v = getV(r), l = getL(r);
+    return v > 0 ? parseFloat((l / v * 100).toFixed(2)) : 0;
+  });
+
+  S.charts.eta = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'η(%)',
+        data: etaData,
+        borderColor: '#3EC19C',
+        backgroundColor: 'rgba(62,193,156,0.1)',
+        borderWidth: 2.5,
+        pointRadius: 4,
+        tension: 0.35,
+        fill: true,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: isDark() ? '#5a5a70' : '#aaa', font: { size: 11 }, maxTicksLimit: 8 } },
+        y: { ticks: { color: '#3EC19C', callback: v => v + '%', font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+function renderLongTailList() {
+  const el = document.getElementById('longTailList');
+  if (!el) return;
+  if (!S.articleTrend.length) return;
+
+  // Articles where Day7+ PV > Day1 PV
+  const byArticle = {};
+  S.articleTrend.forEach(r => {
+    const id = r.article_id || r.id || r.title || '';
+    if (!byArticle[id]) byArticle[id] = { title: r.title || id, days: {} };
+    const d = parseInt(r.days_since_pub || r.day || 0);
+    byArticle[id].days[d] = n(r.views || r.pv || 0);
+  });
+
+  const longTail = Object.values(byArticle).filter(a => {
+    const d1 = a.days[1] || a.days[0] || 0;
+    const d7up = Object.entries(a.days).filter(([k]) => parseInt(k) >= 6).reduce((s,[,v])=>s+v,0);
+    return d7up > d1 * 0.5 && d1 > 0;
+  }).slice(0, 10);
+
+  if (!longTail.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-sub">ロングテール記事は検出されませんでした</div></div>';
+    return;
+  }
+  el.innerHTML = longTail.map(a => `
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);">
+      <span style="font-size:16px">📈</span>
+      <span style="font-size:13px;font-weight:500;color:var(--text-primary)">${a.title}</span>
+    </div>
+  `).join('');
+}
+
+function renderScatterChart() {
+  const ctx = document.getElementById('scatterChart');
+  if (!ctx || !S.articles.length) return;
+  if (S.charts.scatter) S.charts.scatter.destroy();
+
+  const points = S.articles.map(r => ({
+    x: getV(r),
+    y: parseFloat(getEta(r).toFixed(2)),
+    label: r.title || '',
+  }));
+  const avgV = points.reduce((s,p)=>s+p.x,0) / points.length;
+  const avgE = points.reduce((s,p)=>s+p.y,0) / points.length;
+
+  S.charts.scatter = new Chart(ctx, {
+    type: 'scatter',
+    data: {
+      datasets: [{
+        label: '記事',
+        data: points,
+        backgroundColor: points.map(p =>
+          p.x >= avgV && p.y >= avgE ? 'rgba(62,193,156,0.7)' :
+          p.x <  avgV && p.y >= avgE ? 'rgba(74,144,217,0.7)' :
+          p.x >= avgV && p.y <  avgE ? 'rgba(255,193,7,0.7)'  :
+          'rgba(150,150,150,0.4)'
+        ),
+        pointRadius: 7,
+        pointHoverRadius: 9,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: c => `${c.raw.label} — ビュー:${c.raw.x.toLocaleString()} η:${c.raw.y}%`
+          }
+        }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: 'ビュー数', color: isDark() ? '#9494aa' : '#666', font: { size: 12 } },
+          ticks: { color: isDark() ? '#5a5a70' : '#aaa' },
+          grid:  { color: isDark() ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)' }
+        },
+        y: {
+          title: { display: true, text: 'η スキ率 (%)', color: isDark() ? '#9494aa' : '#666', font: { size: 12 } },
+          ticks: { color: isDark() ? '#5a5a70' : '#aaa', callback: v => v + '%' },
+          grid:  { color: isDark() ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)' }
+        }
+      }
+    }
+  });
+}
+
+// ==========================================================
+// TAB 3: READERS
+// ==========================================================
+function renderReadersPage() {
+  renderWeeklyTable();
+  renderSukiRankTable();
+  renderFollowerChart();
+}
+
+function renderWeeklyTable() {
+  const tbody = document.getElementById('weeklyTable');
+  if (!tbody || !S.weeklySummary.length) return;
+
+  // weekly_summary is article×week: aggregate per week first
+  const agg = aggregateSummary(S.weeklySummary, getWeekKey);
+  const keys = Object.keys(agg).sort().reverse(); // newest first
+
+  tbody.innerHTML = keys.slice(0, 20).map((k, i) => {
+    const r    = agg[k];
+    const prev = agg[keys[i + 1]];
+    const eta  = r.views > 0 ? (r.likes / r.views * 100).toFixed(2) : 0;
+    const prevV = prev ? prev.views : 0;
+    return `<tr>
+      <td style="font-size:12px;color:var(--text-secondary)">${k}</td>
+      <td class="td-right">${fmt(r.views)}</td>
+      <td class="td-right">${fmt(r.likes)}</td>
+      <td class="td-right">${etaBadge(eta)}</td>
+      <td class="td-right td-muted">—</td>
+      <td class="td-right">${diffChip(r.views, prevV)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderSukiRankTable() {
+  const tbody = document.getElementById('sukiRankTable');
+  if (!tbody || !S.articles.length) return;
+  const sorted = getLatestArticleSnapshot().sort((a,b) => getL(b) - getL(a));
+  tbody.innerHTML = sorted.slice(0, 20).map((r, i) => {
+    const views = getV(r), likes = getL(r), eta = getEta(r);
+    return `<tr>
+      <td class="rank-num ${i===0?'top1':i===1?'top2':i===2?'top3':''}">${i+1}</td>
+      <td><span class="art-title" title="${r.title||''}">${r.title||''}</span></td>
+      <td class="td-right">${fmt(likes)}</td>
+      <td class="td-right">${etaBadge(eta)}</td>
+      <td class="td-right">${fmt(views)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderFollowerChart() {
+  const ctx = document.getElementById('followerChart');
+  const src = S.followers.length > 0 ? S.followers : S.dailySummary;
+  if (!ctx || !src.length) return;
+  if (S.charts.follower) S.charts.follower.destroy();
+
+  const sorted = [...src]
+    .filter(r => getFollowCount(r) > 0)
+    .sort((a,b) => normDate(getDateKey(a)) < normDate(getDateKey(b)) ? -1 : 1);
+  if (!sorted.length) return;
+
+  const labels = sorted.map(r => {
+    const d = normDate(getDateKey(r));
+    return /^\d{4}-\d{2}-\d{2}$/.test(d) ? `${parseInt(d.slice(5,7))}/${parseInt(d.slice(8,10))}` : d;
+  });
+  const data = sorted.map(r => getFollowCount(r));
+
+  S.charts.follower = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'フォロワー',
+        data,
+        borderColor: '#4a90d9',
+        backgroundColor: 'rgba(74,144,217,0.08)',
+        borderWidth: 2.5,
+        pointRadius: data.length > 80 ? 0 : 3,
+        tension: 0.3,
+        fill: true,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: isDark() ? '#5a5a70' : '#aaa', maxTicksLimit: 10, font: { size: 11 } } },
+        y: { ticks: { color: '#4a90d9', font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+// ==========================================================
+// TAB 4: STRATEGY
+// ==========================================================
+function renderStrategyPage() {
+  renderCategoryCharts();
+  renderAIReport();
+}
+
+const PALETTE = ['#3EC19C','#ff7043','#4a90d9','#9d6fff','#ffc947','#ff4d8d','#00bcd4','#66bb6a','#ef9a9a','#80cbc4'];
+
+function renderCategoryCharts() {
+  if (!S.articles.length) return;
+  ['categoryChart','categoryEtaChart'].forEach(id => { if (S.charts[id]) S.charts[id].destroy(); });
+
+  const catCount = {}, catEta = {};
+  getLatestArticleSnapshot().forEach(r => {
+    const cat = r.category || r.cat || 'その他';
+    catCount[cat] = (catCount[cat] || 0) + 1;
+    if (!catEta[cat]) catEta[cat] = [];
+    const v = getV(r), l = getL(r);
+    if (v > 0) catEta[cat].push(l / v * 100);
+  });
+  const cats = Object.keys(catCount).sort();
+
+  const c1 = document.getElementById('categoryChart');
+  if (c1) {
+    S.charts.categoryChart = new Chart(c1, {
+      type: 'doughnut',
+      data: {
+        labels: cats,
+        datasets: [{ data: cats.map(c => catCount[c]), backgroundColor: PALETTE }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'right', labels: { color: isDark() ? '#e8e8e8' : '#333', font: { size: 11 }, padding: 12 } } }
+      }
+    });
+  }
+
+  const c2 = document.getElementById('categoryEtaChart');
+  if (c2) {
+    S.charts.categoryEtaChart = new Chart(c2, {
+      type: 'bar',
+      data: {
+        labels: cats,
+        datasets: [{
+          label: 'η平均(%)',
+          data: cats.map(c => {
+            const arr = catEta[c] || [];
+            return arr.length > 0 ? parseFloat((arr.reduce((s,v)=>s+v,0)/arr.length).toFixed(2)) : 0;
+          }),
+          backgroundColor: PALETTE,
+          borderRadius: 4,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: isDark() ? '#5a5a70' : '#aaa', font: { size: 11 } } },
+          y: { ticks: { color: isDark() ? '#5a5a70' : '#aaa', callback: v => v + '%', font: { size: 11 } } }
+        }
+      }
+    });
+  }
+}
+
+function renderAIReport() {
+  const el = document.getElementById('aiReport');
+  if (!el) return;
+  if (!S.dailySummary.length && !S.weeklySummary.length && !S.articles.length) return;
+
+  const { curr, prev } = getPeriodData();
+  const eta     = curr.views > 0 ? (curr.likes / curr.views * 100).toFixed(2) : '0.00';
+  const prevEta = prev.views > 0 ? (prev.likes / prev.views * 100).toFixed(2) : '0.00';
+
+  const vTrend = curr.views > prev.views ? '↑' : curr.views < prev.views ? '↓' : '→';
+  const lTrend = curr.likes > prev.likes ? '↑' : curr.likes < prev.likes ? '↓' : '→';
+  const eTrend = parseFloat(eta) > parseFloat(prevEta) ? '↑' : parseFloat(eta) < parseFloat(prevEta) ? '↓' : '→';
+
+  const diagnosis = getDiagnosis(vTrend, lTrend, eTrend);
+  const topArt = [...S.articles].sort((a,b) => getV(b) - getV(a))[0];
+  const { curr: fc, diff: fd } = getFollowerStats();
+
+  const vDiff = prev.views > 0 ? ` (${curr.views > prev.views ? '+' : ''}${((curr.views - prev.views)/prev.views*100).toFixed(1)}%)` : '';
+  const lDiff = prev.likes > 0 ? ` (${curr.likes > prev.likes ? '+' : ''}${((curr.likes - prev.likes)/prev.likes*100).toFixed(1)}%)` : '';
+
+  el.textContent =
+`■ KPI サマリー
+・全体ビュー : ${fmt(curr.views)}${vTrend}${vDiff}
+・スキ数     : ${fmt(curr.likes)}${lTrend}${lDiff}
+・η スキ率   : ${eta}%（${eTrend} 前期間 ${prevEta}%）
+・フォロワー : ${fc.toLocaleString()}（純増 ${fd >= 0 ? '+' : ''}${fd}）
+
+■ AI 診断コメント
+${diagnosis}
+
+${topArt ? `■ 最多ビュー記事\n「${topArt.title}」\nビュー: ${fmt(getV(topArt))}  スキ: ${fmt(getL(topArt))}  η: ${getEta(topArt).toFixed(1)}%` : ''}
+
+━━━━━━━━━━━━━━━━━━━━━
+Generated by KITAcore Note Analytics`;
+}
+
+const DIAGNOSIS_MAP = {
+  '↑↑↑': '🎉 リーチ・エンゲージメント全指標が改善。この週の戦略・テーマを分析して横展開を検討しましょう。',
+  '↑↑↓': '📈 ビュー・スキは伸びましたが η は低下。新規読者は増えているため、導入とCTAを見直すと改善できます。',
+  '↑↓↑': '🔍 ビュー増・スキ減でも η は維持。外部流入の増加かも。記事末尾のスキ誘導を強化しましょう。',
+  '↑↓↓': '⚠️ ビューは増えたが質が低下傾向。サムネ・タイトル先行の流入を分析し、コンテンツとの一致を確認。',
+  '↓↑↑': '💎 ビュー減もスキ率が改善。コアファンに刺さっています。タイトル改善・外部拡散でビュー回復を。',
+  '↓↑↓': '🤔 ビュー低下・スキのみ増。リピーター中心の週。新規流入施策を打ちましょう。',
+  '↓↓↑': '📉 ビュー・スキともに低下。η 横ばいは質が安定している証拠。投稿頻度を上げて露出を増やしましょう。',
+  '↓↓↓': '🔧 全指標低下。内容・頻度・タイトルを総点検。過去ヒット記事の要素を抽出して分析しましょう。',
+  '→→→': '🎯 全指標フラット。安定期です。次のブレイクスルーに向けて実験的な記事テーマを試してみましょう。',
+};
+function getDiagnosis(v, l, e) {
+  return DIAGNOSIS_MAP[`${v}${l}${e}`] ||
+    `ビュー${v} スキ${l} η${e}。継続してデータを蓄積し、パターンを分析してください。`;
+}
+
+function copyReport() {
+  const text = document.getElementById('aiReport').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.currentTarget;
+    btn.textContent = '✓ コピー済';
+    setTimeout(() => { btn.textContent = '📋 コピー'; }, 2000);
+  });
+}
+
+// ==========================================================
+// PRO GATE
+// ==========================================================
+function updateProGates() {
+  ['articles','readers','strategy'].forEach(p => {
+    const gate = document.getElementById(`${p}Gate`);
+    if (!gate) return;
+    let overlay = gate.querySelector('.pro-overlay');
+    if (S.isPro) {
+      if (overlay) overlay.remove();
+    } else {
+      if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.className = 'pro-overlay';
+        overlay.innerHTML = `
+          <div class="pro-overlay-icon">🔒</div>
+          <div class="pro-overlay-title">Pro 機能</div>
+          <div class="pro-overlay-sub">ヘッダーの「Pro」トグルで試せます</div>
+        `;
+        gate.appendChild(overlay);
+      }
+    }
+  });
+}
+
+function togglePro(checked) {
+  S.isPro = checked;
+  updateProGates();
+  // Trigger renders for newly visible tabs
+  if (checked) {
+    renderArticlesPage();
+    renderReadersPage();
+    renderStrategyPage();
+  }
+}
+
+// ==========================================================
+// NAVIGATION
+// ==========================================================
+function switchTab(tab, el) {
+  document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(`page-${tab}`).classList.add('active');
+  if (tab === 'articles') renderArticlesPage();
+  if (tab === 'readers')  renderReadersPage();
+  if (tab === 'strategy') renderStrategyPage();
+}
+
+function switchPeriod(period, el) {
+  document.querySelectorAll('.period-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  S.currentPeriod = period;
+  const labels = { weekly: '週間', monthly: '月間', yearly: '年間', all: '全期間' };
+  document.getElementById('chartTitle').textContent = `ビュー推移（${labels[period]}）`;
+  document.getElementById('tablePeriodLabel').textContent = labels[period];
+  renderSummary();
+}
+
+function switchSubTab(page, sub, el) {
+  document.querySelectorAll(`#page-${page} .sub-tab`).forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  const subNames = {
+    articles: ['ranking','trend','map'],
+    readers:  ['weekly','suki','followers'],
+    strategy: [],
+  };
+  (subNames[page] || []).forEach(s => {
+    const div = document.getElementById(`${page}-${s}`);
+    if (div) div.style.display = s === sub ? 'block' : 'none';
+  });
+  // Re-render charts that need canvas to be visible
+  if (sub === 'map')       renderScatterChart();
+  if (sub === 'trend')     { renderDecayChart(); renderEtaTrendChart(); renderLongTailList(); }
+  if (sub === 'followers') renderFollowerChart();
+}
+
+// ==========================================================
+// THEME
+// ==========================================================
+function isDark() { return document.documentElement.getAttribute('data-theme') === 'dark'; }
+
+function toggleTheme() {
+  const dark = isDark();
+  document.documentElement.setAttribute('data-theme', dark ? 'light' : 'dark');
+  document.getElementById('themeBtn').textContent = dark ? '🌙 ダーク' : '☀️ ライト';
+  // Redraw all charts with updated colors
+  renderAll();
+}
+
+// ==========================================================
+// INIT
+// ==========================================================
+window.addEventListener('DOMContentLoaded', () => {
+  updateProGates();
+  // Try GitHub Pages auto-load
+  loadFromRepo();
+});
+</script>
+</body>
+</html>
