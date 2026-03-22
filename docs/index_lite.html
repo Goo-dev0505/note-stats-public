@@ -376,7 +376,7 @@ async function loadFromRepo() {
   let loaded = 0;
   for (const f of CSV_FILES) {
     try {
-      const res = await fetch(`./data/${f}.csv`);
+      const res = await fetch(`../data/${f}.csv`);
       if (res.ok) { parseAndStore(f, await res.text()); loaded++; }
     } catch(_){}
   }
