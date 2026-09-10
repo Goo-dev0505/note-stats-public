@@ -79,6 +79,8 @@ header {
 .header-right    { display: flex; align-items: center; gap: 24px; }
 #last-updated    { font-size: 12px; color: var(--text2); letter-spacing: 0.1em; }
 .header-badge    { font-size: 9px; padding: 3px 8px; border: 1px solid var(--border2); border-radius: 2px; color: var(--text2); letter-spacing: 0.15em; text-transform: uppercase; }
+.header-link     { font-size: 10px; color: var(--text2); letter-spacing: 0.12em; text-transform: uppercase; text-decoration: none; transition: color 0.2s; }
+.header-link:hover { color: var(--green); }
 
 /* ── ダッシュボード ── */
 .dashboard { max-width: 1600px; margin: 0 auto; }
@@ -453,6 +455,7 @@ header {
     <span>note</span><span class="logo-slash">/</span><span class="logo-sub">stats</span>
   </div>
   <div class="header-right">
+    <a class="header-link" href="funnel.html">Funnel →</a>
     <div id="last-updated">—</div>
     <div class="header-badge">live</div>
   </div>
