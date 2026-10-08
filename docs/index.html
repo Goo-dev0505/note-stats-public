@@ -445,6 +445,34 @@ header {
   .comment-kpi-strip   { grid-template-columns:repeat(2,1fr); }
   header, .kpi, .panel, .kpi3, .memo-wrap { padding-left:16px !important; padding-right:16px !important; }
 }
+/* ── UPTIME / STREAK パネル ── */
+.up-ctrl { display:flex; gap:6px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
+.up-ctrl-label { font-size:10px; letter-spacing:.1em; color:var(--text3); margin-right:2px; }
+.up-btn {
+  font-family:var(--mono); font-size:11px; padding:4px 11px; background:var(--surface2);
+  color:var(--text2); border:1px solid var(--border2); border-radius:3px; cursor:pointer; transition:.15s;
+}
+.up-btn:hover { color:var(--text); }
+.up-btn.on { background:var(--violet-dim); color:var(--violet); border-color:var(--violet); }
+.up-ttl { max-width:300px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--text2); }
+.up-meta { font-size:10px; color:var(--text3); margin-top:3px; letter-spacing:.02em; line-height:1.6; }
+.up-days { text-align:right; white-space:nowrap; }
+.up-dnum { font-family:var(--sans); font-weight:800; font-size:17px; font-variant-numeric:tabular-nums; }
+.up-dunit { font-size:10px; color:var(--text3); margin-left:1px; }
+.up-bar { height:4px; background:var(--border2); border-radius:2px; overflow:hidden; margin-top:4px; width:100px; margin-left:auto; }
+.up-bar i { display:block; height:100%; border-radius:2px; }
+.up-pill { display:inline-block; font-size:9px; padding:1px 6px; border-radius:3px; letter-spacing:.04em; }
+.up-live { color:var(--green); background:rgba(0,229,160,.12); }
+.up-rev  { color:var(--pink);  background:var(--pink-dim); }
+.up-new  { color:var(--cyan);  background:var(--cyan-dim); }
+.up-pb   { color:var(--gold);  background:var(--gold-dim); }
+.up-fix  { color:var(--text3); background:rgba(255,255,255,.05); border:1px solid var(--border2); }
+.up-note { font-size:10px; color:var(--text3); line-height:1.8; margin-top:12px; }
+.up-note b { color:var(--text2); font-weight:600; }
+.up-stats { display:flex; gap:20px; flex-wrap:wrap; margin-bottom:14px; }
+.up-stat-k { font-size:9px; letter-spacing:.1em; color:var(--text3); text-transform:uppercase; }
+.up-stat-v { font-family:var(--sans); font-size:22px; font-weight:800; line-height:1.2; }
+
 </style>
 </head>
 <body>
@@ -575,6 +603,70 @@ header {
           <tbody id="asset-body"><tr><td colspan="5" class="loading">スキャン中</td></tr></tbody>
         </table>
       </div>
+    </div>
+
+    <!-- 累計稼働日数 -->
+    <div class="panel full">
+      <div class="panel-header">
+        <div class="panel-title"><span class="ptdot" style="background:var(--violet)"></span>累計稼働日数｜通算でどれだけ働いたか</div>
+        <span class="panel-badge" style="color:var(--violet);border-color:var(--violet-dim)">UPTIME</span>
+      </div>
+      <div class="up-stats" id="uptime-stats"></div>
+      <div class="up-ctrl">
+        <span class="up-ctrl-label">SORT</span>
+        <button class="up-btn on" data-sort="累計稼働日数">累計稼働日数</button>
+        <button class="up-btn" data-sort="稼働率">稼働率（観測30日+）</button>
+        <button class="up-btn" data-sort="直近30日稼働">直近30日</button>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th style="width:44px">#</th><th>タイトル</th><th style="width:150px">累計稼働日数</th><th style="width:130px">稼働率</th><th style="width:90px;text-align:right">直近30日</th><th style="width:90px;text-align:right">累計PV</th></tr></thead>
+          <tbody id="uptime-body"><tr><td colspan="6" class="loading">集計中</td></tr></tbody>
+        </table>
+      </div>
+      <div class="up-note">
+        <b>稼働日</b>＝前回観測より累計PVが増えた日。<b>観測日数</b>＝収集対象に入ってからの日数。
+        累計稼働日数は観測期間が長い記事ほど有利なので、<b>稼働率（稼働日数÷観測日数）</b>と並べて読むこと。
+      </div>
+    </div>
+
+    <!-- 最長連続稼働 -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title"><span class="ptdot" style="background:var(--gold)"></span>最長連続稼働｜歴代記録</div>
+        <span class="panel-badge" style="color:var(--gold);border-color:var(--gold-dim)">RECORD</span>
+      </div>
+      <div class="up-stats" id="streak-rec-stats"></div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th style="width:44px">#</th><th>タイトル / 記録期間</th><th style="width:110px;text-align:right">連続</th></tr></thead>
+          <tbody id="streak-rec-body"><tr><td colspan="3" class="loading">集計中</td></tr></tbody>
+        </table>
+      </div>
+      <div class="up-note">PVが1日も止まらず増え続けた最長区間。収集が飛んだ日は区間を分断せず、またいで1稼働日として数える。</div>
+    </div>
+
+    <!-- 現在継続中 -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title"><span class="ptdot" style="background:var(--green)"></span>現在継続中｜いま生きてる記事</div>
+        <span class="panel-badge" style="color:var(--green);border-color:rgba(0,229,160,0.2)">LIVE</span>
+      </div>
+      <div class="up-stats" id="streak-live-stats"></div>
+      <div class="up-ctrl">
+        <span class="up-ctrl-label">FILTER</span>
+        <button class="up-btn on" data-kind="all">すべて</button>
+        <button class="up-btn" data-kind="復活">復活</button>
+        <button class="up-btn" data-kind="継続">継続</button>
+        <button class="up-btn" data-kind="新作">新作</button>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th style="width:44px">#</th><th>タイトル / 状態</th><th style="width:110px;text-align:right">継続</th></tr></thead>
+          <tbody id="streak-live-body"><tr><td colspan="3" class="loading">集計中</td></tr></tbody>
+        </table>
+      </div>
+      <div class="up-note"><b>新作</b>＝公開以来一度も止まっていない。<b>復活</b>＝7日以上の休眠から再稼働。新作は必ず自己ベスト扱いになるため、日数そのもので比較すること。</div>
     </div>
 
     <!-- トレンド動態 -->
@@ -971,6 +1063,12 @@ const CONFIG = {
     'はたらくこと', '気になるレシピ#1', 'This is US', '"50',
   ],
 
+  // 固定記事（プロフィール固定でPVが底上げされるためバッジで明示する）
+  pinnedKeys: ['nd946a5f905a2'],
+
+  // 稼働率ソート時の観測日数の下限（短期間ほど100%になりやすいので足切りする）
+  uptimeMinObs: 30,
+
   // ランキング表示件数
   rankingTopN:   20,
   periodRankN:   10,
@@ -1024,14 +1122,14 @@ const DataLayer = {
 
   async loadAll() {
     const required = ['daily_summary','articles','followers','trend_analysis','asset_articles'];
-    const optional = ['weekly_summary','monthly_summary','asset_score_v1','asset_score_v2','article_trend'];
+    const optional = ['weekly_summary','monthly_summary','asset_score_v1','asset_score_v2','article_trend','uptime_ranking'];
     const [req, opt] = await Promise.all([
       Promise.all(required.map(n => this.fetchCSV(n))),
       Promise.all(optional.map(n => this.fetchCSV(n).catch(() => []))),
     ]);
     const [summary, articles, followers, trend, assets] = req;
-    const [weekly, monthly, assetV1, assetV2, articleTrend] = opt;
-    return { summary, articles, followers, trend, assets, weekly, monthly, assetV1, assetV2, articleTrend };
+    const [weekly, monthly, assetV1, assetV2, articleTrend, uptime] = opt;
+    return { summary, articles, followers, trend, assets, weekly, monthly, assetV1, assetV2, articleTrend, uptime };
   },
 };
 
@@ -1389,6 +1487,140 @@ function renderAssetTable(rows) {
     </tr>`;
   }).join('');
 }
+
+/* ─ Uptime / Streak（稼働日ベースの3指標） ─
+   uptime_ranking.csv の1本で3パネルを賄う。
+   ① 累計稼働日数=総量 ② 最長連続稼働=過去のピーク ③ 現在継続日数=現在の状態
+   この3指標は順位相関が低いため（①×③はほぼ無相関）、別ランキングとして出す。 */
+const UptimeUI = {
+  rows: [],
+
+  init(rows) {
+    this.rows = rows
+      .filter(r => !Store.isExcluded(r.title))
+      .map(r => ({
+        key: r.key, title: r.title,
+        pv:      Number(r['累計PV']       || 0),
+        obs:     Number(r['観測日数']     || 0),
+        total:   Number(r['累計稼働日数'] || 0),
+        rate:    Number(r['稼働率']       || 0),
+        recent:  Number(r['直近30日稼働'] || 0),
+        best:    Number(r['最長連続稼働'] || 0),
+        recS:    r['記録開始'] || '', recE: r['記録終了'] || '',
+        pb:      String(r['記録更新中']).toLowerCase() === 'true',
+        cur:     Number(r['現在継続日数'] || 0),
+        curS:    r['継続開始'] || '',
+        kind:    r['継続区分'] || '',
+        dormant: Number(r['直前休眠日数'] || 0),
+        idle:    Number(r['休眠日数']     || 0),
+        pinned:  CONFIG.pinnedKeys.includes(r.key),
+      }));
+
+    this.renderStats();
+    this.renderUptime('累計稼働日数');
+    this.renderRecord();
+    this.renderLive('all');
+
+    document.querySelectorAll('#uptime-body').length && this.bind();
+  },
+
+  bind() {
+    document.querySelectorAll('.up-btn[data-sort]').forEach(b => b.onclick = () => {
+      document.querySelectorAll('.up-btn[data-sort]').forEach(x => x.classList.remove('on'));
+      b.classList.add('on'); this.renderUptime(b.dataset.sort);
+    });
+    document.querySelectorAll('.up-btn[data-kind]').forEach(b => b.onclick = () => {
+      document.querySelectorAll('.up-btn[data-kind]').forEach(x => x.classList.remove('on'));
+      b.classList.add('on'); this.renderLive(b.dataset.kind);
+    });
+  },
+
+  stat(k, v, unit, color, note) {
+    return `<div><div class="up-stat-k">${k}</div>
+      <div class="up-stat-v" style="color:${color}">${v}<span class="up-dunit">${unit}</span></div>
+      <div class="up-stat-k" style="letter-spacing:0;text-transform:none;margin-top:2px">${note}</div></div>`;
+  },
+
+  renderStats() {
+    const R = this.rows;
+    const live    = R.filter(r => r.cur > 0);
+    const solid   = R.filter(r => r.obs >= 60 && r.rate >= 0.8).length;
+    const asleep  = R.filter(r => r.recent === 0).length;
+    const topRec  = R.reduce((a, b) => b.best > a.best ? b : a, R[0]);
+
+    const el = id => document.getElementById(id);
+    el('uptime-stats') && (el('uptime-stats').innerHTML =
+      this.stat('対象記事', R.length, '本', 'var(--cyan)', '除外タイトルを差し引いた数') +
+      this.stat('常時稼働クラス', solid, '本', 'var(--violet)', '観測60日以上 かつ 稼働率80%以上') +
+      this.stat('休眠記事', asleep, '本', 'var(--text3)', '直近30日で稼働ゼロ'));
+
+    el('streak-rec-stats') && (el('streak-rec-stats').innerHTML =
+      this.stat('歴代1位', topRec.best, '日', 'var(--gold)', `${topRec.recS} → ${topRec.recE}`) +
+      this.stat('記録更新中', R.filter(r => r.pb).length, '本', 'var(--green)', '自己ベストを今まさに伸ばし中'));
+
+    el('streak-live-stats') && (el('streak-live-stats').innerHTML =
+      this.stat('継続中', live.length, '本', 'var(--green)', `全${R.length}本中 ${(live.length / R.length * 100).toFixed(1)}%`) +
+      this.stat('復活組', R.filter(r => r.kind === '復活').length, '本', 'var(--pink)', '7日以上の休眠から再稼働'));
+  },
+
+  pinTag(r) { return r.pinned ? ' <span class="up-pill up-fix">固定</span>' : ''; },
+
+  renderUptime(sortKey) {
+    const map = { '累計稼働日数': 'total', '稼働率': 'rate', '直近30日稼働': 'recent' };
+    const f = map[sortKey] || 'total';
+    // 稼働率は観測期間が短いほど100%になりやすいので、下限を切ってから並べる
+    const pool = f === 'rate' ? this.rows.filter(r => r.obs >= CONFIG.uptimeMinObs) : this.rows;
+    const rows = [...pool].sort((a, b) => b[f] - a[f] || b.pv - a.pv).slice(0, CONFIG.rankingTopN);
+    const maxT = Math.max(...rows.map(r => r.total), 1);
+    document.getElementById('uptime-body').innerHTML = rows.map((r, i) => `<tr>
+      <td class="num-m" style="text-align:center">${i + 1}</td>
+      <td><div class="up-ttl" title="${r.title.replace(/"/g, '&quot;')}">${r.title}</div>
+        <div class="up-meta">観測 ${r.obs}日${this.pinTag(r)}</div></td>
+      <td class="up-days"><span class="up-dnum" style="color:var(--violet)">${r.total}</span><span class="up-dunit">日</span>
+        <div class="up-bar"><i style="width:${(r.total / maxT * 100).toFixed(1)}%;background:var(--violet)"></i></div></td>
+      <td class="up-days"><span class="up-dnum" style="color:var(--cyan);font-size:15px">${(r.rate * 100).toFixed(1)}%</span>
+        <div class="up-bar"><i style="width:${(r.rate * 100).toFixed(1)}%;background:var(--cyan)"></i></div></td>
+      <td class="num-r" style="text-align:right">${r.recent}</td>
+      <td class="num-r" style="text-align:right;color:var(--text)">${r.pv.toLocaleString()}</td>
+    </tr>`).join('');
+  },
+
+  renderRecord() {
+    const rows = [...this.rows].sort((a, b) => b.best - a.best || b.pv - a.pv).slice(0, 12);
+    const max = Math.max(...rows.map(r => r.best), 1);
+    document.getElementById('streak-rec-body').innerHTML = rows.map((r, i) => `<tr>
+      <td class="num-m" style="text-align:center">${i + 1}</td>
+      <td><div class="up-ttl" title="${r.title.replace(/"/g, '&quot;')}">${r.title}</div>
+        <div class="up-meta">${r.recS} → ${r.recE} ・ ${r.pv.toLocaleString()} PV
+          ${r.pb ? '<span class="up-pill up-pb">更新中</span>' : ''}${this.pinTag(r)}</div></td>
+      <td class="up-days"><span class="up-dnum" style="color:var(--gold)">${r.best}</span><span class="up-dunit">日</span>
+        <div class="up-bar"><i style="width:${(r.best / max * 100).toFixed(1)}%;background:var(--gold)"></i></div></td>
+    </tr>`).join('');
+  },
+
+  renderLive(kind) {
+    let rows = this.rows.filter(r => r.cur > 0);
+    if (kind !== 'all') rows = rows.filter(r => r.kind === kind);
+    rows = rows.sort((a, b) => b.cur - a.cur || b.pv - a.pv).slice(0, 12);
+    const tb = document.getElementById('streak-live-body');
+    if (!rows.length) { tb.innerHTML = '<tr><td colspan="3" style="padding:24px;text-align:center;color:var(--text3)">該当なし</td></tr>'; return; }
+    const max = Math.max(...rows.map(r => r.cur), 1);
+    tb.innerHTML = rows.map((r, i) => {
+      const pill = r.kind === '復活' ? `<span class="up-pill up-rev">復活 ・ 休眠${r.dormant}日</span>`
+                 : r.kind === '新作' ? '<span class="up-pill up-new">新作</span>'
+                 : '<span class="up-pill up-live">継続</span>';
+      const pb = r.cur === r.best ? ' <span class="up-pill up-pb">自己ベスト</span>'
+                                  : ` <span style="color:var(--text3)">自己ベスト ${r.best}日</span>`;
+      return `<tr>
+        <td class="num-m" style="text-align:center">${i + 1}</td>
+        <td><div class="up-ttl" title="${r.title.replace(/"/g, '&quot;')}">${r.title}</div>
+          <div class="up-meta">${r.curS} 〜 ・ 観測${r.obs}日 ・ ${r.pv.toLocaleString()} PV<br>${pill}${pb}${this.pinTag(r)}</div></td>
+        <td class="up-days"><span class="up-dnum" style="color:var(--green)">${r.cur}</span><span class="up-dunit">日</span>
+          <div class="up-bar"><i style="width:${(r.cur / max * 100).toFixed(1)}%;background:var(--green)"></i></div></td>
+      </tr>`;
+    }).join('');
+  },
+};
 
 /* ─ Trend table ─ */
 function renderTrendTable(rows) {
@@ -2235,7 +2467,7 @@ function initAllScrolls() {
 async function init() {
   try {
     const data = await DataLayer.loadAll();
-    const { summary, articles, followers, trend, assets, weekly, monthly, assetV1, assetV2, articleTrend } = data;
+    const { summary, articles, followers, trend, assets, weekly, monthly, assetV1, assetV2, articleTrend, uptime } = data;
 
     // KPI & ステータスバンド
     renderKPIs(summary);
@@ -2272,6 +2504,9 @@ async function init() {
     // Decay & Article Trend
     if (articles.length)     decayUI.init(articles);
     if (articleTrend.length) articleTrendUI.init(articleTrend);
+
+    // Uptime / Streak
+    if (uptime.length) UptimeUI.init(uptime);
 
     // Comment Intelligence
     if (articles.length) renderCommentSection(articles);
