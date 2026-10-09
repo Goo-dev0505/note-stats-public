@@ -1589,6 +1589,14 @@ function renderStatusBand(summary) {
   document.getElementById('memo-text').textContent = STATUS_MEMOS[key] || '状態を解析中...';
 }
 
+/* 日付ラベルを MM/DD に揃える。
+   daily_summary.csv は 317行中58行がゼロ埋めされていない（2025/12/1 など）ため、
+   単純に slice(5) すると軸に 12/1 と 12/01 が混ざって桁が揃わない。 */
+function mdLabel(v) {
+  const m = String(v || '').match(/(\d{1,4})[\/-](\d{1,2})[\/-](\d{1,2})/);
+  return m ? `${m[2].padStart(2, '0')}/${m[3].padStart(2, '0')}` : '';
+}
+
 /* ─ Daily chart ─
    以前は1枚の二重軸（左:ビュー / 右:スキ）だった。二重軸は2本の線が交差する
    位置に意味があるように見えてしまうが、その交点は軸のスケール次第で任意に
@@ -1598,7 +1606,7 @@ function renderDailyChart(summary) {
   // 以前は slice(-60) の決め打ちで、325日ぶんのデータのうち直近60日しか
   // 見られなかった。全期間を保持して、表示範囲だけを切り替える。
   const all    = summary;
-  const labels = all.map(d => (d['日付'] || '').slice(5));
+  const labels = all.map(d => mdLabel(d['日付']));
   const views  = all.map(d => Number(d['ビュー合計']));
   const likes  = all.map(d => Number(d['スキ合計']));
   if (!labels.length) return;
