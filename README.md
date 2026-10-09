@@ -163,8 +163,17 @@ python -m http.server 8000 --directory docs
 このリポジトリは public で、GitHub Pages から誰でもアクセスできる。
 記事別のPV・スキ率・象限判定まで見える状態なので、**検索エンジンには拾わせない**設定を入れてある。
 
-- `docs/robots.txt` … クロールを全面的に拒否
 - 各HTMLの `<meta name="robots" content="noindex, nofollow">`
+
+robots.txt は置いていない。意図的にそうしている。
+
+- robots.txt はオリジンのルート（`https://goo-dev0505.github.io/robots.txt`）しか読まれない。
+  プロジェクトサイト配下の `/note-stats-public/robots.txt` はクローラに無視される
+- 仮にルートで `Disallow` を設定すると、クローラがページ自体を取得しなくなり、
+  **noindex を読んでもらえなくなる**。インデックスを防ぐ目的では逆効果になる
+
+したがって、クロールは許可したうえで noindex を読ませるのが正しい。
+URLを知っていれば誰でも閲覧できる点は変わらない。
 
 売上データは含まれない（`build_public_funnel_metrics.py` が除外した公開用ファネルのみを配信している）。
 記事別の内部指標のうち、公開範囲を決めていないものは tracker 側の `data/funnel/` に置かれ、こちらには配信されない。
