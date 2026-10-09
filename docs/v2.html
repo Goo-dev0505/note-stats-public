@@ -431,8 +431,9 @@ function renderQuad(){
   const style = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
   const datasets = Object.entries(byQuad).map(([q,ps])=>({
     label:q, data:ps.map(p=>({x:p.x,y:p.y,_t:p.r.title,_q:q})),
-    backgroundColor:style(QUADS[q].c)+'cc', borderColor:style(QUADS[q].c),
-    borderWidth:1, pointRadius:4, pointHoverRadius:7,
+    backgroundColor:style(QUADS[q].c)+'66', borderColor:style(QUADS[q].c)+'dd',
+    borderWidth:1, pointRadius:3.2, pointHoverRadius:7, hoverBorderWidth:2,
+    hoverBackgroundColor:style(QUADS[q].c),
     hidden: S.quadFilter ? S.quadFilter!==q : false,
   }));
 
