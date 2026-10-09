@@ -574,6 +574,20 @@ header {
   .panel           { animation-delay:0s !important; }
 }
 
+/* ── セクションの開閉 ── */
+.section-div { cursor:pointer; user-select:none; }
+.section-div:hover .section-div-label { filter:brightness(1.25); }
+.sec-caret {
+  width:14px; flex-shrink:0; text-align:center; color:var(--text3);
+  font-size:var(--fs-xs); transition:transform .18s;
+}
+.section-div.collapsed .sec-caret { transform:rotate(-90deg); }
+.sec-count {
+  font-size:var(--fs-xs); color:var(--text3); letter-spacing:.04em;
+  opacity:0; transition:opacity .18s;
+}
+.section-div.collapsed .sec-count { opacity:1; }
+
 </style>
 </head>
 <body>
@@ -671,9 +685,13 @@ header {
     <div class="panel">
       <div class="panel-header">
         <div class="panel-title"><span class="ptdot" style="background:var(--violet)"></span>フォロワー 日次推移</div>
-        <span class="panel-badge">ALL</span>
+        <span class="panel-badge" style="color:var(--violet);border-color:var(--violet-dim)">DAILY</span>
       </div>
-      <div class="chart-wrap"><canvas id="chart-followers"></canvas></div>
+      <div class="chart-stack">
+        <div class="chart-wrap sm"><canvas id="chart-followers"></canvas></div>
+        <div class="chart-wrap sm"><canvas id="chart-followers-delta"></canvas></div>
+      </div>
+      <div class="up-note" id="followers-note"></div>
     </div>
 
     <!-- スキランキング -->
@@ -1576,16 +1594,102 @@ function renderDailyChart(summary) {
   }));
 }
 
-/* ─ Followers chart ─ */
+/* ─ Followers chart ─
+   以前の問題:
+   (1) 1行＝1目盛のカテゴリ軸で描いていたが、記録頻度が一定でない
+       （2026年2月は1日4.32回、7月以降は1日1.00回）。結果として
+       初期が横に約4倍引き伸ばされ、直近が圧縮されていた。
+       カテゴリ軸の50%地点が実時間ではまだ26%地点という状態で、
+       「急に立ち上がった」という形そのものが軸の作り方による
+       見かけの歪みを含んでいた。
+   (2) 系列が1本なのに凡例を出していた（タイトルが系列名を兼ねるので不要）。
+   (3) 累積線だけでは「いつ伸びたか」が読めない。
+
+   対処: 1日1点（その日の最後の記録）に集約し、記録の無い日も
+   日付の目盛としては確保して時間に比例した軸にする。凡例を外し、
+   日次増加を下段に並べて増加イベントが見えるようにした。 */
 function renderFollowersChart(summary, followers) {
   const src = followers.filter(r => r['フォロワー数']).length > 1
     ? followers.filter(r => r['フォロワー数'])
     : summary.filter(r => r['フォロワー数']);
+  if (!src.length) return;
+
+  // ① 1日1点に集約（同じ日に複数記録があればその日の最後の値を採る）
+  const byDay = new Map();
+  src.forEach(r => {
+    const key = (r['日付'] || '').replace(/\//g, '-');
+    if (!key) return;
+    byDay.set(key, Number(r['フォロワー数']));   // 行は時系列順なので上書きで最後が残る
+  });
+  const days = [...byDay.keys()].sort();
+  if (!days.length) return;
+
+  // ② 記録の無い日も目盛として確保し、時間に比例した軸にする
+  const d0 = new Date(days[0]), d1 = new Date(days[days.length - 1]);
+  const labels = [], values = [];
+  for (let d = new Date(d0); d <= d1; d.setDate(d.getDate() + 1)) {
+    const key = d.toISOString().slice(0, 10);
+    labels.push(key.slice(5).replace('-', '/'));
+    values.push(byDay.has(key) ? byDay.get(key) : null);
+  }
+
+  // ③ 日次増加（欠測日をまたぐ場合は、その区間の日数で割って均す）
+  const deltas = values.map(() => null);
+  let prevIdx = null;
+  values.forEach((v, i) => {
+    if (v == null) return;
+    if (prevIdx !== null) {
+      const span = i - prevIdx;
+      const per  = (v - values[prevIdx]) / span;
+      for (let k = prevIdx + 1; k <= i; k++) deltas[k] = Math.round(per * 10) / 10;
+    }
+    prevIdx = i;
+  });
+
+  const axis = (showX, unit, zero) => ({
+    ...baseOpts(),
+    plugins: {
+      ...baseOpts().plugins,
+      legend: { display: false },           // 系列は1本。タイトルが系列名を兼ねる
+      tooltip: { ...baseOpts().plugins.tooltip, mode: 'index', intersect: false,
+        callbacks: { label: ctx => ctx.raw == null ? null
+          : ` ${ctx.dataset.label}: ${Number(ctx.raw).toLocaleString()}` } },
+    },
+    interaction: { mode: 'index', intersect: false },
+    scales: {
+      x: { grid: { color: CONFIG.gridColor }, border: { display: false },
+           ticks: { maxTicksLimit: 9, color: CONFIG.tickColor, display: showX, maxRotation: 0 } },
+      y: { grid: { color: CONFIG.gridColor }, border: { display: false },
+           beginAtZero: zero,
+           ticks: { color: CONFIG.tickColor, maxTicksLimit: 4 },
+           title: { display: true, text: unit, color: 'rgba(255,255,255,0.45)', font: { size: 11 } } },
+    },
+  });
+
   ChartManager.set('followers', new Chart(document.getElementById('chart-followers'), {
     type: 'line',
-    data: { labels: src.map(r => (r['日付'] || '').slice(5)), datasets: [{ label:'フォロワー数', data: src.map(r => Number(r['フォロワー数'])), borderColor:'#9d6fff', backgroundColor:'rgba(157,111,255,0.06)', fill:true, tension:0.35, pointRadius:0, pointHoverRadius:4, borderWidth:2 }] },
-    options: baseOpts(),
+    data: { labels, datasets: [{ label:'フォロワー数', data: values, borderColor:'#9d6fff',
+      backgroundColor:'rgba(157,111,255,0.07)', fill:true, tension:0.25,
+      pointRadius:0, pointHoverRadius:4, borderWidth:2, spanGaps:true }] },
+    options: axis(false, '累計', true),
   }));
+
+  const dEl = document.getElementById('chart-followers-delta');
+  if (dEl) ChartManager.set('followers-delta', new Chart(dEl, {
+    type: 'bar',
+    data: { labels, datasets: [{ label:'日次増加', data: deltas,
+      backgroundColor:'rgba(157,111,255,0.5)', borderWidth:0, borderRadius:2 }] },
+    options: axis(true, '日次', true),
+  }));
+
+  // 読み手が自分で検算できるように、集約の事実を1行で添える
+  const note = document.getElementById('followers-note');
+  if (note) {
+    const obs = days.length, span = labels.length;
+    note.innerHTML = `記録は1日複数回あるため<b>その日の最後の値</b>に集約。`
+      + `観測 ${obs}日 / 期間 ${span}日（記録の無い ${span - obs}日も日付の目盛としては確保し、`
+      + `時間に比例した軸にしている）。下段の日次増加は、欠測をまたぐ区間はその日数で均した値。`;
+  }
 }
 
 /* ─ Quad chart ─ */
@@ -1647,6 +1751,95 @@ function renderAssetTable(rows) {
 }
 
 
+
+
+
+/* ─ セクションの開閉 ─
+   パネル23枚の縦一列は、特にスマホで移動距離が長くなる。
+   見出しをクリックして畳めるようにし、選択は端末ごとに記憶する。
+   既定は全開（初見の人が内容を見落とさないように）。 */
+const SecFold = {
+  KEY: 'note-stats.collapsed',
+  _members: new Map(),
+
+  init() {
+    const divs = [...document.querySelectorAll('.section-div[id^="sec-"]')];
+    divs.forEach(div => {
+      // その見出しから次の見出しまでの兄弟がこの節の中身
+      const members = [];
+      for (let el = div.nextElementSibling; el && !el.classList.contains('section-div'); el = el.nextElementSibling) {
+        members.push(el);
+      }
+      this._members.set(div.id, members);
+
+      const caret = document.createElement('span');
+      caret.className = 'sec-caret';
+      caret.textContent = '▾';
+      div.insertBefore(caret, div.firstChild);
+
+      const count = document.createElement('span');
+      count.className = 'sec-count';
+      count.textContent = `${members.length} パネル`;
+      div.appendChild(count);
+
+      div.addEventListener('click', e => {
+        if (e.target.closest('a,button,input,select')) return;   // 中の操作は邪魔しない
+        this.toggle(div.id);
+      });
+    });
+    this._restore();
+  },
+
+  toggle(id, force) {
+    const div = document.getElementById(id);
+    const members = this._members.get(id) || [];
+    const collapsed = force ?? !div.classList.contains('collapsed');
+    div.classList.toggle('collapsed', collapsed);
+    members.forEach(el => { el.style.display = collapsed ? 'none' : ''; });
+    // 畳んでいる間はキャンバスの寸法が 0 になるので、開いたら測り直す
+    if (!collapsed) setTimeout(() => {
+      Object.values(ChartManager._charts).forEach(c => { try { c.resize(); } catch (_) {} });
+      if (window.TableScroll) TableScroll.init();
+    }, 60);
+    if (force === undefined) this._save();
+  },
+
+  _save() {
+    try {
+      const ids = [...document.querySelectorAll('.section-div.collapsed')].map(d => d.id);
+      localStorage.setItem(this.KEY, JSON.stringify(ids));
+    } catch (_) {}   // プライベートウィンドウなどでは保存できない。動作には影響させない
+  },
+
+  _restore() {
+    let ids = [];
+    try { ids = JSON.parse(localStorage.getItem(this.KEY) || '[]'); } catch (_) { return; }
+    if (!Array.isArray(ids)) return;
+    ids.forEach(id => { if (this._members.has(id)) this.toggle(id, true); });
+  },
+};
+
+/* ─ 遅延描画 ─
+   以前は 12 個のチャートと 23 枚のパネルを読み込み直後に一度で描いていた。
+   画面に入る手前まで来たら描くようにして、初期表示の作業量を減らす。
+   IntersectionObserver が無い環境では即時描画にフォールバックする。 */
+const Defer = {
+  _pending: 0,
+  when(anchorId, fn) {
+    const el = document.getElementById(anchorId);
+    if (!el || !('IntersectionObserver' in window)) { fn(); return; }
+    this._pending++;
+    const io = new IntersectionObserver(entries => {
+      if (!entries.some(e => e.isIntersecting)) return;
+      io.disconnect();
+      this._pending--;
+      try { fn(); } catch (e) { console.error('[defer] ' + anchorId, e); }
+      // 描画後にテーブルの横スクロール判定をやり直す
+      if (window.TableScroll) TableScroll.init();
+    }, { rootMargin: '400px 0px' });   // 画面に入る400px手前で先に描く
+    io.observe(el);
+  },
+};
 
 /* ─ テーブル：横スクロールの可視化 ─
    列が画面幅に収まらないテーブルだけにヒントとフェードを出し、
@@ -1723,6 +1916,12 @@ const SecNav = {
       raf = requestAnimationFrame(() => { raf = null; onScroll(); });
     }, { passive: true });
     onScroll();
+
+    // 畳まれた節にナビから飛んだときは開いてから移動する
+    links.forEach(a => a.addEventListener('click', () => {
+      const d = document.getElementById(a.dataset.sec);
+      if (d && d.classList.contains('collapsed')) SecFold.toggle(a.dataset.sec);
+    }));
 
     // トップへ戻る
     const top = document.getElementById('totop');
@@ -2782,24 +2981,24 @@ async function init() {
     renderAssetTable(assets);
     renderTrendTable(trend);
 
-    // 週次・月次
-    if (weekly.length)  weeklyUI.init(weekly);
-    if (monthly.length) monthlyUI.init(monthly);
-
-    // Asset Intelligence
-    if (assetV1.length) renderAssetV1(assetV1);
-    if (assetV2.length) renderAssetV2(assetV2);
-    if (assetV1.length && assetV2.length) { renderAssetCompare(assetV1, assetV2); renderBubbleChart(assetV1, assetV2); }
-
-    // Decay & Article Trend
-    if (articles.length)     decayUI.init(articles);
-    if (articleTrend.length) articleTrendUI.init(articleTrend);
-
-    // Uptime / Streak
+    // Uptime / Streak（最初の画面のすぐ下なので即時）
     if (uptime.length) UptimeUI.init(uptime);
 
-    // Comment Intelligence
-    if (articles.length) renderCommentSection(articles);
+    // ここから下は画面外。スクロールで近づいたときに描く
+    if (weekly.length)  Defer.when('sec-weekly',  () => weeklyUI.init(weekly));
+    if (monthly.length) Defer.when('sec-monthly', () => monthlyUI.init(monthly));
+
+    if (assetV1.length || assetV2.length) Defer.when('sec-asset-intel', () => {
+      if (assetV1.length) renderAssetV1(assetV1);
+      if (assetV2.length) renderAssetV2(assetV2);
+      if (assetV1.length && assetV2.length) renderAssetCompare(assetV1, assetV2);
+    });
+    if (assetV1.length && assetV2.length)
+      Defer.when('sec-asset-map', () => renderBubbleChart(assetV1, assetV2));
+
+    if (articles.length)     Defer.when('sec-decay', () => decayUI.init(articles));
+    if (articleTrend.length) Defer.when('sec-trend', () => articleTrendUI.init(articleTrend));
+    if (articles.length)     Defer.when('sec-comment', () => renderCommentSection(articles));
 
   } catch (e) {
     console.error(e);
@@ -2807,6 +3006,8 @@ async function init() {
   }
 }
 
+window.TableScroll = TableScroll;
+SecFold.init();
 SecNav.init();
 setTimeout(() => TableScroll.init(), 900);
 setTimeout(initAllScrolls, 600);
