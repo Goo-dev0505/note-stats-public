@@ -3,7 +3,9 @@
 note.com の運用統計を配信する公開リポジトリ。
 データ収集は別リポジトリ（`note-stats-tracker`）で行い、ここには**配信用のCSVと閲覧用のダッシュボード**だけを置く。
 
-**ダッシュボード** → https://goo-dev0505.github.io/note-stats-public/index.html
+**ダッシュボード**
+- 判断用（入口） → https://goo-dev0505.github.io/note-stats-public/v2.html
+- 深掘り → https://goo-dev0505.github.io/note-stats-public/index.html
 
 ---
 
@@ -12,8 +14,10 @@ note.com の運用統計を配信する公開リポジトリ。
 ```
 data/     配信用CSV。note-stats-tracker が日次で更新・push する
 docs/     GitHub Pages で公開されるダッシュボード（単一HTML・ビルド不要）
-scripts/  このリポジトリ内のCSVから派生CSVを作るスクリプト
 ```
+
+CSVを作るスクリプトはすべて `note-stats-tracker` 側にある。
+このリポジトリは**受け手に徹する**（データ生成のロジックを持たない）。
 
 ダッシュボードは CSV を `raw.githubusercontent.com/Goo-dev0505/note-stats-public/main/data/` から直接 fetch する。
 配信先URLは `docs/index.html` の `CONFIG.dataBase` で定義している。
@@ -22,7 +26,8 @@ scripts/  このリポジトリ内のCSVから派生CSVを作るスクリプト
 
 | ファイル | 用途 |
 |---|---|
-| `docs/index.html` | フル版（本体） |
+| `docs/v2.html` | **判断用（入口）**。「今日」＝日次の変化と打ち手、「判断」＝4象限と統合記事テーブル |
+| `docs/index.html` | 深掘り版。23パネルの詳細分析 |
 | `docs/index_pro.html` | 拡張版 |
 | `docs/index_lite.html` / `index_lite_v2.html` | 軽量版 |
 | `docs/note_stats_mobile.html` | モバイル向け |
@@ -114,17 +119,20 @@ note-stats-tracker (private)
                  └─ ダッシュボードが raw.githubusercontent から CSV を fetch
 ```
 
-### uptime_ranking.csv を日次更新するには
+### 派生CSVの生成順序
 
-現状 `scripts/build_uptime_ranking.py` はこのリポジトリに置いてあるが、**本来の置き場所は `note-stats-tracker` 側**。
-tracker のワークフローで `articles.csv` を生成した**後**に実行し、生成物を他のCSVと同じ経路で配信する。
+`note-stats-tracker` の日次ワークフローで、以下の順に生成される。
+`article_index.csv` は他の解析結果をすべて取り込むため、**必ず最後**に実行する。
 
-```yaml
-- name: Build uptime ranking
-  run: python build_uptime_ranking.py   # data/articles.csv を読み、data/uptime_ranking.csv を書く
 ```
-
-これを入れるまで `data/uptime_ranking.csv` は手動生成した断面のまま固定される（現在 **2026-10-08** 時点）。
+fetch_stats.py        → articles.csv
+analyze.py            → daily_summary / trend_analysis / period_ranking / weekly / monthly
+analyze_assets.py     → asset_articles / asset_score_v1 / asset_score_v2
+analyze_quality.py    → article_quality
+build_article_trend.py→ article_trend
+build_uptime_ranking.py → uptime_ranking     ← articles.csv から
+build_article_index.py  → article_index      ← 上記すべてを統合
+```
 
 ### CSVが無くてもダッシュボードは壊れない
 
@@ -146,3 +154,17 @@ python -m http.server 8000 --directory docs
 
 ダッシュボードは CSV を GitHub の raw URL から読むため、ローカルで配信しても**表示されるデータは main ブランチの内容**になる。
 ローカルのCSVを見たい場合は `CONFIG.dataBase` を `'../data/'` に書き換える。
+
+
+---
+
+## 公開範囲について
+
+このリポジトリは public で、GitHub Pages から誰でもアクセスできる。
+記事別のPV・スキ率・象限判定まで見える状態なので、**検索エンジンには拾わせない**設定を入れてある。
+
+- `docs/robots.txt` … クロールを全面的に拒否
+- 各HTMLの `<meta name="robots" content="noindex, nofollow">`
+
+売上データは含まれない（`build_public_funnel_metrics.py` が除外した公開用ファネルのみを配信している）。
+記事別の内部指標のうち、公開範囲を決めていないものは tracker 側の `data/funnel/` に置かれ、こちらには配信されない。

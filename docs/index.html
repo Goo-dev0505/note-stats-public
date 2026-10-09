@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>note / stats</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -1323,6 +1324,8 @@ const DataLayer = {
     const url = CONFIG.dataBase + name + '.csv?t=' + Date.now();
     const res = await fetch(url);
     if (!res.ok) throw new Error(`${name} not found (${res.status})`);
+    // utf-8-sig のCSVには先頭にBOMが付くが、直後の trim() が U+FEFF を
+    // 空白として除去するため、ここでの特別扱いは不要。
     const text = await res.text();
     const lines = text.trim().split('\n');
     const headers = this.parseLine(lines[0]);

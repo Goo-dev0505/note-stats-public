@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>note / decide</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -213,6 +214,8 @@ function parseLine(line){
 async function fetchCSV(name){
   const r = await fetch(BASE+name+'.csv?t='+Date.now());
   if(!r.ok) throw new Error(name+' '+r.status);
+  // utf-8-sig のCSVには先頭にBOMが付くが、trim() が U+FEFF を空白として
+  // 除去するため、ここでの特別扱いは不要。
   const lines = (await r.text()).trim().split('\n');
   const h = parseLine(lines[0]);
   return lines.slice(1).filter(l=>l.trim()).map(l=>{
