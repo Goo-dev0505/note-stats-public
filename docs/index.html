@@ -588,6 +588,46 @@ header {
 }
 .section-div.collapsed .sec-count { opacity:1; }
 
+/* ── 期間レンジ操作（プリセット＋両端スライダー） ── */
+.rng { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+.rng-chips { display:flex; gap:4px; flex-shrink:0; }
+.rng-chip {
+  font-family:var(--mono); font-size:var(--fs-xs); padding:4px 10px;
+  background:var(--surface2); color:var(--text3);
+  border:1px solid var(--border2); border-radius:3px; cursor:pointer; transition:.15s;
+}
+.rng-chip:hover { color:var(--text2); }
+.rng-chip.on { background:var(--violet-dim); color:var(--violet); border-color:var(--violet); }
+.rng-slider { position:relative; height:20px; flex:1; min-width:150px; }
+.rng-track { position:absolute; top:9px; left:0; right:0; height:3px; background:var(--border2); border-radius:2px; }
+.rng-fill  { position:absolute; top:9px; height:3px; background:var(--violet); border-radius:2px; }
+.rng-slider input[type=range] {
+  position:absolute; top:0; left:0; width:100%; height:20px; margin:0;
+  -webkit-appearance:none; appearance:none; background:transparent;
+  pointer-events:none;              /* つまみ以外は下の入力に触らせる */
+}
+.rng-slider input[type=range]:focus { outline:none; }
+.rng-slider input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance:none; pointer-events:auto;
+  width:14px; height:14px; border-radius:50%;
+  background:var(--violet); border:2px solid var(--bg);
+  box-shadow:0 0 8px rgba(157,111,255,0.6); cursor:grab;
+}
+.rng-slider input[type=range]::-moz-range-thumb {
+  pointer-events:auto; width:14px; height:14px; border-radius:50%; border:2px solid var(--bg);
+  background:var(--violet); box-shadow:0 0 8px rgba(157,111,255,0.6); cursor:grab;
+}
+.rng-label {
+  font-size:var(--fs-xs); color:var(--text2); white-space:nowrap;
+  font-variant-numeric:tabular-nums; flex-shrink:0;
+}
+.rng-label b { color:var(--violet); font-weight:700; }
+@media (max-width:640px) {
+  .rng { gap:8px; }
+  .rng-slider { min-width:100%; order:3; }
+  .rng-label { order:2; }
+}
+
 </style>
 </head>
 <body>
@@ -664,8 +704,9 @@ header {
     <div class="panel">
       <div class="panel-header">
         <div class="panel-title"><span class="ptdot" style="background:var(--cyan)"></span>ビュー / スキ 日次推移</div>
-        <span class="panel-badge">60D</span>
+        <span class="panel-badge" style="color:var(--cyan);border-color:var(--cyan-dim)">RANGE</span>
       </div>
+      <div id="daily-range"></div>
       <div class="chart-stack">
         <div class="chart-wrap sm"><canvas id="chart-daily-view"></canvas></div>
         <div class="chart-wrap sm"><canvas id="chart-daily-like"></canvas></div>
@@ -685,8 +726,9 @@ header {
     <div class="panel">
       <div class="panel-header">
         <div class="panel-title"><span class="ptdot" style="background:var(--violet)"></span>フォロワー 日次推移</div>
-        <span class="panel-badge" style="color:var(--violet);border-color:var(--violet-dim)">DAILY</span>
+        <span class="panel-badge" style="color:var(--violet);border-color:var(--violet-dim)">RANGE</span>
       </div>
+      <div id="followers-range"></div>
       <div class="chart-stack">
         <div class="chart-wrap sm"><canvas id="chart-followers"></canvas></div>
         <div class="chart-wrap sm"><canvas id="chart-followers-delta"></canvas></div>
@@ -1553,12 +1595,14 @@ function renderStatusBand(summary) {
    動かせるため読み手を誤らせる。指標は両方残したまま、x軸を共有する上下2段に
    分割して、各系列を自分のスケールで正しく読めるようにしている。 */
 function renderDailyChart(summary) {
-  const rows   = summary.slice(-60);
-  const labels = rows.map(d => (d['日付'] || '').slice(5));
-  const views  = rows.map(d => Number(d['ビュー合計']));
-  const likes  = rows.map(d => Number(d['スキ合計']));
+  // 以前は slice(-60) の決め打ちで、325日ぶんのデータのうち直近60日しか
+  // 見られなかった。全期間を保持して、表示範囲だけを切り替える。
+  const all    = summary;
+  const labels = all.map(d => (d['日付'] || '').slice(5));
+  const views  = all.map(d => Number(d['ビュー合計']));
+  const likes  = all.map(d => Number(d['スキ合計']));
+  if (!labels.length) return;
 
-  // 上段はx軸の目盛りを隠し、下段とつなげて1つのグラフに見せる
   const stacked = (showX, unit) => ({
     ...baseOpts(),
     plugins: {
@@ -1569,29 +1613,39 @@ function renderDailyChart(summary) {
     },
     interaction: { mode: 'index', intersect: false },
     scales: {
-      x: { grid: { color: CONFIG.gridColor }, ticks: { maxTicksLimit: 10, color: CONFIG.tickColor, display: showX },
-           border: { display: false } },
-      y: { grid: { color: CONFIG.gridColor }, ticks: { color: CONFIG.tickColor, maxTicksLimit: 4 },
-           border: { display: false },
+      x: { grid: { color: CONFIG.gridColor }, border: { display: false },
+           ticks: { maxTicksLimit: 9, color: CONFIG.tickColor, display: showX, maxRotation: 0 } },
+      y: { grid: { color: CONFIG.gridColor }, border: { display: false },
+           ticks: { color: CONFIG.tickColor, maxTicksLimit: 4 },
            title: { display: true, text: unit, color: 'rgba(255,255,255,0.45)', font: { size: 11 } } },
     },
   });
 
-  ChartManager.set('daily-view', new Chart(document.getElementById('chart-daily-view'), {
+  const cv = ChartManager.set('daily-view', new Chart(document.getElementById('chart-daily-view'), {
     type: 'line',
-    data: { labels, datasets: [{ label:'ビュー合計', data: views, borderColor:'#00e5ff',
+    data: { labels: [], datasets: [{ label:'ビュー合計', data: [], borderColor:'#00e5ff',
       backgroundColor:'rgba(0,229,255,0.05)', fill:true, tension:0.35,
       pointRadius:0, pointHoverRadius:4, borderWidth:2 }] },
     options: stacked(false, 'ビュー'),
   }));
-
-  ChartManager.set('daily-like', new Chart(document.getElementById('chart-daily-like'), {
+  const cl = ChartManager.set('daily-like', new Chart(document.getElementById('chart-daily-like'), {
     type: 'bar',
-    data: { labels, datasets: [{ label:'スキ合計', data: likes,
+    data: { labels: [], datasets: [{ label:'スキ合計', data: [],
       backgroundColor:'rgba(255,77,141,0.45)', borderColor:'rgba(255,77,141,0.9)',
       borderWidth:1, borderRadius:3 }] },
     options: stacked(true, 'スキ'),
   }));
+
+  RangeControl.create({
+    mountId: 'daily-range', labels,
+    presets: [{label:'30日',days:30},{label:'60日',days:60},{label:'90日',days:90},{label:'全期間',days:null}],
+    initial: 60,                                  // 従来の見え方を初期値として残す（チップも光る）
+    onChange: (lo, hi) => {
+      const L = labels.slice(lo, hi + 1);
+      cv.data.labels = L; cv.data.datasets[0].data = views.slice(lo, hi + 1); cv.update('none');
+      cl.data.labels = L; cl.data.datasets[0].data = likes.slice(lo, hi + 1); cl.update('none');
+    },
+  });
 }
 
 /* ─ Followers chart ─
@@ -1666,21 +1720,32 @@ function renderFollowersChart(summary, followers) {
     },
   });
 
-  ChartManager.set('followers', new Chart(document.getElementById('chart-followers'), {
+  const fc = ChartManager.set('followers', new Chart(document.getElementById('chart-followers'), {
     type: 'line',
-    data: { labels, datasets: [{ label:'フォロワー数', data: values, borderColor:'#9d6fff',
+    data: { labels: [], datasets: [{ label:'フォロワー数', data: [], borderColor:'#9d6fff',
       backgroundColor:'rgba(157,111,255,0.07)', fill:true, tension:0.25,
       pointRadius:0, pointHoverRadius:4, borderWidth:2, spanGaps:true }] },
-    options: axis(false, '累計', true),
+    options: axis(false, '累計', false),   // 範囲を絞ったとき0起点だと変化が潰れるので自動
   }));
 
   const dEl = document.getElementById('chart-followers-delta');
-  if (dEl) ChartManager.set('followers-delta', new Chart(dEl, {
+  const fd = dEl ? ChartManager.set('followers-delta', new Chart(dEl, {
     type: 'bar',
-    data: { labels, datasets: [{ label:'日次増加', data: deltas,
+    data: { labels: [], datasets: [{ label:'日次増加', data: [],
       backgroundColor:'rgba(157,111,255,0.5)', borderWidth:0, borderRadius:2 }] },
     options: axis(true, '日次', true),
-  }));
+  })) : null;
+
+  RangeControl.create({
+    mountId: 'followers-range', labels,
+    presets: [{label:'30日',days:30},{label:'90日',days:90},{label:'180日',days:180},{label:'全期間',days:null}],
+    initial: null,                               // 既定は全期間
+    onChange: (lo, hi) => {
+      const L = labels.slice(lo, hi + 1);
+      fc.data.labels = L; fc.data.datasets[0].data = values.slice(lo, hi + 1); fc.update('none');
+      if (fd) { fd.data.labels = L; fd.data.datasets[0].data = deltas.slice(lo, hi + 1); fd.update('none'); }
+    },
+  });
 
   // 読み手が自分で検算できるように、集約の事実を1行で添える
   const note = document.getElementById('followers-note');
@@ -1753,6 +1818,71 @@ function renderAssetTable(rows) {
 
 
 
+
+
+/* ─ 期間レンジ操作 ─
+   日次推移は60日固定、フォロワーは全期間を1枚に詰め込んでいた。
+   どちらも長期データなので、見たい範囲を選べるようにする。
+   プリセットのチップ（片手で押せる）と両端ドラッグのスライダー（細かい指定）の併用。 */
+const RangeControl = {
+  /* mountId : 操作UIを置く要素のid
+     labels  : 全期間のラベル配列（表示用）
+     presets : [{label, days}] days=null で全期間
+     initial : 初期の日数（null で全期間）
+     onChange(startIdx, endIdx) : 範囲が変わるたびに呼ばれる（両端を含む） */
+  create({ mountId, labels, presets, initial, onChange }) {
+    const host = document.getElementById(mountId);
+    if (!host || !labels.length) return null;
+    const last = labels.length - 1;
+
+    host.className = 'rng';
+    host.innerHTML =
+      `<div class="rng-chips">${presets.map((p, i) =>
+        `<button class="rng-chip" data-days="${p.days ?? ''}" data-i="${i}">${p.label}</button>`).join('')}</div>
+       <div class="rng-slider">
+         <div class="rng-track"></div><div class="rng-fill"></div>
+         <input type="range" class="rng-a" min="0" max="${last}" value="0">
+         <input type="range" class="rng-b" min="0" max="${last}" value="${last}">
+       </div>
+       <div class="rng-label"></div>`;
+
+    const a = host.querySelector('.rng-a'), b = host.querySelector('.rng-b');
+    const fill = host.querySelector('.rng-fill'), lab = host.querySelector('.rng-label');
+
+    const paint = (lo, hi) => {
+      fill.style.left  = (lo / last * 100) + '%';
+      fill.style.width = ((hi - lo) / last * 100) + '%';
+      lab.innerHTML = `${labels[lo]} → ${labels[hi]} <b>${hi - lo + 1}日</b>`;
+    };
+
+    let lo = 0, hi = last;
+    const apply = (nlo, nhi, fromChip) => {
+      // つまみが入れ替わらないよう最低2点は残す
+      lo = Math.max(0, Math.min(nlo, last - 1));
+      hi = Math.min(last, Math.max(nhi, lo + 1));
+      a.value = lo; b.value = hi;
+      paint(lo, hi);
+      if (!fromChip) host.querySelectorAll('.rng-chip').forEach(c => c.classList.remove('on'));
+      onChange(lo, hi);
+    };
+
+    a.addEventListener('input', () => apply(Number(a.value), hi));
+    b.addEventListener('input', () => apply(lo, Number(b.value)));
+
+    host.querySelectorAll('.rng-chip').forEach(btn => btn.onclick = () => {
+      host.querySelectorAll('.rng-chip').forEach(c => c.classList.remove('on'));
+      btn.classList.add('on');
+      const d = btn.dataset.days;
+      apply(d === '' ? 0 : Math.max(0, last - Number(d) + 1), last, true);
+    });
+
+    // 初期範囲
+    const idx = presets.findIndex(p => (p.days ?? null) === (initial ?? null));
+    if (idx >= 0) host.querySelectorAll('.rng-chip')[idx].classList.add('on');
+    apply(initial ? Math.max(0, last - initial + 1) : 0, last, true);
+    return { apply };
+  },
+};
 
 /* ─ セクションの開閉 ─
    パネル23枚の縦一列は、特にスマホで移動距離が長くなる。
