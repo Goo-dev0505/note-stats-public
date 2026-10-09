@@ -252,10 +252,10 @@ const median = a => { const s=[...a].sort((x,y)=>x-y); const h=s.length>>1;
 
 /* ─ 象限 ─ */
 const QUADS = {
-  '伸ばす':{c:'var(--q-grow)',  why:'長く読まれていて規模もある。追加投資が効く'},
-  '様子見':{c:'var(--q-watch)', why:'細く長い。露出を足せば化けるかもしれない'},
-  '直す'  :{c:'var(--q-fix)',   why:'規模は出たがハーフライフが短い初速型。導線に伸びしろ'},
-  '捨てる':{c:'var(--q-drop)',  why:'規模も寿命も出ていない。学びを取って次へ'},
+  '伸ばす':{c:'var(--q-grow)',  why:'読まれて、かつ刺さった。続編や横展開が効く'},
+  '様子見':{c:'var(--q-watch)', why:'刺さっているのに読まれていない。露出を足せば化ける'},
+  '直す'  :{c:'var(--q-fix)',   why:'読まれているのに刺さっていない。中身か、タイトルとの期待値のズレ'},
+  '捨てる':{c:'var(--q-drop)',  why:'量も反応も出ていない。学びを取って次へ'},
   '判定不可':{c:'var(--q-na)',  why:'観測が短くハーフライフを計算できない'},
 };
 
@@ -263,17 +263,18 @@ const QUADS = {
    「持続」を測るつもりの指標でも、実際には規模の言い換えになっているものがある。
    どれを選んでも規模との相関をその場に出し、軸が意味を持つか自分で判断できるようにする。 */
 const AXES = [
-  {key:'ハーフライフ(日)', label:'ハーフライフ', unit:'日',
-   def:'ピーク日次PVが半分まで落ちるのにかかった日数。<b>長く読まれた総期間ではなく、立ち上がりの鋭さ</b>を測る。'
-      +'公開直後に大きく跳ねた記事は、その後ずっと読まれ続けていても短い値になる。'},
+  {key:'スキ率(%)', label:'スキ率', unit:'%',
+   def:'累計スキ ÷ 累計PV。<b>どれだけ刺さったか</b>を測る。読まれた量とは独立に動く。'},
   {key:'質スコア', label:'質スコア', unit:'',
    def:'初速・持続率・安定性などを合成した総合指標（article_quality 由来）。'},
+  {key:'安定性スコア', label:'安定性', unit:'',
+   def:'日次PVのばらつきの小ささ。波が立たず一定に読まれているほど高い。'},
   {key:'持続率', label:'持続率', unit:'',
    def:'後期平均PV ÷ 中期平均PV。1を超えると後になるほど読まれている。'},
+  {key:'ハーフライフ(日)', label:'ハーフライフ', unit:'日',
+   def:'ピーク日次PVが半分まで落ちるまでの日数。<b>値が5種類しかなく、48%が中央値ちょうどに乗る</b>ため、象限の分離には使えない。'},
   {key:'稼働率', label:'稼働率', unit:'',
-   def:'PVが増えた日数 ÷ 観測日数。ただし累計PVと強く相関するため、縦軸としては規模の言い換えになる。'},
-  {key:'v2スコア', label:'v2スコア', unit:'',
-   def:'累積資産＋利回りスコア。こちらも累計PVと強く相関する。'},
+   def:'PVが増えた日数 ÷ 観測日数。累計PVと強く相関するため、縦軸としては規模の言い換えになる。'},
 ];
 
 /* ─ 表の列 ─ */
@@ -283,6 +284,7 @@ const COLS = [
   {k:'累計PV', t:'累計PV', grp:'規模'},
   {k:'期間増加PV', t:'30日PV', grp:'規模'},
   {k:'累計スキ', t:'スキ', grp:'規模'},
+  {k:'スキ率(%)', t:'スキ率', grp:'規模', suffix:'%'},
   {k:'ハーフライフ(日)', t:'ハーフライフ', grp:'持続'},
   {k:'稼働率', t:'稼働率', grp:'持続', pct:true},
   {k:'累計稼働日数', t:'稼働日数', grp:'持続'},
@@ -361,10 +363,11 @@ function renderToday(){
               .sort((a,b)=>num(a['初速PV(7日)'])-num(b['初速PV(7日)']))
               .map(r=>[r.title, `初速 ${fmt(num(r['初速PV(7日)']))} PV`]) },
     { t:'直せば伸びる', color:'var(--q-fix)',
-      why:'規模は出たが立ち上がりが鋭く、ハーフライフが短い記事。初速型。記事内の導線や回遊を設計すると、山のあとを拾える。',
+      why:'読まれているのにスキ率が中央値を下回る記事。中身が弱いのか、タイトルが作った期待とズレているのか。'
+          +'PVは取れているので、伸びしろが一番大きい。',
       rows: S.rows.filter(r=>r['象限']==='直す')
               .sort((a,b)=>num(b['累計PV'])-num(a['累計PV']))
-              .map(r=>[r.title, `${fmt(num(r['累計PV']))} PV / HL ${r['ハーフライフ(日)']}日`]) },
+              .map(r=>[r.title, `${fmt(num(r['累計PV']))} PV / スキ率 ${num(r['スキ率(%)'])?.toFixed(1)}%`]) },
   ];
 
   document.getElementById('today-cards').innerHTML = groups.map(g=>`
@@ -400,13 +403,23 @@ function renderQuad(){
 
   // 軸が規模とどれだけ重なっているかをその場に出す。
   // 相関が高い軸を縦に置くと点が対角線に並び、象限が意味を失う。
-  const warn = rho!=null && Math.abs(rho)>0.6;
+  // 軸が使い物になるかは相関だけでは決まらない。
+  // 値の種類が少なく中央値に同値が集中する軸は、象限が均等に割れて見えても
+  // 境界上の記事を片側へ寄せているだけで、実際には分離していない。
+  const uniq = new Set(pts.map(p=>p.y)).size;
+  const tie  = pts.filter(p=>p.y===medY).length / pts.length;
+  const warn = (rho!=null && Math.abs(rho)>0.6) || tie>0.15 || uniq<20;
+  const warns = [];
+  if(rho!=null && Math.abs(rho)>0.6) warns.push('規模とほぼ同じものを測っており、点が対角線に並びます');
+  if(tie>0.15) warns.push(`${(tie*100).toFixed(0)}%が中央値ちょうどに乗っており、境界で分離できていません`);
+  if(uniq<20) warns.push(`値が${uniq}種類しかなく粒度が足りません`);
   document.getElementById('axis-hint').innerHTML =
     `<b>${ax.label}</b>：${ax.def}<br>`
     + `横軸 累計PV との順位相関 <b>${rho==null?'—':rho.toFixed(3)}</b>。`
-    + (warn ? ` <span class="warn">この軸は規模とほぼ同じものを測っているため、点が対角線に並び象限が意味を持ちません。</span>`
-            : ` 規模とは独立した軸なので、「大きく当たって即枯れた」と「小さいが長生き」を分離できます。`)
-    + `<br>しきい値は中央値（累計PV ${fmt(medX)} / ${ax.label} ${medY}${ax.unit}）。記事数が増えても意味が保たれるよう固定値にしていません。`
+    + ` 値は<b>${uniq}</b>種類、中央値ちょうどに<b>${(tie*100).toFixed(0)}%</b>。`
+    + (warn ? ` <span class="warn">この軸は象限の分離に向きません：${warns.join('／')}。</span>`
+            : ` 規模と独立していて粒度も十分なので、象限として機能します。`)
+    + `しきい値は中央値（累計PV ${fmt(medX)} / ${ax.label} ${medY}${ax.unit}）。記事数が増えても意味が保たれるよう固定値にしていません。`
     + `　<b>${pts.length}</b>本を描画（${S.rows.length-pts.length}本はこの軸の値が無く除外）。`;
 
   const byQuad = {};
@@ -522,7 +535,7 @@ function renderTable(){
     }
     if(c.kind==='title') return `<td><div class="t-title" title="${esc(r.title)}">${esc(r.title)}</div></td>`;
     const v = num(r[c.k]);
-    return `<td>${v==null?'—':(c.pct?(v*100).toFixed(1)+'%':fmt(v))}</td>`;
+    return `<td>${v==null?'—':(c.pct?(v*100).toFixed(1)+'%':(c.suffix?v.toFixed(1)+c.suffix:fmt(v)))}</td>`;
   }).join('') + '</tr>').join('');
 
   document.getElementById('tbl-count').textContent =

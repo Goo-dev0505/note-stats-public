@@ -76,30 +76,30 @@ def main() -> None:
     join("period_ranking", ["期間増加PV", "1日平均PV", "分析期間(日)"])
 
     # ── 4象限の割り当て ──
-    # 縦軸は「規模と独立していること」で選ぶ。累計PVとの順位相関を実測すると:
-    #   ハーフライフ -0.063 / 質スコア -0.229 / 持続率 +0.226
-    #   稼働率 +0.844 / 最長連続 +0.818 / v2スコア +0.852
-    # 稼働率やv2は一見「持続」の指標だが、実際には規模の言い換えになっており、
-    # これを縦軸にすると象限が対角線に潰れて実質1次元になる（249/247/34/33）。
-    # ハーフライフを既定の縦軸にすると 106/111/111/105 とほぼ均等に割れ、
-    # 「大きく当たって即枯れた」と「小さいが長生き」を分離できる。
-    # 画面側では軸を切り替えられるようにし、各軸の規模との相関も表示する。
-    med_life = out["ハーフライフ(日)"].median()
+    # 縦軸は3つの条件で選ぶ。(1)規模と相関しない (2)値の粒度が十分 (3)中央値に同値が集中しない
+    #   スキ率(%)    相関+0.064  453種  中央値上0%   ★採用
+    #   質スコア      相関-0.229  227種  中央値上1%
+    #   ハーフライフ  相関-0.063    5種  中央値上48%  ← 除外
+    #   稼働率       相関+0.844  332種             ← 規模の言い換え
+    # ハーフライフは規模と無相関だが値が5種類しかなく、48%が中央値ちょうどに乗る。
+    # 象限が均等に割れて見えるのは境界上の半分を片側へ寄せているだけで、実際には分離していない。
+    # スキ率なら「読まれた量 × 刺さり具合」として解釈でき、打ち手も変わる。
+    med_rate = out["スキ率(%)"].median()
     med_pv   = out["累計PV"].median()
 
     def quad(r):
-        life = r.get("ハーフライフ(日)")
-        if pd.isna(life):
-            return "判定不可"          # 観測が短くハーフライフを出せない記事
-        long_lived = life >= med_life
-        big        = r["累計PV"] >= med_pv
-        if long_lived and big:         return "伸ばす"    # 長く読まれる資産。追加投資が効く
-        if long_lived and not big:     return "様子見"    # 細く長い。露出を足せば化けるかも
-        if not long_lived and big:     return "直す"      # 一発屋。構造か導線に伸びしろ
-        return "捨てる"                                    # 学びを取って次へ
+        rate = r.get("スキ率(%)")
+        if pd.isna(rate):
+            return "判定不可"
+        sticky = rate >= med_rate
+        big    = r["累計PV"] >= med_pv
+        if sticky and big:       return "伸ばす"   # 読まれて刺さった。続編・横展開が効く
+        if sticky and not big:   return "様子見"   # 刺さっているのに読まれていない。露出を足す
+        if not sticky and big:   return "直す"     # 読まれているのに刺さらない。中身か期待値のズレ
+        return "捨てる"                             # 学びを取って次へ
 
     out["象限"] = out.apply(quad, axis=1)
-    out["中央値_ハーフライフ"] = round(float(med_life), 2)
+    out["中央値_スキ率"] = round(float(med_rate), 3)
     out["中央値_累計PV"] = int(med_pv)
 
     # 基準日が表ごとに違う（週次/月次は3日遅れることがある）。
@@ -111,7 +111,7 @@ def main() -> None:
 
     print(f"[ok] {DST} / {len(out)} 記事 / {len(out.columns)} 列")
     print("     基準日: " + ", ".join(f"{k}={v}" for k, v in sorted(asof.items())))
-    print(f"     しきい値: ハーフライフ {med_life:.1f}日 / 累計PV {int(med_pv)}（いずれも中央値）")
+    print(f"     しきい値: スキ率 {med_rate:.2f}% / 累計PV {int(med_pv)}（いずれも中央値）")
     print("     象限: " + " / ".join(f"{k} {v}本" for k, v in out["象限"].value_counts().items()))
     miss = [c for c in ["v1スコア", "v2スコア", "質スコア", "トレンドスコア", "期間増加PV"] if c not in out.columns]
     if miss:
