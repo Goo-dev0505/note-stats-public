@@ -589,7 +589,8 @@ header {
 .section-div.collapsed .sec-count { opacity:1; }
 
 /* ── 期間レンジ操作（プリセット＋両端スライダー） ── */
-.rng { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+.rng-wrap { margin-bottom:12px; }
+.rng { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
 .rng-chips { display:flex; gap:4px; flex-shrink:0; }
 .rng-chip {
   font-family:var(--mono); font-size:var(--fs-xs); padding:4px 10px;
@@ -626,6 +627,30 @@ header {
   .rng { gap:8px; }
   .rng-slider { min-width:100%; order:3; }
   .rng-label { order:2; }
+}
+
+/* 月チップ（期間レンジの2段目） */
+.rng-months {
+  display:flex; gap:4px; align-items:center; margin-top:8px;
+  overflow-x:auto; scrollbar-width:none; padding-bottom:2px;
+}
+.rng-months::-webkit-scrollbar { display:none; }
+.rng-months-label {
+  font-size:var(--fs-xs); color:var(--text3); letter-spacing:.1em;
+  flex-shrink:0; margin-right:4px;
+}
+.rng-m {
+  flex-shrink:0; font-family:var(--mono); font-size:var(--fs-xs); padding:3px 9px;
+  background:transparent; color:var(--text3);
+  border:1px solid var(--border); border-radius:3px; cursor:pointer; transition:.15s;
+}
+.rng-m:hover { color:var(--text2); border-color:var(--border2); }
+.rng-m.on { background:var(--cyan-dim); color:var(--cyan); border-color:var(--cyan); }
+/* 年が変わる位置に細い区切りを入れて、どこで年をまたぐか分かるようにする */
+.rng-m.year-start { margin-left:10px; position:relative; }
+.rng-m.year-start::before {
+  content:''; position:absolute; left:-6px; top:2px; bottom:2px;
+  width:1px; background:var(--border2);
 }
 
 </style>
@@ -1645,7 +1670,7 @@ function renderDailyChart(summary) {
   }));
 
   RangeControl.create({
-    mountId: 'daily-range', labels,
+    mountId: 'daily-range', dates: all.map(d => d['日付']),
     presets: [{label:'30日',days:30},{label:'60日',days:60},{label:'90日',days:90},{label:'全期間',days:null}],
     initial: 60,                                  // 従来の見え方を初期値として残す（チップも光る）
     onChange: (lo, hi) => {
@@ -1688,10 +1713,11 @@ function renderFollowersChart(summary, followers) {
 
   // ② 記録の無い日も目盛として確保し、時間に比例した軸にする
   const d0 = new Date(days[0]), d1 = new Date(days[days.length - 1]);
-  const labels = [], values = [];
+  const labels = [], values = [], isoDays = [];
   for (let d = new Date(d0); d <= d1; d.setDate(d.getDate() + 1)) {
     const key = d.toISOString().slice(0, 10);
-    labels.push(key.slice(5).replace('-', '/'));
+    isoDays.push(key);                       // 月チップを組み立てるのに年月が要る
+    labels.push(mdLabel(key));
     values.push(byDay.has(key) ? byDay.get(key) : null);
   }
 
@@ -1745,7 +1771,7 @@ function renderFollowersChart(summary, followers) {
   })) : null;
 
   RangeControl.create({
-    mountId: 'followers-range', labels,
+    mountId: 'followers-range', dates: isoDays,
     presets: [{label:'30日',days:30},{label:'90日',days:90},{label:'180日',days:180},{label:'全期間',days:null}],
     initial: null,                               // 既定は全期間
     onChange: (lo, hi) => {
@@ -1834,28 +1860,58 @@ function renderAssetTable(rows) {
    プリセットのチップ（片手で押せる）と両端ドラッグのスライダー（細かい指定）の併用。 */
 const RangeControl = {
   /* mountId : 操作UIを置く要素のid
-     labels  : 全期間のラベル配列（表示用）
+     dates   : 全期間の日付（'2026/7/1' や '2026-07-01' など表記揺れは吸収する）
      presets : [{label, days}] days=null で全期間
      initial : 初期の日数（null で全期間）
      onChange(startIdx, endIdx) : 範囲が変わるたびに呼ばれる（両端を含む） */
-  create({ mountId, labels, presets, initial, onChange }) {
+  create({ mountId, dates, presets, initial, onChange }) {
     const host = document.getElementById(mountId);
-    if (!host || !labels.length) return null;
+    if (!host || !dates.length) return null;
+    const labels = dates.map(mdLabel);
     const last = labels.length - 1;
 
-    host.className = 'rng';
+    // ── 月ごとの区間を作る（「7月」「8月」で一発選択できるように）──
+    const ym = dates.map(v => {
+      const m = String(v || '').match(/(\d{4})[\/-](\d{1,2})/);
+      return m ? `${m[1]}-${m[2].padStart(2, '0')}` : '';
+    });
+    const months = [];
+    ym.forEach((k, i) => {
+      if (!k) return;
+      const cur = months[months.length - 1];
+      if (cur && cur.key === k) cur.hi = i;
+      else months.push({ key: k, lo: i, hi: i });
+    });
+    // 同じ月番号が2回出る（13ヶ月以上）なら年も出さないと区別できない
+    const nums = months.map(m => Number(m.key.slice(5)));
+    const dup = nums.length !== new Set(nums).size;
+    months.forEach((m, i) => {
+      const [y, mo] = m.key.split('-');
+      m.label = dup ? `${y.slice(2)}/${mo}` : `${Number(mo)}月`;
+      m.title = `${y}年${Number(mo)}月`;
+      m.yearStart = i > 0 && months[i - 1].key.slice(0, 4) !== y;
+    });
+
+    host.className = 'rng-wrap';
     host.innerHTML =
-      `<div class="rng-chips">${presets.map((p, i) =>
-        `<button class="rng-chip" data-days="${p.days ?? ''}" data-i="${i}">${p.label}</button>`).join('')}</div>
-       <div class="rng-slider">
-         <div class="rng-track"></div><div class="rng-fill"></div>
-         <input type="range" class="rng-a" min="0" max="${last}" value="0">
-         <input type="range" class="rng-b" min="0" max="${last}" value="${last}">
+      `<div class="rng">
+         <div class="rng-chips">${presets.map(p =>
+           `<button class="rng-chip" data-days="${p.days ?? ''}">${p.label}</button>`).join('')}</div>
+         <div class="rng-slider">
+           <div class="rng-track"></div><div class="rng-fill"></div>
+           <input type="range" class="rng-a" min="0" max="${last}" value="0" aria-label="開始日">
+           <input type="range" class="rng-b" min="0" max="${last}" value="${last}" aria-label="終了日">
+         </div>
+         <div class="rng-label"></div>
        </div>
-       <div class="rng-label"></div>`;
+       ${months.length > 1 ? `<div class="rng-months"><span class="rng-months-label">月</span>${
+         months.map((m, i) => `<button class="rng-m${m.yearStart ? ' year-start' : ''}" `
+           + `data-i="${i}" title="${m.title}">${m.label}</button>`).join('')}</div>` : ''}`;
 
     const a = host.querySelector('.rng-a'), b = host.querySelector('.rng-b');
     const fill = host.querySelector('.rng-fill'), lab = host.querySelector('.rng-label');
+    const chips = [...host.querySelectorAll('.rng-chip')];
+    const mchips = [...host.querySelectorAll('.rng-m')];
 
     const paint = (lo, hi) => {
       fill.style.left  = (lo / last * 100) + '%';
@@ -1864,30 +1920,37 @@ const RangeControl = {
     };
 
     let lo = 0, hi = last;
-    const apply = (nlo, nhi, fromChip) => {
-      // つまみが入れ替わらないよう最低2点は残す
+    // src: 'chip' | 'month' | 'drag' — どの操作で変わったかで、どのチップを光らせるか決める
+    const apply = (nlo, nhi, src) => {
       lo = Math.max(0, Math.min(nlo, last - 1));
       hi = Math.min(last, Math.max(nhi, lo + 1));
       a.value = lo; b.value = hi;
       paint(lo, hi);
-      if (!fromChip) host.querySelectorAll('.rng-chip').forEach(c => c.classList.remove('on'));
+      if (src !== 'chip')  chips.forEach(c => c.classList.remove('on'));
+      if (src !== 'month') mchips.forEach(c => c.classList.remove('on'));
       onChange(lo, hi);
     };
 
-    a.addEventListener('input', () => apply(Number(a.value), hi));
-    b.addEventListener('input', () => apply(lo, Number(b.value)));
+    a.addEventListener('input', () => apply(Number(a.value), hi, 'drag'));
+    b.addEventListener('input', () => apply(lo, Number(b.value), 'drag'));
 
-    host.querySelectorAll('.rng-chip').forEach(btn => btn.onclick = () => {
-      host.querySelectorAll('.rng-chip').forEach(c => c.classList.remove('on'));
+    chips.forEach(btn => btn.onclick = () => {
+      chips.forEach(c => c.classList.remove('on'));
       btn.classList.add('on');
       const d = btn.dataset.days;
-      apply(d === '' ? 0 : Math.max(0, last - Number(d) + 1), last, true);
+      apply(d === '' ? 0 : Math.max(0, last - Number(d) + 1), last, 'chip');
     });
 
-    // 初期範囲
+    mchips.forEach(btn => btn.onclick = () => {
+      mchips.forEach(c => c.classList.remove('on'));
+      btn.classList.add('on');
+      const m = months[Number(btn.dataset.i)];
+      apply(m.lo, m.hi, 'month');
+    });
+
     const idx = presets.findIndex(p => (p.days ?? null) === (initial ?? null));
-    if (idx >= 0) host.querySelectorAll('.rng-chip')[idx].classList.add('on');
-    apply(initial ? Math.max(0, last - initial + 1) : 0, last, true);
+    if (idx >= 0) chips[idx].classList.add('on');
+    apply(initial ? Math.max(0, last - initial + 1) : 0, last, 'chip');
     return { apply };
   },
 };
