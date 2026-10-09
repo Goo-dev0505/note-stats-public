@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>note / decide</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#06080f; --bg2:#0b0e1a; --surface:#0f1221; --surface2:#141729;
+  --border:rgba(255,255,255,0.07); --border2:rgba(255,255,255,0.12);
+  --cyan:#00e5ff; --cyan-dim:rgba(0,229,255,0.12);
+  --pink:#ff4d8d; --pink-dim:rgba(255,77,141,0.12);
+  --gold:#ffc947; --gold-dim:rgba(255,201,71,0.12);
+  --violet:#9d6fff; --violet-dim:rgba(157,111,255,0.12);
+  --green:#00e5a0; --green-dim:rgba(0,229,160,0.12); --red:#ff4d6a;
+  --text:#f0f4ff; --text2:#b0bcd8; --text3:#6b7599;
+  --mono:'JetBrains Mono',monospace; --sans:'Syne',sans-serif; --r:6px;
+  --fs-xs:11px; --fs-sm:12px; --fs-md:13px; --fs-lg:15px;
+
+  /* 象限の色。暗い面(#0f1221)上で全ペアのCVD判定を通した4色。
+     色だけに頼らず、ラベルと位置でも区別できるようにしている。 */
+  --q-grow:#1a89c5;   /* 伸ばす */
+  --q-fix:#b76b1c;    /* 直す   */
+  --q-watch:#3b9555;  /* 様子見 */
+  --q-drop:#ab61a5;   /* 捨てる */
+  --q-na:#5b6480;     /* 判定不可 */
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh}
+
+header{
+  position:sticky; top:0; z-index:100; background:rgba(6,8,15,0.94); backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border); padding:0 24px; height:54px;
+  display:flex; align-items:center; gap:16px;
+}
+.logo{font-family:var(--sans); font-size:var(--fs-lg); font-weight:800; letter-spacing:.04em; white-space:nowrap}
+.logo span{color:var(--text3)}
+.tabs{display:flex; gap:4px; margin-left:8px}
+.tab{
+  font-family:var(--mono); font-size:var(--fs-sm); padding:5px 14px; cursor:pointer;
+  background:transparent; color:var(--text3); border:1px solid transparent; border-radius:3px; transition:.15s;
+}
+.tab:hover{color:var(--text2)}
+.tab.on{background:var(--cyan-dim); color:var(--cyan); border-color:var(--cyan)}
+.hdr-right{margin-left:auto; display:flex; align-items:center; gap:14px; font-size:var(--fs-xs); color:var(--text3)}
+.hdr-right a{color:var(--text3); text-decoration:none; border:1px solid var(--border2); padding:4px 10px; border-radius:3px; white-space:nowrap}
+.hdr-right a:hover{color:var(--cyan); border-color:var(--cyan-dim)}
+
+main{padding:20px 24px 60px; max-width:1500px; margin:0 auto}
+.view{display:none} .view.on{display:block}
+
+.panel{background:var(--surface); border:1px solid var(--border); border-radius:var(--r); padding:16px 18px; margin-bottom:14px}
+.panel-h{display:flex; align-items:baseline; gap:10px; margin-bottom:14px; flex-wrap:wrap}
+.panel-t{font-family:var(--sans); font-weight:700; font-size:var(--fs-lg); display:flex; align-items:center; gap:8px}
+.panel-t::before{content:''; width:5px; height:5px; border-radius:50%; background:var(--cyan); box-shadow:0 0 8px var(--cyan)}
+.panel-s{font-size:var(--fs-xs); color:var(--text3)}
+
+.tiles{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; margin-bottom:14px}
+.tile{background:var(--surface); border:1px solid var(--border); border-radius:var(--r); padding:14px 16px}
+.tile-k{font-size:var(--fs-xs); letter-spacing:.12em; color:var(--text3); text-transform:uppercase}
+.tile-v{font-family:var(--sans); font-size:30px; font-weight:800; line-height:1.15; margin-top:4px; font-variant-numeric:tabular-nums}
+.tile-c{font-size:var(--fs-xs); margin-top:4px; color:var(--text3)}
+.up{color:var(--green)} .down{color:var(--red)} .flat{color:var(--text3)}
+
+.cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:12px}
+.card{background:var(--bg2); border:1px solid var(--border); border-radius:var(--r); padding:14px 16px}
+.card-h{display:flex; align-items:center; gap:8px; margin-bottom:10px}
+.card-t{font-family:var(--sans); font-weight:700; font-size:var(--fs-md)}
+.card-n{font-size:var(--fs-xs); color:var(--text3); margin-left:auto}
+.card-why{font-size:var(--fs-xs); color:var(--text3); line-height:1.7; margin-bottom:10px}
+.item{display:flex; gap:9px; padding:7px 0; border-top:1px solid var(--border); align-items:baseline}
+.item:first-of-type{border-top:none}
+.item-t{flex:1; font-size:var(--fs-sm); color:var(--text2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.item-v{font-size:var(--fs-sm); font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap}
+.empty{font-size:var(--fs-xs); color:var(--text3); padding:10px 0}
+
+.ctrl{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:12px}
+.ctrl-l{font-size:var(--fs-xs); letter-spacing:.1em; color:var(--text3)}
+.btn{
+  font-family:var(--mono); font-size:var(--fs-xs); padding:5px 11px; background:var(--surface2);
+  color:var(--text2); border:1px solid var(--border2); border-radius:3px; cursor:pointer; transition:.15s;
+}
+.btn:hover{color:var(--text)}
+.btn.on{background:var(--cyan-dim); color:var(--cyan); border-color:var(--cyan)}
+input[type=search]{
+  font-family:var(--mono); font-size:var(--fs-sm); padding:5px 11px; min-width:200px; flex:1; max-width:320px;
+  background:var(--surface2); color:var(--text); border:1px solid var(--border2); border-radius:3px;
+}
+input[type=search]:focus{outline:none; border-color:var(--cyan)}
+
+.axis-hint{font-size:var(--fs-xs); color:var(--text3); margin-top:8px; line-height:1.7}
+.axis-hint b{color:var(--text2)}
+.warn{color:var(--gold)}
+
+.chart-wrap{position:relative; height:330px}
+.qlegend{display:flex; gap:12px; flex-wrap:wrap; margin-top:10px; font-size:var(--fs-xs)}
+.qlegend button{
+  display:flex; align-items:center; gap:6px; background:transparent; border:1px solid transparent;
+  color:var(--text3); cursor:pointer; font-family:var(--mono); font-size:var(--fs-xs);
+  padding:3px 8px; border-radius:3px;
+}
+.qlegend button:hover{color:var(--text2); border-color:var(--border2)}
+.qlegend button.on{color:var(--text); border-color:var(--border2); background:var(--surface2)}
+.dot{width:9px; height:9px; border-radius:2px; flex-shrink:0}
+
+.twrap{overflow-x:auto; border:1px solid var(--border); border-radius:var(--r)}
+table{width:100%; border-collapse:separate; border-spacing:0; font-size:var(--fs-sm); min-width:760px}
+th{
+  position:sticky; top:0; z-index:2; background:var(--bg2); text-align:right; white-space:nowrap;
+  padding:9px 11px; font-size:var(--fs-xs); letter-spacing:.05em; color:var(--text3);
+  border-bottom:1px solid var(--border); cursor:pointer; user-select:none;
+}
+th:first-child,th:nth-child(2){text-align:left}
+th:hover{color:var(--text2)}
+th.sorted{color:var(--cyan)}
+td{padding:8px 11px; border-bottom:1px solid var(--border); text-align:right; font-variant-numeric:tabular-nums; color:var(--text2)}
+td:first-child,td:nth-child(2){text-align:left}
+tbody tr:nth-child(even){background:rgba(255,255,255,0.013)}
+tbody tr:hover{background:var(--surface2)}
+.t-title{max-width:340px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text)}
+.qtag{display:inline-block; font-size:var(--fs-xs); padding:1px 7px; border-radius:3px; white-space:nowrap}
+.foot{font-size:var(--fs-xs); color:var(--text3); line-height:1.8; margin-top:12px}
+.foot b{color:var(--text2)}
+.loading{color:var(--text3); font-size:var(--fs-sm); padding:24px; text-align:center}
+
+@media (max-width:760px){
+  header{padding:0 12px; gap:8px; height:auto; min-height:54px; flex-wrap:wrap; padding-bottom:8px}
+  .hdr-right{width:100%; margin-left:0; order:3}
+  main{padding:14px 12px 50px}
+  .tile-v{font-size:26px}
+  .chart-wrap{height:300px}
+  .t-title{max-width:52vw}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">note<span>/</span>decide</div>
+  <div class="tabs">
+    <button class="tab on" data-view="today">今日</button>
+    <button class="tab" data-view="decide">判断</button>
+  </div>
+  <div class="hdr-right">
+    <span id="asof">—</span>
+    <a href="index.html">深掘り →</a>
+  </div>
+</header>
+
+<main>
+  <!-- ══ レイヤー1：今日 ══ -->
+  <section class="view on" id="view-today">
+    <div class="tiles" id="today-tiles"></div>
+    <div class="panel">
+      <div class="panel-h">
+        <div class="panel-t">動いたもの</div>
+        <div class="panel-s">全563本のうち、昨日なんらかの変化があったものだけを出す</div>
+      </div>
+      <div class="cards" id="today-cards"><div class="loading">読み込み中…</div></div>
+    </div>
+  </section>
+
+  <!-- ══ レイヤー2：判断 ══ -->
+  <section class="view" id="view-decide">
+    <div class="panel">
+      <div class="panel-h">
+        <div class="panel-t">4象限マップ</div>
+        <div class="panel-s">横軸＝規模（累計PV・対数）／ 縦軸＝切替可。点をクリックで下の表を絞り込む</div>
+      </div>
+      <div class="ctrl">
+        <span class="ctrl-l">縦軸</span>
+        <span id="axis-btns"></span>
+      </div>
+      <div class="chart-wrap"><canvas id="quad"></canvas></div>
+      <div class="qlegend" id="qlegend"></div>
+      <div class="axis-hint" id="axis-hint"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-h">
+        <div class="panel-t">記事インデックス</div>
+        <div class="panel-s" id="tbl-count">—</div>
+      </div>
+      <div class="ctrl">
+        <input type="search" id="q" placeholder="タイトルで絞り込み">
+        <span class="ctrl-l">列</span>
+        <button class="btn on" data-grp="規模">規模</button>
+        <button class="btn on" data-grp="持続">持続</button>
+        <button class="btn" data-grp="勢い">勢い</button>
+        <button class="btn" id="reset">絞り込み解除</button>
+      </div>
+      <div class="twrap"><table><thead id="thead"></thead><tbody id="tbody"></tbody></table></div>
+      <div class="foot" id="tbl-foot"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+const BASE = 'https://raw.githubusercontent.com/Goo-dev0505/note-stats-public/main/data/';
+
+/* ─ CSV ─ */
+function parseLine(line){
+  const v=[]; let cur='', q=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(c==='"'){ if(q&&line[i+1]==='"'){cur+='"';i++;} else q=!q; }
+    else if(c===','&&!q){ v.push(cur.trim()); cur=''; } else cur+=c;
+  }
+  v.push(cur.trim()); return v;
+}
+async function fetchCSV(name){
+  const r = await fetch(BASE+name+'.csv?t='+Date.now());
+  if(!r.ok) throw new Error(name+' '+r.status);
+  const lines = (await r.text()).trim().split('\n');
+  const h = parseLine(lines[0]);
+  return lines.slice(1).filter(l=>l.trim()).map(l=>{
+    const v=parseLine(l), o={}; h.forEach((k,i)=>o[k]=v[i]??''); return o;
+  });
+}
+// 空欄を Number() に通すと 0 になってしまう（Number('') === 0）。
+// 欠測を0として扱うと中央値・相関・象限がすべて狂うので、明示的に null に落とす。
+const num = v => {
+  if (v === null || v === undefined || String(v).trim() === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+};
+const fmt = n => n==null ? '—' : n.toLocaleString();
+const esc = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ─ 順位相関（軸が規模の言い換えになっていないかを示すのに使う）─ */
+function spearman(pairs){
+  const n = pairs.length; if(n < 10) return null;
+  const rank = arr => {
+    const idx = arr.map((v,i)=>[v,i]).sort((a,b)=>a[0]-b[0]);
+    const r = new Array(n);
+    for(let i=0;i<n;){
+      let j=i; while(j+1<n && idx[j+1][0]===idx[i][0]) j++;
+      const avg=(i+j)/2+1; for(let k=i;k<=j;k++) r[idx[k][1]]=avg;
+      i=j+1;
+    }
+    return r;
+  };
+  const rx=rank(pairs.map(p=>p[0])), ry=rank(pairs.map(p=>p[1]));
+  const m=(n+1)/2; let sxy=0,sx=0,sy=0;
+  for(let i=0;i<n;i++){ const a=rx[i]-m,b=ry[i]-m; sxy+=a*b; sx+=a*a; sy+=b*b; }
+  return (sx&&sy) ? sxy/Math.sqrt(sx*sy) : null;
+}
+const median = a => { const s=[...a].sort((x,y)=>x-y); const h=s.length>>1;
+  return s.length? (s.length%2 ? s[h] : (s[h-1]+s[h])/2) : null; };
+
+/* ─ 象限 ─ */
+const QUADS = {
+  '伸ばす':{c:'var(--q-grow)',  why:'長く読まれていて規模もある。追加投資が効く'},
+  '様子見':{c:'var(--q-watch)', why:'細く長い。露出を足せば化けるかもしれない'},
+  '直す'  :{c:'var(--q-fix)',   why:'規模は出たがハーフライフが短い初速型。導線に伸びしろ'},
+  '捨てる':{c:'var(--q-drop)',  why:'規模も寿命も出ていない。学びを取って次へ'},
+  '判定不可':{c:'var(--q-na)',  why:'観測が短くハーフライフを計算できない'},
+};
+
+/* ─ 縦軸の候補 ─
+   「持続」を測るつもりの指標でも、実際には規模の言い換えになっているものがある。
+   どれを選んでも規模との相関をその場に出し、軸が意味を持つか自分で判断できるようにする。 */
+const AXES = [
+  {key:'ハーフライフ(日)', label:'ハーフライフ', unit:'日',
+   def:'ピーク日次PVが半分まで落ちるのにかかった日数。<b>長く読まれた総期間ではなく、立ち上がりの鋭さ</b>を測る。'
+      +'公開直後に大きく跳ねた記事は、その後ずっと読まれ続けていても短い値になる。'},
+  {key:'質スコア', label:'質スコア', unit:'',
+   def:'初速・持続率・安定性などを合成した総合指標（article_quality 由来）。'},
+  {key:'持続率', label:'持続率', unit:'',
+   def:'後期平均PV ÷ 中期平均PV。1を超えると後になるほど読まれている。'},
+  {key:'稼働率', label:'稼働率', unit:'',
+   def:'PVが増えた日数 ÷ 観測日数。ただし累計PVと強く相関するため、縦軸としては規模の言い換えになる。'},
+  {key:'v2スコア', label:'v2スコア', unit:'',
+   def:'累積資産＋利回りスコア。こちらも累計PVと強く相関する。'},
+];
+
+/* ─ 表の列 ─ */
+const COLS = [
+  {k:'象限',   t:'象限', grp:null, kind:'quad', w:true},
+  {k:'title',  t:'タイトル', grp:null, kind:'title'},
+  {k:'累計PV', t:'累計PV', grp:'規模'},
+  {k:'期間増加PV', t:'30日PV', grp:'規模'},
+  {k:'累計スキ', t:'スキ', grp:'規模'},
+  {k:'ハーフライフ(日)', t:'ハーフライフ', grp:'持続'},
+  {k:'稼働率', t:'稼働率', grp:'持続', pct:true},
+  {k:'累計稼働日数', t:'稼働日数', grp:'持続'},
+  {k:'質スコア', t:'質スコア', grp:'持続'},
+  {k:'現在継続日数', t:'継続中', grp:'勢い'},
+  {k:'直近30日稼働', t:'直近30日', grp:'勢い'},
+  {k:'トレンドスコア', t:'トレンド', grp:'勢い'},
+  {k:'7日合計PV', t:'7日PV', grp:'勢い'},
+];
+
+const S = { rows:[], daily:[], quadFilter:null, axis:AXES[0].key,
+            groups:new Set(['規模','持続']), sort:{k:'累計PV',dir:-1}, q:'' };
+let quadChart = null;
+
+/* ══ レイヤー1：今日 ══ */
+function renderToday(){
+  const d = S.daily;
+  // daily_summary のビュー合計・スキ合計は「その日時点の累計」なので、
+  // 日々の動きを見るには差分を取る必要がある。
+  const diffs = [];
+  for(let i=1;i<d.length;i++){
+    diffs.push({
+      date: d[i]['日付'],
+      pv: num(d[i]['ビュー合計']) - num(d[i-1]['ビュー合計']),
+      like: num(d[i]['スキ合計']) - num(d[i-1]['スキ合計']),
+    });
+  }
+  const latest = diffs[diffs.length-1];
+  const prev30 = diffs.slice(-31,-1);
+  const avg = k => prev30.length ? prev30.reduce((s,x)=>s+(x[k]||0),0)/prev30.length : null;
+
+  const tile = (label, val, base, unit) => {
+    const diff = base ? (val-base)/base*100 : null;
+    const cls = diff==null ? 'flat' : diff > 5 ? 'up' : diff < -5 ? 'down' : 'flat';
+    const arrow = diff==null ? '' : diff > 5 ? '▲' : diff < -5 ? '▼' : '→';
+    return `<div class="tile">
+      <div class="tile-k">${label}</div>
+      <div class="tile-v">${val==null?'—':'+'+fmt(val)}<span style="font-size:14px;color:var(--text3)">${unit}</span></div>
+      <div class="tile-c">直近30日平均 ${base==null?'—':Math.round(base).toLocaleString()+unit}
+        <span class="${cls}">${arrow}${diff==null?'':Math.abs(diff).toFixed(0)+'%'}</span></div>
+    </div>`;
+  };
+
+  const liveRows = S.rows.filter(r=>r['継続区分']==='復活' || r['継続区分']==='新作' || r['継続区分']==='継続');
+  document.getElementById('today-tiles').innerHTML =
+    tile('昨日の PV 増', latest?.pv, avg('pv'), '') +
+    tile('昨日の スキ 増', latest?.like, avg('like'), '') +
+    `<div class="tile">
+      <div class="tile-k">いま動いてる記事</div>
+      <div class="tile-v" style="color:var(--green)">${liveRows.length}<span style="font-size:14px;color:var(--text3)"> 本</span></div>
+      <div class="tile-c">全${S.rows.length}本中 ${(liveRows.length/S.rows.length*100).toFixed(0)}%</div>
+    </div>` +
+    `<div class="tile">
+      <div class="tile-k">要注意（休眠）</div>
+      <div class="tile-v" style="color:var(--text3)">${S.rows.filter(r=>num(r['直近30日稼働'])===0).length}<span style="font-size:14px;color:var(--text3)"> 本</span></div>
+      <div class="tile-c">直近30日で一度も動いていない</div>
+    </div>`;
+
+  // ── 動いたものだけを、次の行動ごとにまとめる ──
+  const med初速 = median(S.rows.map(r=>num(r['初速PV(7日)'])).filter(v=>v!=null));
+  const groups = [
+    { t:'再告知の好機', color:'var(--pink)',
+      why:'7日以上の休眠から自力で動き出した記事。検索などの外部流入が点いた可能性が高く、ここに再告知を重ねると伸びやすい。',
+      rows: S.rows.filter(r=>r['継続区分']==='復活')
+              .sort((a,b)=>num(b['直前休眠日数'])-num(a['直前休眠日数']))
+              .map(r=>[r.title, `休眠${r['直前休眠日数']}日 → 復活`]) },
+    { t:'追い風に乗せる', color:'var(--gold)',
+      why:'直近7日のトレンドスコアが高い記事。いま読まれている流れが切れないうちに、続編や関連記事へ導線を張る。',
+      rows: S.rows.filter(r=>String(r['トレンド状態']||'').includes('🔥'))
+              .sort((a,b)=>num(b['トレンドスコア'])-num(a['トレンドスコア']))
+              .map(r=>[r.title, `7日 +${fmt(num(r['7日合計PV']))} PV`]) },
+    { t:'初速が出ていない新着', color:'var(--red)',
+      why:`公開7日以内で、初速PVが全体の中央値（${med初速??'—'}）を下回っている記事。タイトルとサムネを疑う段階。`,
+      rows: S.rows.filter(r=>num(r['Age'])!=null && num(r['Age'])<=7 && num(r['初速PV(7日)'])!=null
+                             && num(r['初速PV(7日)'])<med初速)
+              .sort((a,b)=>num(a['初速PV(7日)'])-num(b['初速PV(7日)']))
+              .map(r=>[r.title, `初速 ${fmt(num(r['初速PV(7日)']))} PV`]) },
+    { t:'直せば伸びる', color:'var(--q-fix)',
+      why:'規模は出たが立ち上がりが鋭く、ハーフライフが短い記事。初速型。記事内の導線や回遊を設計すると、山のあとを拾える。',
+      rows: S.rows.filter(r=>r['象限']==='直す')
+              .sort((a,b)=>num(b['累計PV'])-num(a['累計PV']))
+              .map(r=>[r.title, `${fmt(num(r['累計PV']))} PV / HL ${r['ハーフライフ(日)']}日`]) },
+  ];
+
+  document.getElementById('today-cards').innerHTML = groups.map(g=>`
+    <div class="card">
+      <div class="card-h">
+        <span class="dot" style="background:${g.color}"></span>
+        <span class="card-t">${g.t}</span>
+        <span class="card-n">${g.rows.length}本</span>
+      </div>
+      <div class="card-why">${g.why}</div>
+      ${g.rows.length ? g.rows.slice(0,5).map(([t,v])=>`
+        <div class="item"><span class="item-t" title="${esc(t)}">${esc(t)}</span>
+          <span class="item-v" style="color:${g.color}">${esc(v)}</span></div>`).join('')
+        : '<div class="empty">該当なし</div>'}
+      ${g.rows.length>5 ? `<div class="empty">ほか ${g.rows.length-5} 本</div>` : ''}
+    </div>`).join('');
+}
+
+/* ══ レイヤー2：判断 ══ */
+function renderAxisButtons(){
+  document.getElementById('axis-btns').innerHTML = AXES.map(a=>
+    `<button class="btn${a.key===S.axis?' on':''}" data-axis="${a.key}">${a.label}</button>`).join(' ');
+  document.querySelectorAll('[data-axis]').forEach(b=>b.onclick=()=>{
+    S.axis=b.dataset.axis; renderAxisButtons(); renderQuad(); renderTable();
+  });
+}
+
+function renderQuad(){
+  const ax = AXES.find(a=>a.key===S.axis);
+  const pts = S.rows.map(r=>({x:num(r['累計PV']), y:num(r[S.axis]), r})).filter(p=>p.x>0 && p.y!=null);
+  const medX = median(pts.map(p=>p.x)), medY = median(pts.map(p=>p.y));
+  const rho  = spearman(pts.map(p=>[p.x,p.y]));
+
+  // 軸が規模とどれだけ重なっているかをその場に出す。
+  // 相関が高い軸を縦に置くと点が対角線に並び、象限が意味を失う。
+  const warn = rho!=null && Math.abs(rho)>0.6;
+  document.getElementById('axis-hint').innerHTML =
+    `<b>${ax.label}</b>：${ax.def}<br>`
+    + `横軸 累計PV との順位相関 <b>${rho==null?'—':rho.toFixed(3)}</b>。`
+    + (warn ? ` <span class="warn">この軸は規模とほぼ同じものを測っているため、点が対角線に並び象限が意味を持ちません。</span>`
+            : ` 規模とは独立した軸なので、「大きく当たって即枯れた」と「小さいが長生き」を分離できます。`)
+    + `<br>しきい値は中央値（累計PV ${fmt(medX)} / ${ax.label} ${medY}${ax.unit}）。記事数が増えても意味が保たれるよう固定値にしていません。`
+    + `　<b>${pts.length}</b>本を描画（${S.rows.length-pts.length}本はこの軸の値が無く除外）。`;
+
+  const byQuad = {};
+  pts.forEach(p=>{
+    const q = p.y>=medY ? (p.x>=medX?'伸ばす':'様子見') : (p.x>=medX?'直す':'捨てる');
+    (byQuad[q] ||= []).push(p);
+  });
+
+  const style = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  const datasets = Object.entries(byQuad).map(([q,ps])=>({
+    label:q, data:ps.map(p=>({x:p.x,y:p.y,_t:p.r.title,_q:q})),
+    backgroundColor:style(QUADS[q].c)+'cc', borderColor:style(QUADS[q].c),
+    borderWidth:1, pointRadius:4, pointHoverRadius:7,
+    hidden: S.quadFilter ? S.quadFilter!==q : false,
+  }));
+
+  if(quadChart) quadChart.destroy();
+  quadChart = new Chart(document.getElementById('quad'), {
+    type:'scatter',
+    data:{datasets},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'#0f1221', borderColor:'rgba(255,255,255,0.1)', borderWidth:1,
+          titleColor:'#e8ecf8', bodyColor:'#8891b0', padding:11, cornerRadius:6,
+          callbacks:{
+            title:c=>c[0].raw._t.slice(0,44),
+            label:c=>[` 象限: ${c.raw._q}`, ` 累計PV: ${fmt(c.raw.x)}`, ` ${ax.label}: ${c.raw.y}${ax.unit}`],
+          },
+        },
+      },
+      scales:{
+        // 累計PVは裾が長いので対数。線形だと大半が左端に潰れて読めない
+        x:{ type:'logarithmic', grid:{color:'rgba(255,255,255,0.05)'}, border:{display:false},
+            ticks:{color:'rgba(255,255,255,0.55)', callback:v=>Number(v).toLocaleString()},
+            title:{display:true, text:'累計PV（対数）', color:'rgba(255,255,255,0.45)', font:{size:11}} },
+        y:{ grid:{color:'rgba(255,255,255,0.05)'}, border:{display:false},
+            ticks:{color:'rgba(255,255,255,0.55)'},
+            title:{display:true, text:ax.label+(ax.unit?`（${ax.unit}）`:''), color:'rgba(255,255,255,0.45)', font:{size:11}} },
+      },
+      onClick:(e,els)=>{
+        if(!els.length) return;
+        const q = quadChart.data.datasets[els[0].datasetIndex].label;
+        S.quadFilter = S.quadFilter===q ? null : q;
+        renderQuad(); renderTable(); renderLegend();
+      },
+    },
+    plugins:[{
+      // 中央値の十字線。象限の境界がどこかを明示する
+      id:'medlines',
+      afterDraw(c){
+        const {ctx,chartArea:a,scales}=c;
+        ctx.save(); ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.setLineDash([4,4]); ctx.lineWidth=1;
+        const x=scales.x.getPixelForValue(medX), y=scales.y.getPixelForValue(medY);
+        ctx.beginPath(); ctx.moveTo(x,a.top); ctx.lineTo(x,a.bottom); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(a.left,y); ctx.lineTo(a.right,y); ctx.stroke();
+        ctx.restore();
+      },
+    }],
+  });
+  S._byQuad = byQuad;
+  S._medX = medX; S._medY = medY;
+}
+
+function renderLegend(){
+  const counts = S._byQuad || {};
+  document.getElementById('qlegend').innerHTML = ['伸ばす','様子見','直す','捨てる'].map(q=>
+    `<button data-q="${q}" class="${S.quadFilter===q?'on':''}" title="${QUADS[q].why}">
+       <span class="dot" style="background:${QUADS[q].c}"></span>${q}
+       <span style="color:var(--text3)">${(counts[q]||[]).length}</span>
+     </button>`).join('');
+  document.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>{
+    S.quadFilter = S.quadFilter===b.dataset.q ? null : b.dataset.q;
+    renderQuad(); renderTable(); renderLegend();
+  });
+}
+
+function visibleCols(){
+  return COLS.filter(c=>!c.grp || S.groups.has(c.grp));
+}
+
+function currentQuad(r){
+  // 表の象限は、いま選んでいる縦軸で計算し直す（CSVの固定値ではなく画面の軸に従う）
+  const x=num(r['累計PV']), y=num(r[S.axis]);
+  if(!(x>0) || y==null) return '判定不可';
+  return y>=S._medY ? (x>=S._medX?'伸ばす':'様子見') : (x>=S._medX?'直す':'捨てる');
+}
+
+function renderTable(){
+  const cols = visibleCols();
+  let rows = S.rows.map(r=>({...r, _q:currentQuad(r)}));
+  if(S.quadFilter) rows = rows.filter(r=>r._q===S.quadFilter);
+  if(S.q){ const q=S.q.toLowerCase(); rows = rows.filter(r=>String(r.title||'').toLowerCase().includes(q)); }
+
+  const k=S.sort.k, dir=S.sort.dir;
+  rows.sort((a,b)=>{
+    const av=num(a[k]), bv=num(b[k]);
+    if(av==null&&bv==null) return 0;
+    if(av==null) return 1; if(bv==null) return -1;   // 欠測は常に末尾
+    return (av-bv)*dir;
+  });
+
+  document.getElementById('thead').innerHTML = '<tr>' + cols.map(c=>
+    `<th data-k="${c.k}" class="${c.k===k?'sorted':''}">${c.t}${c.k===k?(dir<0?' ▼':' ▲'):''}</th>`).join('') + '</tr>';
+
+  const style = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  document.getElementById('tbody').innerHTML = rows.slice(0,200).map(r=>'<tr>' + cols.map(c=>{
+    if(c.kind==='quad'){
+      const col = QUADS[r._q].c;
+      return `<td><span class="qtag" style="color:${col};background:${style(col)}22">${r._q}</span></td>`;
+    }
+    if(c.kind==='title') return `<td><div class="t-title" title="${esc(r.title)}">${esc(r.title)}</div></td>`;
+    const v = num(r[c.k]);
+    return `<td>${v==null?'—':(c.pct?(v*100).toFixed(1)+'%':fmt(v))}</td>`;
+  }).join('') + '</tr>').join('');
+
+  document.getElementById('tbl-count').textContent =
+    `${rows.length}本を表示${rows.length>200?'（上位200本まで描画）':''}`
+    + (S.quadFilter?` ／ 象限「${S.quadFilter}」で絞り込み中`:'');
+  document.getElementById('tbl-foot').innerHTML =
+    `象限は<b>いま選んでいる縦軸</b>で計算し直しています。軸を変えると分類も変わります。`
+    + ` 値が無い項目は「—」で、並べ替えでは常に末尾に送ります。`;
+
+  document.querySelectorAll('th[data-k]').forEach(th=>th.onclick=()=>{
+    const kk=th.dataset.k;
+    S.sort = (S.sort.k===kk) ? {k:kk,dir:-S.sort.dir} : {k:kk,dir:-1};
+    renderTable();
+  });
+}
+
+/* ══ 起動 ══ */
+async function init(){
+  try{
+    const [idx, daily] = await Promise.all([fetchCSV('article_index'), fetchCSV('daily_summary')]);
+    S.rows = idx; S.daily = daily;
+
+    // 表ごとに基準日が違う（週次・月次は数日遅れることがある）。
+    // 一番古い基準日を出して、見ている数字がいつ時点かを隠さない。
+    const asof = idx[0]?.['基準日_最古'] || idx[0]?.['集計日'] || '—';
+    const newest = idx[0]?.['集計日'] || '—';
+    document.getElementById('asof').textContent =
+      asof===newest ? `as of ${newest}` : `as of ${newest}（一部 ${asof}）`;
+
+    renderToday();
+    renderAxisButtons(); renderQuad(); renderLegend(); renderTable();
+  }catch(e){
+    console.error(e);
+    document.getElementById('today-cards').innerHTML =
+      `<div class="empty">データを読み込めませんでした: ${esc(e.message)}<br>
+       article_index.csv が配信されていない可能性があります。</div>`;
+  }
+}
+
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));
+  t.classList.add('on');
+  document.getElementById('view-'+t.dataset.view).classList.add('on');
+  if(t.dataset.view==='decide' && quadChart) quadChart.resize();
+});
+document.querySelectorAll('[data-grp]').forEach(b=>b.onclick=()=>{
+  const g=b.dataset.grp;
+  if(S.groups.has(g)) S.groups.delete(g); else S.groups.add(g);
+  b.classList.toggle('on'); renderTable();
+});
+document.getElementById('q').addEventListener('input', e=>{ S.q=e.target.value; renderTable(); });
+document.getElementById('reset').onclick=()=>{
+  S.quadFilter=null; S.q=''; document.getElementById('q').value='';
+  renderQuad(); renderLegend(); renderTable();
+};
+
+init();
+</script>
+</body>
+</html>
